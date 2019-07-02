@@ -1,2 +1,2 @@
 # kassa_system
-creating a cassa with kivy
+creating a kassa with kivy
