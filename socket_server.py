@@ -22,6 +22,8 @@ server_socket.listen()
 sockets_list = [server_socket]
 connecties = {} #socket:naam --> komt van allereerste bericht dat we zullen ontvangen
 
+print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
+
 #verwerkt de data
 def handles_message(client_socket):
     try:
