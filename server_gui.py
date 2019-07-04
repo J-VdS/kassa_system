@@ -36,51 +36,52 @@ def _update_rect(self, instance, value):
 '''
 #label
 #https://pythonprogramming.net/finishing-chat-application-kivy-application-python-tutorial/
-class ScrollableLabel(ScrollView):
+#https://kivy.org/doc/stable/api-kivy.uix.scrollview.html
+"""class ScrollableLabel(ScrollView):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.do_scroll_x = False
-        self.do_scroll_y = True
-        text = ''.join([str(i)+'\n' for i in range(40)])
-        self.add_widget(Label(text=text))
-        
-        
-        
-        '''
-        self.layout = GridLayout(cols=4, size_hint_y=None)
-        self.add_widget(self.layout)
-        
+        self.layout = GridLayout(cols=4, spacing=5, size_hint_y=None)
+        #opl voor de scrollfunctie, anders werkte deze niet
+        self.layout.bind(minimum_height=self.layout.setter('height'))
        
         self.naam = Label(
                 text="[b][u]NAAM[/b][/u]",
                 size_hint_y=None,
                 markup=True,
-                font_size=15)
+                font_size=15,
+                height=20)
         self.type = Label(
                 text="[b][u]TYPE[/b][/u]",
                 size_hint_y=None,
                 markup=True,
-                font_size=15)
+                font_size=15,
+                height=20)
         self.prijs =  Label(
                 text="[b][u]PRIJS[/b][/u]",
                 size_hint_y=None,
                 markup=True,
-                font_size=15)
+                font_size=15,
+                height=20)
         self.zichtbaarheid =  Label(
                 text="[b][u]ZICHTBAARHEID[/b][/u]",
                 size_hint_y=None,
                 markup=True,
-                font_size=15)        
+                font_size=15,
+                height=20)
 
         self.layout.add_widget(self.naam)
         self.layout.add_widget(self.type)
         self.layout.add_widget(self.prijs)
         self.layout.add_widget(self.zichtbaarheid)
         
-    
+        self.add_product()
+        
+    #werkt nog niet
     def add_product(self, product={'naam':'test'}):
         #product = {naam:..., type:..., prijs:..., zichtbaar:...}
         #self.producten.text += '\n' + product
+
+        '''
         self.naam.text += '\n' + product.get('naam', '***')
         self.type.text += '\n' + product.get('type', '***')
         self.prijs.text += '\n' + str(product.get('prijs', '***'))
@@ -92,9 +93,49 @@ class ScrollableLabel(ScrollView):
         for element in [self.naam, self.type, self.prijs, self.zichtbaarheid]:
             element.height = element.texture_size[1]
             element.text_size = (element.width * 0.98, None)
+        '''
+"""
+class ScrollableLabel(ScrollView):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        # ScrollView does not allow us to add more than one widget, so we need to trick it
+        # by creating a layout and placing two widgets inside it
+        # Layout is going to have one collumn and and size_hint_y set to None,
+        # so height wo't default to any size (we are going to set it on our own)
+        self.layout = GridLayout(cols=2, size_hint_y=None)
+        self.add_widget(self.layout)
+
+        # Now we need two wodgets - Label for chat history and 'artificial' widget below
+        # so we can scroll to it every new message and keep new messages visible
+        # We want to enable markup, so we can set colors for example
+        self.chat_history = Label(size_hint_y=None, markup=True, halign="center")
+        self.chat_history2 = Label(size_hint_y=None, markup=True, halign="center") #test
+
+        # We add them to our layout
+        self.layout.add_widget(self.chat_history)
+        self.layout.add_widget(self.chat_history2)
         
-        self.scroll_to(self.goto)
-    '''
+        
+    # Methos called externally to add new message to the chat history
+    def update_chat_history(self, message):
+
+        # First add new line and message itself
+        self.chat_history.text += '\n' + message
+        self.chat_history2.text += '\n' + message
+    
+
+        # Set layout height to whatever height of chat history text is + 15 pixels
+        # (adds a bit of space at teh bottom)
+        # Set chat history label to whatever height of chat history text is
+        # Set width of chat history text to 98 of the label width (adds small margins)
+        self.layout.height = self.chat_history.texture_size[1] + 15
+        self.chat_history.height = self.chat_history.texture_size[1]
+        self.chat_history2.height = self.chat_history2.texture_size[1]
+        self.chat_history.text_size = (self.chat_history.width * 0.98, None)
+        self.chat_history2.text_size = (self.chat_history2.width * 0.98, None)
+        
 #schermen
 class HoofdScherm(GridLayout):
     def __init__(self, **kwargs):
@@ -310,7 +351,7 @@ class ProductBar(BoxLayout):
         grid.add_widget(verwijder_grid)
         
         knop = Button(text="verwijder", font_size=20, size_hint_y=0.4)
-        #knop.bind(on_press=) #TODO
+        knop.bind(on_press=self.test) #TODO
         grid.add_widget(knop)
 
         #zichtbaarheid
@@ -346,6 +387,9 @@ class ProductBar(BoxLayout):
         '''
         obj.text_size = (obj.width * .9, None)
     
+    
+    def test(self, _):
+        gui.productscherm.history.update_chat_history(self.verwijder_naam.text)
         
  #random       
 class scherm1(GridLayout):
