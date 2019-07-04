@@ -10,13 +10,10 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scrollview import ScrollView
 
 from kivy.core.window import Window
-from kivy.config import Config
-
-#fullscreen
-Config.set('graphics', 'window_state', 'maximized')
-Config.set('graphics', 'fullscreen', 'auto')
+from kivy.clock import Clock
 
 kivy.require("1.10.1")
 
@@ -37,6 +34,67 @@ def _update_rect(self, instance, value):
 
 
 '''
+#label
+#https://pythonprogramming.net/finishing-chat-application-kivy-application-python-tutorial/
+class ScrollableLabel(ScrollView):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.do_scroll_x = False
+        self.do_scroll_y = True
+        text = ''.join([str(i)+'\n' for i in range(40)])
+        self.add_widget(Label(text=text))
+        
+        
+        
+        '''
+        self.layout = GridLayout(cols=4, size_hint_y=None)
+        self.add_widget(self.layout)
+        
+       
+        self.naam = Label(
+                text="[b][u]NAAM[/b][/u]",
+                size_hint_y=None,
+                markup=True,
+                font_size=15)
+        self.type = Label(
+                text="[b][u]TYPE[/b][/u]",
+                size_hint_y=None,
+                markup=True,
+                font_size=15)
+        self.prijs =  Label(
+                text="[b][u]PRIJS[/b][/u]",
+                size_hint_y=None,
+                markup=True,
+                font_size=15)
+        self.zichtbaarheid =  Label(
+                text="[b][u]ZICHTBAARHEID[/b][/u]",
+                size_hint_y=None,
+                markup=True,
+                font_size=15)        
+
+        self.layout.add_widget(self.naam)
+        self.layout.add_widget(self.type)
+        self.layout.add_widget(self.prijs)
+        self.layout.add_widget(self.zichtbaarheid)
+        
+    
+    def add_product(self, product={'naam':'test'}):
+        #product = {naam:..., type:..., prijs:..., zichtbaar:...}
+        #self.producten.text += '\n' + product
+        self.naam.text += '\n' + product.get('naam', '***')
+        self.type.text += '\n' + product.get('type', '***')
+        self.prijs.text += '\n' + str(product.get('prijs', '***'))
+        self.zichtbaarheid.text += '\n' + product.get('zichtbaar', '***')
+        
+        
+        self.layout.height = self.naam.texture_size[1] + 15
+        
+        for element in [self.naam, self.type, self.prijs, self.zichtbaarheid]:
+            element.height = element.texture_size[1]
+            element.text_size = (element.width * 0.98, None)
+        
+        self.scroll_to(self.goto)
+    '''
 #schermen
 class HoofdScherm(GridLayout):
     def __init__(self, **kwargs):
@@ -58,6 +116,7 @@ class ProductScherm(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
+        self.rows = 3
 
         #navigatiebar
         self.navbar = NavigatieBar(huidig="product")
@@ -68,14 +127,15 @@ class ProductScherm(GridLayout):
         self.add_widget(self.productbar)
         
         #producten, scrollable label --> zal mss een layout moeten worden
-        #self.add_widget(Label())
+        self.history = ScrollableLabel(height=Window.size[1]*0.4, size_hint_y=None)
+        self.add_widget(self.history)
 #bars
 class NavigatieBar(BoxLayout):
     def __init__(self, huidig="hoofd", **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'horizontal'
         self.spacing = 5
-        self.size_hint_y =  0.1
+        self.size_hint_y =  0.2
         self.padding = [10, 10] #padding horiz, padding width
         
         self.home_knop = Button(
@@ -140,7 +200,7 @@ class ProductBar(BoxLayout):
         
         
     def _add_product_blok(self):
-        grid = GridLayout(cols=1)
+        grid = GridLayout(cols=1, spacing=[5,10])
         grid.add_widget(Label(
                 text="Voeg een product toe",
                 size_hint_y=0.2, #check
@@ -151,7 +211,7 @@ class ProductBar(BoxLayout):
         info_grid.add_widget(Label(text="type:"))
         self.add_type = Spinner(
                 text="-",
-                values=("drank", "gerecht", "dessert", "divers", "pensen")
+                values=("drank", "gerecht", "dessert", "divers", "pensen"),
                 )
         info_grid.add_widget(self.add_type)
         
@@ -159,11 +219,11 @@ class ProductBar(BoxLayout):
         self.add_naam = TextInput(multiline=False)
         info_grid.add_widget(self.add_naam)
         
-        info_grid.add_widget(Label(text="prijs"))
+        info_grid.add_widget(Label(text="prijs:"))
         self.add_prijs = TextInput(multiline=False)
         info_grid.add_widget(self.add_prijs)
         
-        info_grid.add_widget(Label(text="zichtbaar"))
+        info_grid.add_widget(Label(text="zichtbaar?"))
         self.add_zichtbaar = Spinner(
                 text="Ja",
                 values=("Ja", "Enkel voor kassa", "Nee")
@@ -178,19 +238,19 @@ class ProductBar(BoxLayout):
     
     
     def _bewerk_product_blok(self):
-        grid = GridLayout(cols=1)
+        grid = GridLayout(cols=1, spacing=[5,10])
         grid.add_widget(Label(
                 text="Bewerk een product",
-                size_hint_y=0.15, #check
+                size_hint_y=0.2, #check
                 font_size=20
                 ))
         label = Label(
                 text="Je kan een product bewerken door de naam van het product in te geven.Indien je de naam wil bewerken maak je best een nieuw product aan en verwijder je het andere.",
-                split_str=' ',
                 size_hint_y = 0.2,
                 valign='top',
                 halign='left'
-                ))
+                )
+        label.bind(width=self.update_text_width)
         grid.add_widget(label)
         
         info_grid = GridLayout(cols=2)
@@ -206,11 +266,11 @@ class ProductBar(BoxLayout):
                )
         info_grid.add_widget(self.bewerk_type)
         
-        info_grid.add_widget(Label(text="prijs"))
+        info_grid.add_widget(Label(text="prijs:"))
         self.bewerk_prijs = TextInput(multiline=False)
         info_grid.add_widget(self.bewerk_prijs)
         
-        info_grid.add_widget(Label(text="zichtbaar"))
+        info_grid.add_widget(Label(text="zichtbaar?"))
         self.bewerk_zichtbaar = Spinner(
                 text="Ja",
                 values=("Ja", "Enkel voor kassa", "Nee")
@@ -226,13 +286,22 @@ class ProductBar(BoxLayout):
         
     
     def _zichtbaar_verwijder_blok(self):
-        grid = GridLayout(cols=1)
+        grid = GridLayout(cols=1, spacing=[5,10])
         ''' verwijderblok '''
         grid.add_widget(Label(
                 text="Verwijder",
-                size_hint_y=0.1, #check
+                size_hint_y=0.2, #check
                 font_size=20
                 ))
+        label = Label(
+                text="Je kan een product enkel verwijderen via naam. [color=#ff0000]Dit kan je niet ongedaan maken.[/color]",
+                size_hint_y=0.2,
+                valign='top',
+                halign='left',
+                markup=True
+                )
+        label.bind(width=self.update_text_width)
+        grid.add_widget(label)
         verwijder_grid = GridLayout(cols=2)
         verwijder_grid.add_widget(Label(text="naam:"))
         self.verwijder_naam = TextInput(multiline=False)
@@ -240,14 +309,14 @@ class ProductBar(BoxLayout):
         
         grid.add_widget(verwijder_grid)
         
-        knop = Button(text="verwijder", font_size=20)
+        knop = Button(text="verwijder", font_size=20, size_hint_y=0.4)
         #knop.bind(on_press=) #TODO
         grid.add_widget(knop)
 
         #zichtbaarheid
         grid.add_widget(Label(
                 text="Zichtbaarheid",
-                size_hint_y=0.15,
+                size_hint_max_y=0.2,
                 font_size=20
                 ))
         zichtbaar_grid = GridLayout(cols=2)
@@ -255,7 +324,7 @@ class ProductBar(BoxLayout):
         self.zichtbaar_grid = TextInput(multiline=False)
         zichtbaar_grid.add_widget(self.zichtbaar_grid)
         
-        zichtbaar_grid.add_widget(Label(text="zichtbaar"))
+        zichtbaar_grid.add_widget(Label(text="zichtbaar?"))
         self.zichtbaar_zichtbaar = Spinner(
                 text="Ja",
                 values=("Ja", "Enkel voor kassa", "Nee")
@@ -269,6 +338,13 @@ class ProductBar(BoxLayout):
         grid.add_widget(knop)
         
         return grid   
+
+    
+    def update_text_width(self, obj, _):
+        '''
+            Dit is noodzakelijk voor automatische multiline
+        '''
+        obj.text_size = (obj.width * .9, None)
     
         
  #random       
@@ -304,5 +380,6 @@ class ServerGui(App):
 if __name__ == "__main__":
     #fullscreen
     #Window.fullscreen = "auto"
+    Window.maximize()
     gui = ServerGui()
     gui.run()
