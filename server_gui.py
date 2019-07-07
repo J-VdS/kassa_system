@@ -64,7 +64,7 @@ class LijstLabel(ScrollView):
         # by creating a layout and placing two widgets inside it
         # Layout is going to have one collumn and and size_hint_y set to None,
         # so height wo't default to any size (we are going to set it on our own)
-        self.layout = GridLayout(cols=4, size_hint_y=None)
+        self.layout = GridLayout(size_hint_y=None, cols=4)
         self.add_widget(self.layout)
 
         # Now we need two wodgets - Label for chat history and 'artificial' widget below
@@ -81,6 +81,8 @@ class LijstLabel(ScrollView):
 
         for el in self.list:
             self.layout.add_widget(el)
+
+            
         #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
         #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
         
