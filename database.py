@@ -2,6 +2,7 @@
 import sqlite3
 from pickle import loads, dumps
 #import time
+import func
 
 
 def CloseIO(db_io):
@@ -47,7 +48,12 @@ def AddProduct(db_io, type, naam, prijs, active):
     except Exception as e:
         print("\n\n --- AddProduct error ---\n\n" + str(e))
         return -2
-        
+
+def getAllProduct(db_io):
+    conn, c = db_io
+    c.execute("SELECT type, naam, prijs, active FROM producten ORDER BY naam COLLATE NOCASE ASC")
+    data = c.fetchall()
+    return data
 
 #old
 def loadTables(db):

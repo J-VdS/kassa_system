@@ -4,7 +4,6 @@
 import socket
 import sys
 import select
-import queue
 
 
 HEADERLENGTH = 10
