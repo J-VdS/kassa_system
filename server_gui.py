@@ -49,47 +49,60 @@ class ScrollableLabel(ScrollView):
         # by creating a layout and placing two widgets inside it
         # Layout is going to have one collumn and and size_hint_y set to None,
         # so height wo't default to any size (we are going to set it on our own)
-        self.layout = GridLayout(cols=2, size_hint_y=None)
+        self.layout = GridLayout(cols=4, size_hint_y=None)
         self.add_widget(self.layout)
 
         # Now we need two wodgets - Label for chat history and 'artificial' widget below
         # so we can scroll to it every new message and keep new messages visible
         # We want to enable markup, so we can set colors for example
-        self.chat_history = Label(size_hint_y=None, markup=True, halign="center")
-        self.chat_history2 = Label(size_hint_y=None, markup=True, halign="center") #test
+        self.naam = Label(size_hint_y=None, markup=True, halign="center", font_size=18)
+        self.type = Label(size_hint_y=None, markup=True, halign="center", font_size=18)
+        self.prijs = Label(size_hint_y=None, markup=True, halign="center", font_size=18)
+        self.zichtbaar = Label(size_hint_y=None, markup=True, halign="center", font_size=18) #test
 
         # We add them to our layout
-        self.layout.add_widget(self.chat_history)
-        self.layout.add_widget(self.chat_history2)
-        
+        self.list = [self.naam, self.type, self.prijs, self.zichtbaar]
+
+        for el in self.list:
+            self.layout.add_widget(el)
         #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
         #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
-        #Clock.schedule_interval(self.printhet, 0.1) 
+        Clock.schedule_once(
+                lambda dt: self.update_chat_history({'naam':'NAAM:', 'type':'TYPE:', 'prijs':'PRIJS:', 'zichtbaar':'ZICHTBAAR:'}),
+                0.1) 
         
-        
-        
+                
     # Methos called externally to add new message to the chat history
-    def update_chat_history(self, message):
+    def update_chat_history(self, product):
         #we kunnen geen nieuw label maken, dit zal voor problemen zorgen
         #ook kunnen we update_chat_history pas oproepen als het scherm getekent wordt
 
         # First add new line and message itself
-        self.chat_history.text += '\n' + message
-        self.chat_history2.text += '\n' + message
+        self.naam.text += '\n' + product['naam']
+        self.type.text += '\n' + product['type']
+        self.prijs.text += '\n' + str(product['prijs'])
+        self.zichtbaar.text += '\n' + str(product['zichtbaar'])
     
 
-        # Set layout height to whatever height of chat history text is + 15 pixels
-        # (adds a bit of space at teh bottom)
+        # Set layout height to whatever height of self.naam text is + 15 pixels
+        # (adds a bit of space at the bottom)
         # Set chat history label to whatever height of chat history text is
         # Set width of chat history text to 98 of the label width (adds small margins)
-        self.layout.height = self.chat_history.texture_size[1] + 15
+        self.layout.height = self.naam.texture_size[1] + 15
+        for el in self.list:
+            el.height = el.texture_size[1]
+            #el.text_size = (el.width * 0.98, None) #kan later problemen geven
+    '''
         self.chat_history.height = self.chat_history.texture_size[1]
         self.chat_history2.height = self.chat_history2.texture_size[1]
         self.chat_history.text_size = (self.chat_history.width * 0.98, None)
         self.chat_history2.text_size = (self.chat_history2.width * 0.98, None)
         
+        
     def printhet(self, *__):
         self.update_chat_history("test")
+    '''
+        
         
 #schermen
 class HoofdScherm(GridLayout):
@@ -203,7 +216,7 @@ class ProductBar(BoxLayout):
         self.db_io = None #database.InitProduct(global_vars.db)
         
     def set_lijst_bar(self, disp):
-        self.lijst_bar = self.disp
+        self.lijst_bar = disp
     
     def _add_product_blok(self):
         grid = GridLayout(cols=1, spacing=[5,10])
@@ -354,7 +367,7 @@ class ProductBar(BoxLayout):
     
     
     def _add_product(self, _):
-        anaam = self.add_naam.text.strip()
+        anaam = self.add_naam.text.strip().lower()
         atype = self.add_type.text
         aprijs = self.add_prijs.text.strip()
         azicht = self.add_zichtbaar.text
@@ -375,7 +388,8 @@ class ProductBar(BoxLayout):
                 if  ret == 0:
                     #popup succes
                     print("succes")
-                    #reset de velden
+                    #print ook bij op het scherm
+                    Clock.schedule_once(lambda dt: self.lijst_bar.update_chat_history(func.to_dict(atype, anaam, aprijs, azicht)), 0.1)
                 else:
                     print(ret)
                 
@@ -387,7 +401,7 @@ class ProductBar(BoxLayout):
                 self.add_naam.text = ""
                 self.add_type.text = "-"
                 self.add_prijs.text = ""
-                self.azicht.text = "Ja"
+                self.add_zichtbaar.text = "Ja"
         database.CloseIO(self.db_io)
     
     def test(self, _):
