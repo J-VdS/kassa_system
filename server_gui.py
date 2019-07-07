@@ -54,7 +54,7 @@ class LijstLabel(ScrollView):
 
         with self.canvas.before:
             #rgba
-            Color(1, 1, 1, 1)  # green; colors range from 0-1 instead of 0-255
+            Color(220/255, 220/255, 230/255, 1)  # green; colors range from 0-1 instead of 0-255
             self.rect = Rectangle(size=self.size, pos=self.pos)
 
         self.bind(size=self._update_rect, pos=self._update_rect)
