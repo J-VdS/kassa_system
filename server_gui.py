@@ -3,6 +3,7 @@ from kivy.app import App
 #achtergrond
 from kivy.graphics import Color, Rectangle
 
+#uix
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
@@ -14,6 +15,10 @@ from kivy.uix.scrollview import ScrollView
 
 from kivy.core.window import Window
 from kivy.clock import Clock
+
+import database
+import global_vars
+import func
 
 kivy.require("1.10.1")
 
@@ -34,67 +39,7 @@ def _update_rect(self, instance, value):
 
 
 '''
-#label
-#https://pythonprogramming.net/finishing-chat-application-kivy-application-python-tutorial/
-#https://kivy.org/doc/stable/api-kivy.uix.scrollview.html
-"""class ScrollableLabel(ScrollView):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.layout = GridLayout(cols=4, spacing=5, size_hint_y=None)
-        #opl voor de scrollfunctie, anders werkte deze niet
-        self.layout.bind(minimum_height=self.layout.setter('height'))
-       
-        self.naam = Label(
-                text="[b][u]NAAM[/b][/u]",
-                size_hint_y=None,
-                markup=True,
-                font_size=15,
-                height=20)
-        self.type = Label(
-                text="[b][u]TYPE[/b][/u]",
-                size_hint_y=None,
-                markup=True,
-                font_size=15,
-                height=20)
-        self.prijs =  Label(
-                text="[b][u]PRIJS[/b][/u]",
-                size_hint_y=None,
-                markup=True,
-                font_size=15,
-                height=20)
-        self.zichtbaarheid =  Label(
-                text="[b][u]ZICHTBAARHEID[/b][/u]",
-                size_hint_y=None,
-                markup=True,
-                font_size=15,
-                height=20)
 
-        self.layout.add_widget(self.naam)
-        self.layout.add_widget(self.type)
-        self.layout.add_widget(self.prijs)
-        self.layout.add_widget(self.zichtbaarheid)
-        
-        self.add_product()
-        
-    #werkt nog niet
-    def add_product(self, product={'naam':'test'}):
-        #product = {naam:..., type:..., prijs:..., zichtbaar:...}
-        #self.producten.text += '\n' + product
-
-        '''
-        self.naam.text += '\n' + product.get('naam', '***')
-        self.type.text += '\n' + product.get('type', '***')
-        self.prijs.text += '\n' + str(product.get('prijs', '***'))
-        self.zichtbaarheid.text += '\n' + product.get('zichtbaar', '***')
-        
-        
-        self.layout.height = self.naam.texture_size[1] + 15
-        
-        for element in [self.naam, self.type, self.prijs, self.zichtbaarheid]:
-            element.height = element.texture_size[1]
-            element.text_size = (element.width * 0.98, None)
-        '''
-"""
 class ScrollableLabel(ScrollView):
 
     def __init__(self, **kwargs):
@@ -117,9 +62,16 @@ class ScrollableLabel(ScrollView):
         self.layout.add_widget(self.chat_history)
         self.layout.add_widget(self.chat_history2)
         
+        #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
+        #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
+        #Clock.schedule_interval(self.printhet, 0.1) 
+        
+        
         
     # Methos called externally to add new message to the chat history
     def update_chat_history(self, message):
+        #we kunnen geen nieuw label maken, dit zal voor problemen zorgen
+        #ook kunnen we update_chat_history pas oproepen als het scherm getekent wordt
 
         # First add new line and message itself
         self.chat_history.text += '\n' + message
@@ -135,6 +87,9 @@ class ScrollableLabel(ScrollView):
         self.chat_history2.height = self.chat_history2.texture_size[1]
         self.chat_history.text_size = (self.chat_history.width * 0.98, None)
         self.chat_history2.text_size = (self.chat_history2.width * 0.98, None)
+        
+    def printhet(self, *__):
+        self.update_chat_history("test")
         
 #schermen
 class HoofdScherm(GridLayout):
@@ -170,6 +125,11 @@ class ProductScherm(GridLayout):
         #producten, scrollable label --> zal mss een layout moeten worden
         self.history = ScrollableLabel(height=Window.size[1]*0.4, size_hint_y=None)
         self.add_widget(self.history)
+        
+        
+        self.productbar.set_lijst_bar(self.history)
+        
+        
 #bars
 class NavigatieBar(BoxLayout):
     def __init__(self, huidig="hoofd", **kwargs):
@@ -239,7 +199,12 @@ class ProductBar(BoxLayout):
         self.add_widget(self._bewerk_product_blok())
         self.add_widget(self._zichtbaar_verwijder_blok())
         
+        #database_interactie
+        self.db_io = None #database.InitProduct(global_vars.db)
         
+    def set_lijst_bar(self, disp):
+        self.lijst_bar = self.disp
+    
     def _add_product_blok(self):
         grid = GridLayout(cols=1, spacing=[5,10])
         grid.add_widget(Label(
@@ -273,7 +238,7 @@ class ProductBar(BoxLayout):
         
         grid.add_widget(info_grid)
         knop = Button(text="toevoegen", font_size=20)
-        #knop.bind(on_press=) #TODO
+        knop.bind(on_press=self._add_product)
         grid.add_widget(knop)
         return grid
     
@@ -374,7 +339,7 @@ class ProductBar(BoxLayout):
         
         grid.add_widget(zichtbaar_grid)                
         
-        knop = Button(text="zichtbaarheid\naanpassen", font_size=20)
+        knop = Button(text="aanpassen", font_size=20)
         #knop.bind(on_press=) #TODO
         grid.add_widget(knop)
         
@@ -387,6 +352,43 @@ class ProductBar(BoxLayout):
         '''
         obj.text_size = (obj.width * .9, None)
     
+    
+    def _add_product(self, _):
+        anaam = self.add_naam.text.strip()
+        atype = self.add_type.text
+        aprijs = self.add_prijs.text.strip()
+        azicht = self.add_zichtbaar.text
+        #remove
+        self.db_io = database.InitProduct(global_vars.db)
+        
+        
+        if (anaam == "")+(atype == "-")+(aprijs == ""):
+            #TODO: maak een popup "vul alle velden in"
+            print("vul alle velden in")
+        elif not func.is_number(aprijs):
+            #TODO: maak een popup met ongeldig getal (gebruik '.')
+            pass
+        else:
+            try:
+                azicht = global_vars.zichtbaar_int.index(azicht)
+                ret = database.AddProduct(self.db_io, atype, anaam, aprijs, azicht)
+                if  ret == 0:
+                    #popup succes
+                    print("succes")
+                    #reset de velden
+                else:
+                    print(ret)
+                
+            except Exception as e:
+                #popup error
+                print(e)
+            finally:
+                #reset de velden
+                self.add_naam.text = ""
+                self.add_type.text = "-"
+                self.add_prijs.text = ""
+                self.azicht.text = "Ja"
+        database.CloseIO(self.db_io)
     
     def test(self, _):
         gui.productscherm.history.update_chat_history(self.verwijder_naam.text)
