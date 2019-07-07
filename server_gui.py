@@ -86,18 +86,10 @@ class LijstLabel(ScrollView):
         #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
         #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
         
-        self.stopped_loop = True
-        self.dq = deque()
-        self.dq.append(func.to_dict("[b][u]TYPE:[/b][/u]",
-                                    "[b][u]NAAM:[/b][/u]",
-                                    "[b][u]PRIJS:[/b][/u]",
-                                    "[b][u]ZICHTBAAR:[/b][/u]"))
-        db_io = database.InitProduct(global_vars.db)
-        for i in database.getAllProduct(db_io):
-            self.add_queue(func.to_dict(*i))
-        database.CloseIO(db_io)
+        #data inladen
+        Clock.schedule_once(self.update_from_db,1)
             
-    # Methos called externally to add new message to the chat history
+    # Methos called externally to add new message to the chat history  
     def update_chat_history(self, product, _):
         #we kunnen geen nieuw label maken, dit zal voor problemen zorgen
         #ook kunnen we update_chat_history pas oproepen als het scherm getekent wordt
@@ -116,20 +108,23 @@ class LijstLabel(ScrollView):
         # (adds a bit of space at the bottom)
         # Set chat history label to whatever height of chat history text is
         # Set width of chat history text to 98 of the label width (adds small margins)
-        self.layout.height = self.naam.texture_size[1] + 15
+        self.layout.height = self.naam.texture_size[1] + global_vars.expand_size
         for el in self.list:
             el.height = el.texture_size[1]
             #el.text_size = (el.width * 0.98, None) #kan later problemen geven
-    '''
-        self.chat_history.height = self.chat_history.texture_size[1]
-        self.chat_history2.height = self.chat_history2.texture_size[1]
-        self.chat_history.text_size = (self.chat_history.width * 0.98, None)
-        self.chat_history2.text_size = (self.chat_history2.width * 0.98, None)
-        
-        
-    def printhet(self, *__):
-        self.update_chat_history("test")
-    '''
+        print(self.naam.text.count('\n'))
+    
+    
+    def verklein_update_list(self, aantal=-1):
+        if (aantal == -1):
+            aantal = self.naam.text.count('\n')
+        for el in self.list:
+            el.text = "".join([i+'\n' for i in el.text.split('\n')][:-aantal])
+            
+        self.layout.height = self.naam.texture_size[1] - global_vars.expand_size*aantal
+        for el in self.list:
+            el.height = el.texture_size[1]
+                    
     
     def add_update_list(self, _=None):
         #☼https://github.com/kivy/kivy/issues/1317
@@ -141,21 +136,40 @@ class LijstLabel(ScrollView):
         else:
             self.stopped_loop = True
         
+        
     def add_queue(self, product):
         self.dq.append(product)
         if self.stopped_loop:
             self.stopped_loop = False
             self.add_update_list()
+            
     
     def extend_queue(self, product_queue):
         self.dq.extend(product_queue)
         if self.stopped_loop:
             self.stopped_loop = False
             self.add_update_list()
+            
     
     def _update_rect(self, instance, value):
         self.rect.pos = instance.pos
         self.rect.size = instance.size
+    
+    
+    def update_from_db(self, _):
+        self.stopped_loop = True
+        self.dq = deque()
+        self.dq.append(func.to_dict("[b][u]TYPE:[/b][/u]",
+                                    "[b][u]NAAM:[/b][/u]",
+                                    "[b][u]PRIJS:[/b][/u]",
+                                    "[b][u]ZICHTBAAR:[/b][/u]"))
+        db_io = database.InitProduct(global_vars.db)
+        for i in database.getAllProduct(db_io):
+            self.add_queue(func.to_dict(*i))
+        database.CloseIO(db_io)
+        #remove
+        Clock.schedule_once(lambda dt:self.verklein_update_list(2), 5)
+        
         
 
 #schermen
@@ -353,7 +367,7 @@ class ProductBar(BoxLayout):
         self.bewerk_type = Spinner(
                 text="-",
                 values=("drank", "gerecht", "dessert", "divers", "pensen"),
-                font_size=15
+                font_size=17
                )
         info_grid.add_widget(self.bewerk_type)
         

@@ -55,6 +55,15 @@ def getAllProduct(db_io):
     data = c.fetchall()
     return data
 
+def editProduct(db_io, naam, type, prijs, active):
+    conn, c = db_io
+    c.execute("SELECT * FROM producten WHERE naam = ?", (naam,))
+    if not c.fetchone():
+        return -1 #product niet in db
+    else:
+        c.execute("UPDATE producten SET type = ?, prijs = ?, active = ? WHERE naam = ?", (type, prijs, active, naam))
+        conn.commit()
+        return 0
 #old
 def loadTables(db):
 	conn = sqlite3.connect(db)
@@ -67,22 +76,6 @@ def loadTables(db):
 	conn.close()
 	print("succes")
 	return 0
-	
-def addGerecht(db, type, naam, prijs, active=0, locatie=0):
-	conn = sqlite3.connect(db)
-	c = conn.cursor()
-	c.execute("SELECT naam FROM items")
-	try:
-		if naam in [row[0] for row in c.fetchall()]:
-			c.close()
-			return -1 #reeds in tabel! Geef foutmelding!
-		else:
-			c.execute("INSERT INTO items VALUES(?,?,?,?,?)",(type, naam, prijs, active, locatie))
-			conn.commit()
-			c.close()
-			return 0
-	except:
-		return -2
 		
 def editGerecht(db, naam, type, prijs, active=0, locatie=0):
 	conn = sqlite3.connect(db)
