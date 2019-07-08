@@ -29,6 +29,15 @@ import func
 kivy.require("1.10.1")
 
 '''
+#logging
+import sys
+sys.stderr = open('output.txt', 'w')
+sys.stdout = sys.stderr
+
+from kivy.logger import LoggerHistory
+print('\n'.join([str(l) for l in LoggerHistory.history]))
+'''
+'''
 def __init__(self, *):
     #achtergrondkleur
         with self.canvas.before:
@@ -59,7 +68,9 @@ class LijstLabel(ScrollView):
 
         self.bind(size=self._update_rect, pos=self._update_rect)
 
-
+        #Scrollview attributen
+        self.bar_width = 5
+        
         # ScrollView does not allow us to add more than one widget, so we need to trick it
         # by creating a layout and placing two widgets inside it
         # Layout is going to have one collumn and and size_hint_y set to None,
@@ -112,10 +123,9 @@ class LijstLabel(ScrollView):
         for el in self.list:
             el.height = el.texture_size[1]
             #el.text_size = (el.width * 0.98, None) #kan later problemen geven
-        print(self.naam.text.count('\n'))
     
     
-    def verklein_update_list(self, aantal=-1):
+    def verklein_update_list(self, aantal=-1, _=None):
         if (aantal == -1):
             aantal = self.naam.text.count('\n')
         for el in self.list:
@@ -127,9 +137,8 @@ class LijstLabel(ScrollView):
                     
     
     def add_update_list(self, _=None):
-        #☼https://github.com/kivy/kivy/issues/1317
+        #https://github.com/kivy/kivy/issues/1317
         product = self.dq.popleft()
-        print(product)
         Clock.schedule_once(partial(self.update_chat_history, product), 0.0001)
         if len(self.dq) != 0:
             Clock.schedule_once(self.add_update_list, 0.01)
@@ -167,9 +176,10 @@ class LijstLabel(ScrollView):
         for i in database.getAllProduct(db_io):
             self.add_queue(func.to_dict(*i))
         database.CloseIO(db_io)
-        #remove
-        Clock.schedule_once(lambda dt:self.verklein_update_list(2), 5)
-        
+    
+    def reload_from_db(self):
+        Clock.schedule_once(partial(self.verklein_update_list,-1), 0.5) #all
+        Clock.schedule_once(self.update_from_db, 1)
         
 
 #schermen
@@ -287,46 +297,55 @@ class ProductBar(BoxLayout):
         self.lijst_bar = disp
     
     def _add_product_blok(self):
-        grid = GridLayout(cols=1, spacing=[5,10])
+        grid = GridLayout(cols=1, spacing=[5,15])
         grid.add_widget(Label(
                 text="Voeg een product toe",
                 height=35,
                 size_hint_y=None, #check
-                font_size=20
-                ))
+                font_size=20))
         label = Label(
                 text="Je kan een product toevoegen door respectievelijk het type, de naam, de prijs (vb 5.7 ) en de zichtbaarheid te kiezen. Producten met dezelfde naam zijn niet toegelaten.",
-                size_hint_y = 0.25,
+                size_hint_y = None,
+                height = 40,
                 valign='top',
-                halign='left'
-                )
+                halign='left')
         label.bind(width=self.update_text_width)
         grid.add_widget(label)
         
-        info_grid = GridLayout(cols=2)
+        info_grid = GridLayout(cols=2, spacing=[5,5])
         
         info_grid.add_widget(Label(text="type:", font_size=17))
         self.add_type = Spinner(
                 text="-",
                 values=("drank", "gerecht", "dessert", "divers", "pensen"),
-                font_size=15
-                )
+                font_size=15,
+                size_hint_y=None,
+                height=30)
         info_grid.add_widget(self.add_type)
         
         info_grid.add_widget(Label(text="naam:", font_size=17))
-        self.add_naam = TextInput(multiline=False, font_size=17)
+        self.add_naam = TextInput(
+                multiline=False,
+                font_size=17,
+                size_hint_y=None,
+                height=30)
         info_grid.add_widget(self.add_naam)
         
         info_grid.add_widget(Label(text="prijs:", font_size=17))
-        self.add_prijs = TextInput(multiline=False, font_size=17)
+        self.add_prijs = TextInput(
+                multiline=False, 
+                font_size=17,
+                size_hint_y=None,
+                height=30)
         info_grid.add_widget(self.add_prijs)
         
         info_grid.add_widget(Label(text="zichtbaar?",font_size=17))
         self.add_zichtbaar = Spinner(
                 text="Ja",
                 values=("Ja", "Enkel voor kassa", "Nee"),
-                font_size=15
-                )
+                font_size=15,
+                size_hint_y=None,
+                height=30)
         info_grid.add_widget(self.add_zichtbaar)
         
         grid.add_widget(info_grid)
@@ -335,92 +354,108 @@ class ProductBar(BoxLayout):
         grid.add_widget(knop)
         
         #leeg label
-        grid.add_widget(Label())
+        grid.add_widget(Label(size_hint_y=0.25))
         
         return grid
     
     
     def _bewerk_product_blok(self):
-        grid = GridLayout(cols=1, spacing=[5,10])
+        grid = GridLayout(cols=1, spacing=[5,15])
         grid.add_widget(Label(
                 text="Bewerk een product",
                 height=35,
                 size_hint_y=None, #check
-                font_size=20
-                ))
+                font_size=20))
         label = Label(
                 text="Je kan een product bewerken door de naam van het product in te geven.Indien je de naam wil bewerken maak je best een nieuw product aan en verwijder je het andere.",
-                size_hint_y = 0.25,
+                size_hint_y = None,
+                height = 40,
                 valign='top',
-                halign='left'
-                )
+                halign='left')
         label.bind(width=self.update_text_width)
         grid.add_widget(label)
         
-        info_grid = GridLayout(cols=2)
+        info_grid = GridLayout(cols=2, spacing=[5,5])
         
         info_grid.add_widget(Label(text="naam:", font_size=17))
-        self.bewerk_naam = TextInput(multiline=False, font_size=17)
+        self.bewerk_naam = TextInput(
+                multiline=False,
+                font_size=17,
+                size_hint_y=None,
+                height=30)
         info_grid.add_widget(self.bewerk_naam)
         
-        info_grid.add_widget(Label(text="type:"))
+        info_grid.add_widget(Label(text="type:", font_size=17))
         self.bewerk_type = Spinner(
                 text="-",
                 values=("drank", "gerecht", "dessert", "divers", "pensen"),
-                font_size=17
-               )
+                font_size=15,
+                size_hint_y=None,
+                height=30)
         info_grid.add_widget(self.bewerk_type)
         
         info_grid.add_widget(Label(text="prijs:", font_size=17))
-        self.bewerk_prijs = TextInput(multiline=False, font_size=17)
+        self.bewerk_prijs = TextInput(
+                multiline=False,
+                font_size=17,
+                size_hint_y=None,
+                height=30)
         info_grid.add_widget(self.bewerk_prijs)
         
         info_grid.add_widget(Label(text="zichtbaar?", font_size=17))
         self.bewerk_zichtbaar = Spinner(
                 text="Ja",
                 values=("Ja", "Enkel voor kassa", "Nee"),
-                font_size=15
-                )
+                font_size=15,
+                size_hint_y=None,
+                height=30)
         info_grid.add_widget(self.bewerk_zichtbaar)
         
         grid.add_widget(info_grid)
         
         knop = Button(text="aanpassen", font_size=20, size_hint_y=None, height=35)
-        #knop.bind(on_press=) #TODO
+        knop.bind(on_press=self._bewerk_product)
         grid.add_widget(knop)
         
         #leeg label
-        grid.add_widget(Label())
+        grid.add_widget(Label(size_hint_y=0.25))
         return grid    
         
     
     def _zichtbaar_verwijder_blok(self):
-        grid = GridLayout(cols=1, spacing=[5,10])
+        grid = GridLayout(cols=1, spacing=[5,15])
         ''' verwijderblok '''
         grid.add_widget(Label(
                 text="Verwijder",
                 height=35,
                 size_hint_y=None, #check
-                font_size=20
-                ))
+                font_size=20))
         label = Label(
                 text="Je kan een product enkel verwijderen via naam. [color=#ff0000]Dit kan je niet ongedaan maken.[/color]",
-                size_hint_y=0.2,
+                size_hint_y = None,
+                height = 40,
                 valign='top',
                 halign='left',
-                markup=True
-                )
+                markup=True)
         label.bind(width=self.update_text_width)
         grid.add_widget(label)
-        verwijder_grid = GridLayout(cols=2)
-        verwijder_grid.add_widget(Label(text="naam:", font_size=17))
-        self.verwijder_naam = TextInput(multiline=False, font_size=17)
+        verwijder_grid = GridLayout(cols=2, spacing=[5,5])
+        verwijder_grid.add_widget(Label(
+                text="naam:",
+                font_size=17,
+                size_hint_y=None,
+                height=30))
+        self.verwijder_naam = TextInput(
+                multiline=False,
+                font_size=17,
+                size_hint_y=None,
+                height=30)
         verwijder_grid.add_widget(self.verwijder_naam)
         
         grid.add_widget(verwijder_grid)
         
         knop = Button(text="verwijder", font_size=20, size_hint_y=None, height=35)
-        knop.bind(on_press=self.test) #TODO
+        knop.bind(on_press=self._verwijder_product)
         grid.add_widget(knop)
 
         #zichtbaarheid
@@ -430,26 +465,32 @@ class ProductBar(BoxLayout):
                 size_hint_y=None,
                 font_size=20
                 ))
-        zichtbaar_grid = GridLayout(cols=2)
+        zichtbaar_grid = GridLayout(cols=2, spacing=[5,5])
         zichtbaar_grid.add_widget(Label(text="naam:", font_size=17))
-        self.zichtbaar_grid = TextInput(multiline=False, font_size=17)
-        zichtbaar_grid.add_widget(self.zichtbaar_grid)
+        self.zichtbaar_naam = TextInput(
+                multiline=False, 
+                font_size=17,
+                size_hint_y=None,
+                height=30)
+        zichtbaar_grid.add_widget(self.zichtbaar_naam)
         
         zichtbaar_grid.add_widget(Label(text="zichtbaar?", font_size=17))
         self.zichtbaar_zichtbaar = Spinner(
                 text="Ja",
                 values=("Ja", "Enkel voor kassa", "Nee"),
-                font_size=15
+                font_size=15,
+                size_hint_y=None,
+                height=30
                 )
         zichtbaar_grid.add_widget(self.zichtbaar_zichtbaar)
         
         grid.add_widget(zichtbaar_grid)                
         
         knop = Button(text="aanpassen", font_size=20, size_hint_y=None, height=35)
-        #knop.bind(on_press=) #TODO
+        knop.bind(on_press=self._zichtbaar_product)
         grid.add_widget(knop)
         #blank space
-        grid.add_widget(Label())
+        grid.add_widget(Label(size_hint_y=0.2))
         
         return grid   
 
@@ -465,10 +506,7 @@ class ProductBar(BoxLayout):
         anaam = self.add_naam.text.strip().lower()
         atype = self.add_type.text
         aprijs = self.add_prijs.text.strip()
-        azicht = self.add_zichtbaar.text
-        #remove
-        self.db_io = database.InitProduct(global_vars.db)
-        
+        azicht = self.add_zichtbaar.text       
         
         if (anaam == "")+(atype == "-")+(aprijs == ""):
             #TODO: maak een popup "vul alle velden in"
@@ -478,8 +516,10 @@ class ProductBar(BoxLayout):
             pass
         else:
             try:
+                #TODO: remove
+                db_io = database.InitProduct(global_vars.db)
                 azicht = global_vars.zichtbaar_int.index(azicht)
-                ret = database.AddProduct(self.db_io, atype, anaam, aprijs, azicht)
+                ret = database.AddProduct(db_io, atype, anaam, float(aprijs), azicht)
                 if  ret == 0:
                     #popup succes
                     print("succes")
@@ -497,10 +537,72 @@ class ProductBar(BoxLayout):
                 self.add_type.text = "-"
                 self.add_prijs.text = ""
                 self.add_zichtbaar.text = "Ja"
-        database.CloseIO(self.db_io)
+                database.CloseIO(db_io)
     
-    def test(self, _):
-        gui.productscherm.history.update_chat_history(self.verwijder_naam.text)
+    def _bewerk_product(self, _):
+        bnaam = self.bewerk_naam.text.strip().lower()
+        btype = self.bewerk_type.text
+        bprijs = self.bewerk_prijs.text.strip()
+        bzicht = self.bewerk_zichtbaar.text
+        if (bnaam == "")+(btype == "-")+(bprijs == ""):
+            #TODO: maak een popup "vul alle velden in"
+            print("vul alle velden in")
+        elif not func.is_number(bprijs):
+            #TODO: maak een popup met ongeldig getal (gebruik '.')
+            print("geen nummer!")
+        else:
+            #TODO: remove
+            db_io = database.InitProduct(global_vars.db)
+            bzicht = global_vars.zichtbaar_int.index(bzicht)
+            ret =  database.editProduct(db_io, bnaam, btype, float(bprijs), bzicht)
+            if ret == 0:
+                print("succes")
+                self.lijst_bar.reload_from_db()
+            else:
+                print(ret)
+            self.bewerk_naam.text = ""
+            self.bewerk_prijs = ""
+            self.bewerk_type = "-"
+            self.bewerk_zichtbaar = "Ja"
+            database.CloseIO(db_io)
+            
+        
+    def _verwijder_product(self, _):
+        vnaam = self.verwijder_naam.text.strip()
+        if (vnaam == ""):
+            print("vul alle velden in!")
+        else:
+            #TODO: remove
+            db_io = database.InitProduct(global_vars.db)
+            ret = database.deleteProduct(db_io, vnaam)
+            if ret == 0:
+                print("succes")
+                self.lijst_bar.reload_from_db()
+            else:
+                print(ret)
+            self.verwijder_naam.text = ""
+            database.CloseIO(db_io)
+    
+    
+    def _zichtbaar_product(self, _):
+        znaam = self.zichtbaar_naam.text.strip().lower()
+        zzicht = self.zichtbaar_zichtbaar.text
+        if (znaam == ""):
+            print("Vul naam in!")
+        else:
+            #TODO: remove
+            zzicht = global_vars.zichtbaar_int.index(zzicht)
+            db_io = database.InitProduct(global_vars.db)
+            ret = database.zichtProduct(db_io, znaam, zzicht)
+            if ret == 0:
+                print("succes")
+                self.lijst_bar.reload_from_db()
+            else:
+                print(ret)
+            self.zichtbaar_naam.text = ""
+            self.zichtbaar_zichtbaar.text = "Ja"
+            database.CloseIO(db_io)
+            
         
  #random       
 class scherm1(GridLayout):

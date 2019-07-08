@@ -26,6 +26,7 @@ def InitProduct(db):
 def InitBestelling(db):
     pass
 
+
 def AddProduct(db_io, type, naam, prijs, active):
     ''' 
         voegt een product toe aan de producten tabel
@@ -48,12 +49,14 @@ def AddProduct(db_io, type, naam, prijs, active):
     except Exception as e:
         print("\n\n --- AddProduct error ---\n\n" + str(e))
         return -2
+    
 
 def getAllProduct(db_io):
     conn, c = db_io
     c.execute("SELECT type, naam, prijs, active FROM producten ORDER BY naam COLLATE NOCASE ASC")
     data = c.fetchall()
     return data
+
 
 def editProduct(db_io, naam, type, prijs, active):
     conn, c = db_io
@@ -64,6 +67,30 @@ def editProduct(db_io, naam, type, prijs, active):
         c.execute("UPDATE producten SET type = ?, prijs = ?, active = ? WHERE naam = ?", (type, prijs, active, naam))
         conn.commit()
         return 0
+    
+
+def deleteProduct(db_io, naam):
+    conn, c = db_io
+    c.execute("SELECT * FROM producten WHERE naam = ?", (naam,))
+    if not c.fetchone():
+        return -1 #product niet in db
+    else:
+        c.execute("DELETE FROM producten WHERE naam = ?", (naam,))
+        conn.commit()
+        return 0
+    
+    
+def zichtProduct(db_io, naam, active):
+    conn, c = db_io
+    c.execute("SELECT * FROM producten WHERE naam = ?", (naam,))
+    if not c.fetchone():
+        return -1
+    else:
+        c.execute("UPDATE producten SET active = ? WHERE naam = ?", (active, naam))
+        conn.commit()
+        return 0
+        
+        
 #old
 def loadTables(db):
 	conn = sqlite3.connect(db)
@@ -76,46 +103,7 @@ def loadTables(db):
 	conn.close()
 	print("succes")
 	return 0
-		
-def editGerecht(db, naam, type, prijs, active=0, locatie=0):
-	conn = sqlite3.connect(db)
-	c = conn.cursor()
-	c.execute("SELECT * FROM items WHERE naam = ?", (naam,))
-	if not c.fetchone():
-		c.close()
-		conn.close()
-		return -1 #product niet in db
-	else:
-		c.execute("UPDATE items SET type = ?, prijs = ?, active = ? WHERE naam = ?", (type, prijs, active, naam))
-		conn.commit()
-		c.close()
-		conn.close()
-		return 0 #succes
-		
 
-def getAlles(db):
-	conn = sqlite3.connect(db)
-	c = conn.cursor()
-	c.execute("SELECT * FROM items")
-	data = c.fetchall()
-	c.close()
-	conn.close()
-	return data
-
-def deleteGerecht(db, naam):
-	conn = sqlite3.connect(db)
-	c = conn.cursor()
-	c.execute("SELECT * FROM items WHERE naam = ?", (naam,))
-	if not c.fetchone():
-		c.close()
-		conn.close()
-		return -1 #product niet in db
-	else:
-		c.execute("DELETE FROM items WHERE naam = ?", (naam,))
-		conn.commit()
-		c.close()
-		conn.close()
-		return 0
 
 def HSGerecht(db, naam, active):
 	conn = sqlite3.connect(db)
@@ -131,6 +119,7 @@ def HSGerecht(db, naam, active):
 		c.close()
 		conn.close()
 		return 0
+    
 
 def getTypeItem(db):
 	conn = sqlite3.connect(db)
