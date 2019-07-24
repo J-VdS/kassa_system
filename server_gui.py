@@ -16,6 +16,7 @@ from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.popup import Popup
 
 from kivy.core.window import Window
 from kivy.clock import Clock
@@ -197,8 +198,6 @@ class HoofdScherm(GridLayout):
         self.add_widget(self.hoofdbar)
         
         
-    
-        
 class ProductScherm(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -230,37 +229,37 @@ class NavigatieBar(BoxLayout):
         self.size_hint_y =  0.2
         self.padding = [10, 10] #padding horiz, padding width
         
-        self.home_knop = Button(
+        home_knop = Button(
                 text="HOME",
                 font_size=20,
                 background_color = (1,0,0,1) if (huidig == "hoofd") else (1,1,1,1)
                 )
-        self.home_knop.bind(on_press=self.switch)
-        self.add_widget(self.home_knop)
+        home_knop.bind(on_press=self.switch)
+        self.add_widget(home_knop)
         
-        self.product_knop = Button(
+        product_knop = Button(
                 text="PRODUCTEN",
                 font_size=20,
                 background_color = (1,0,0,1) if (huidig == "product") else (1,1,1,1)
                 )
-        self.product_knop.bind(on_press=self.switch)
-        self.add_widget(self.product_knop)
+        product_knop.bind(on_press=self.switch)
+        self.add_widget(product_knop)
         
-        self.connect_knop = Button(
+        connect_knop = Button(
                 text="CONNECTIES",
                 font_size=20,
                 background_color = (1,0,0,1) if (huidig == "connect") else (1,1,1,1)
-                )
-        self.connect_knop.bind(on_press=self.switch)
-        self.add_widget(self.connect_knop)
+               )
+        connect_knop.bind(on_press=self.switch)
+        self.add_widget(connect_knop)
         
-        self.settings_knop = Button(
+        settings_knop = Button(
                 text="SETTINGS",
                 font_size=20,
                 background_color = (1,0,0,1) if (huidig == "setting") else (1,1,1,1)
                 )
-        self.settings_knop.bind(on_press=self.switch)
-        self.add_widget(self.settings_knop)
+        settings_knop.bind(on_press=self.switch)
+        self.add_widget(settings_knop)
         
         
     def switch(self, instance):
@@ -510,10 +509,10 @@ class ProductBar(BoxLayout):
         
         if (anaam == "")+(atype == "-")+(aprijs == ""):
             #TODO: maak een popup "vul alle velden in"
-            print("vul alle velden in")
+            self.makePopup("Vul alle velden in !")
         elif not func.is_number(aprijs):
             #TODO: maak een popup met ongeldig getal (gebruik '.')
-            pass
+            self.makePopup("Vul een geldige prijs in! Voor een komma moet je een punt gebruiken!")
         else:
             try:
                 #TODO: remove
@@ -522,11 +521,15 @@ class ProductBar(BoxLayout):
                 ret = database.AddProduct(db_io, atype, anaam, float(aprijs), azicht)
                 if  ret == 0:
                     #popup succes
-                    print("succes")
+                    self.makePopup("Product met naam %s en prijs €%s toegevoegd." %(anaam,aprijs),
+                                   "Succes!")
                     #print ook bij op het scherm
                     self.lijst_bar.add_queue(func.to_dict(atype, anaam, aprijs, azicht))
+                elif ret == -1:
+                    self.makePopup("Er bestaat reeds een product met dezelfde naam!",
+                                   "Naam Error")
                 else:
-                    print(ret)
+                    print("error catch add methode")
                 
             except Exception as e:
                 #popup error
@@ -545,41 +548,43 @@ class ProductBar(BoxLayout):
         bprijs = self.bewerk_prijs.text.strip()
         bzicht = self.bewerk_zichtbaar.text
         if (bnaam == "")+(btype == "-")+(bprijs == ""):
-            #TODO: maak een popup "vul alle velden in"
-            print("vul alle velden in")
+            self.makePopup("Vul alle velden in !")
         elif not func.is_number(bprijs):
-            #TODO: maak een popup met ongeldig getal (gebruik '.')
-            print("geen nummer!")
+            self.makePopup("Vul een geldige prijs in! Voor een komma moet je een punt gebruiken!")
         else:
             #TODO: remove
             db_io = database.InitProduct(global_vars.db)
             bzicht = global_vars.zichtbaar_int.index(bzicht)
             ret =  database.editProduct(db_io, bnaam, btype, float(bprijs), bzicht)
             if ret == 0:
-                print("succes")
+                self.makePopup("Product met naam %s bewerkt." %(bnaam,),
+                                   "Succes!")
                 self.lijst_bar.reload_from_db()
+                self.bewerk_naam.text = ""
+                self.bewerk_prijs = ""
+                self.bewerk_type = "-"
+                self.bewerk_zichtbaar = "Ja"
             else:
-                print(ret)
-            self.bewerk_naam.text = ""
-            self.bewerk_prijs = ""
-            self.bewerk_type = "-"
-            self.bewerk_zichtbaar = "Ja"
+                self.makePopup("Er bestaat geen product met deze naam!",
+                               "Naam Error")
             database.CloseIO(db_io)
             
         
     def _verwijder_product(self, _):
         vnaam = self.verwijder_naam.text.strip()
         if (vnaam == ""):
-            print("vul alle velden in!")
+            self.makePopup("Vul het naamveld in !")
         else:
             #TODO: remove
             db_io = database.InitProduct(global_vars.db)
             ret = database.deleteProduct(db_io, vnaam)
             if ret == 0:
-                print("succes")
+                self.makePopup("Product met naam %s succesvol verwijdert." %(vnaam,),
+                               "Succes!")
                 self.lijst_bar.reload_from_db()
             else:
-                print(ret)
+                self.makePopup("Er bestaat geen product met deze naam!",
+                               "Naam Error")
             self.verwijder_naam.text = ""
             database.CloseIO(db_io)
     
@@ -588,23 +593,42 @@ class ProductBar(BoxLayout):
         znaam = self.zichtbaar_naam.text.strip().lower()
         zzicht = self.zichtbaar_zichtbaar.text
         if (znaam == ""):
-            print("Vul naam in!")
+            self.makePopup("Vul het naamveld in !")
         else:
             #TODO: remove
             zzicht = global_vars.zichtbaar_int.index(zzicht)
             db_io = database.InitProduct(global_vars.db)
             ret = database.zichtProduct(db_io, znaam, zzicht)
             if ret == 0:
-                print("succes")
+                self.makePopup("Product met naam %s succesvol aangepast." %(znaam,),
+                               "Succes!")
                 self.lijst_bar.reload_from_db()
             else:
-                print(ret)
+                self.makePopup("Er bestaat geen product met deze naam!",
+                               "Naam Error")
             self.zichtbaar_naam.text = ""
             self.zichtbaar_zichtbaar.text = "Ja"
             database.CloseIO(db_io)
             
+            
+    def makePopup(self, text, title="Product Error"):
+        popup = Popup(title=title, size=(400,400), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+                
+        label = Label(text=text, font_size=20, halign="center")                      
+        label.bind(width=self.update_text_width)
+        layout.add_widget(label)   
         
- #random       
+        knop = Button(text="sluit", size_hint_y=None, height=40)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
+
+
+   
+#random       
 class scherm1(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

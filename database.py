@@ -103,22 +103,6 @@ def loadTables(db):
 	conn.close()
 	print("succes")
 	return 0
-
-
-def HSGerecht(db, naam, active):
-	conn = sqlite3.connect(db)
-	c = conn.cursor()
-	c.execute("SELECT * FROM items WHERE naam = ?", (naam,))
-	if not c.fetchone():
-		c.close()
-		conn.close()
-		return -1 #product niet in db
-	else:
-		c.execute("UPDATE items SET active = ? WHERE naam = ?", (active,naam))
-		conn.commit()
-		c.close()
-		conn.close()
-		return 0
     
 
 def getTypeItem(db):
