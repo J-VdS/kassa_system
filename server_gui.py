@@ -188,6 +188,7 @@ class HoofdScherm(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
+        self.rows = 2
         
         #navigatiebar
         self.navbar = NavigatieBar()
@@ -196,6 +197,9 @@ class HoofdScherm(GridLayout):
         #hoofdscherm
         self.hoofdbar = HoofdBar()
         self.add_widget(self.hoofdbar)
+        
+        #lable
+        self.add_widget(Label())
         
         
 class ProductScherm(GridLayout):
@@ -273,9 +277,24 @@ class NavigatieBar(BoxLayout):
 class HoofdBar(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.cols = 2
-        self.add_widget(Label(text="links"))
-        self.add_widget(Label(text="rechts"))
+        self.cols = 1
+        
+        #eerste rij
+        self.add_widget(Label(
+                text="actieve rekeningen:",
+                size_hint_y=0.2,
+                font_size=20))
+        
+        #tweede rij
+        self.button_grid = GridLayout(
+                spacing=[10,15],
+                cols=global_vars.kassa_cols,
+                rows=global_vars.kassa_rows)
+        for i in range(1,global_vars.kassa_cols * global_vars.kassa_rows+1):
+            self.button_grid.add_widget(Button(text=str(i)))
+        
+        self.add_widget(self.button_grid)
+        
 
 
 class ProductBar(BoxLayout):
