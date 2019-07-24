@@ -188,7 +188,7 @@ class HoofdScherm(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
-        self.rows = 2
+        self.rows = 3
         
         #navigatiebar
         self.navbar = NavigatieBar()
@@ -199,7 +199,7 @@ class HoofdScherm(GridLayout):
         self.add_widget(self.hoofdbar)
         
         #lable
-        self.add_widget(Label())
+        self.add_widget(Label())#size_hint_y=0.1))
         
         
 class ProductScherm(GridLayout):
