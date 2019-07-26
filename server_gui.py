@@ -55,134 +55,6 @@ def _update_rect(self, instance, value):
 
 
 '''
-
-class LijstLabel(ScrollView):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        #witte achtergrond
-
-        with self.canvas.before:
-            #rgba
-            Color(220/255, 220/255, 230/255, 1)  # green; colors range from 0-1 instead of 0-255
-            self.rect = Rectangle(size=self.size, pos=self.pos)
-
-        self.bind(size=self._update_rect, pos=self._update_rect)
-
-        #Scrollview attributen
-        self.bar_width = 5
-        
-        # ScrollView does not allow us to add more than one widget, so we need to trick it
-        # by creating a layout and placing two widgets inside it
-        # Layout is going to have one collumn and and size_hint_y set to None,
-        # so height wo't default to any size (we are going to set it on our own)
-        self.layout = GridLayout(size_hint_y=None, cols=4)
-        self.add_widget(self.layout)
-
-        # Now we need two wodgets - Label for chat history and 'artificial' widget below
-        # so we can scroll to it every new message and keep new messages visible
-        # We want to enable markup, so we can set colors for example
-        
-        self.naam = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
-        self.type = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
-        self.prijs = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
-        self.zichtbaar = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1)) #test
-
-        # We add them to our layout
-        self.list = [self.naam, self.type, self.prijs, self.zichtbaar]
-
-        for el in self.list:
-            self.layout.add_widget(el)
-
-            
-        #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
-        #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
-        
-        #data inladen
-        Clock.schedule_once(self.update_from_db,1)
-            
-    # Methos called externally to add new message to the chat history  
-    def update_chat_history(self, product, _):
-        #we kunnen geen nieuw label maken, dit zal voor problemen zorgen
-        #ook kunnen we update_chat_history pas oproepen als het scherm getekent wordt
-
-        # First add new line and message itself
-        self.naam.text += '\n' + product.get('naam','***')
-        self.type.text += '\n' + product.get('type','***')
-        self.prijs.text += '\n' + str(product.get('prijs','***'))
-        if product.get('zichtbaar','***') == "[b][u]ZICHTBAAR:[/b][/u]":
-            self.zichtbaar.text += '\n' + "[b][u]ZICHTBAAR:[/b][/u]"
-        else:
-            self.zichtbaar.text += '\n' + global_vars.zichtbaar_int[product.get('zichtbaar',2)]
-    
-
-        # Set layout height to whatever height of self.naam text is + 15 pixels
-        # (adds a bit of space at the bottom)
-        # Set chat history label to whatever height of chat history text is
-        # Set width of chat history text to 98 of the label width (adds small margins)
-        self.layout.height = self.naam.texture_size[1] + global_vars.expand_size
-        for el in self.list:
-            el.height = el.texture_size[1]
-            #el.text_size = (el.width * 0.98, None) #kan later problemen geven
-    
-    
-    def verklein_update_list(self, aantal=-1, _=None):
-        if (aantal == -1):
-            aantal = self.naam.text.count('\n')
-        for el in self.list:
-            el.text = "".join([i+'\n' for i in el.text.split('\n')][:-aantal])
-            
-        self.layout.height = self.naam.texture_size[1] - global_vars.expand_size*aantal
-        for el in self.list:
-            el.height = el.texture_size[1]
-                    
-    
-    def add_update_list(self, _=None):
-        #https://github.com/kivy/kivy/issues/1317
-        product = self.dq.popleft()
-        Clock.schedule_once(partial(self.update_chat_history, product), 0.0001)
-        if len(self.dq) != 0:
-            Clock.schedule_once(self.add_update_list, 0.01)
-        else:
-            self.stopped_loop = True
-        
-        
-    def add_queue(self, product):
-        self.dq.append(product)
-        if self.stopped_loop:
-            self.stopped_loop = False
-            self.add_update_list()
-            
-    
-    def extend_queue(self, product_queue):
-        self.dq.extend(product_queue)
-        if self.stopped_loop:
-            self.stopped_loop = False
-            self.add_update_list()
-            
-    
-    def _update_rect(self, instance, value):
-        self.rect.pos = instance.pos
-        self.rect.size = instance.size
-    
-    
-    def update_from_db(self, _):
-        self.stopped_loop = True
-        self.dq = deque()
-        self.dq.append(func.to_dict("[b][u]TYPE:[/b][/u]",
-                                    "[b][u]NAAM:[/b][/u]",
-                                    "[b][u]PRIJS:[/b][/u]",
-                                    "[b][u]ZICHTBAAR:[/b][/u]"))
-        db_io = database.InitProduct(global_vars.db)
-        for i in database.getAllProduct(db_io):
-            self.add_queue(func.to_dict(*i))
-        database.CloseIO(db_io)
-    
-    def reload_from_db(self):
-        Clock.schedule_once(partial(self.verklein_update_list,-1), 0.5) #all
-        Clock.schedule_once(self.update_from_db, 1)
-        
-
 #schermen
 class HoofdScherm(GridLayout):
     def __init__(self, **kwargs):
@@ -199,7 +71,7 @@ class HoofdScherm(GridLayout):
         self.add_widget(self.hoofdbar)
         
         #lable
-        self.add_widget(Label())#size_hint_y=0.1))
+        self.add_widget(Label(size_hint_y=0.1))
         
         
 class ProductScherm(GridLayout):
@@ -224,13 +96,30 @@ class ProductScherm(GridLayout):
         self.productbar.set_lijst_bar(self.history)
         
         
+class ConnectScherm(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        
+        #navigatiebar
+        self.navbar = NavigatieBar(huidig="connect")
+        self.add_widget(self.navbar)
+        
+        #hoofdscherm
+        
+        
+        
+        #leeglabel
+        self.add_widget(Label())
+        
 #bars
 class NavigatieBar(BoxLayout):
     def __init__(self, huidig="hoofd", **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'horizontal'
         self.spacing = 5
-        self.size_hint_y =  0.2
+        self.size_hint_y = None
+        self.height = 75
         self.padding = [10, 10] #padding horiz, padding width
         
         home_knop = Button(
@@ -267,10 +156,9 @@ class NavigatieBar(BoxLayout):
         
         
     def switch(self, instance):
-        print(instance.text)
-        try:
+        if gui.screen_manager.has_screen(instance.text):
             gui.screen_manager.current = instance.text
-        except:
+        else:
             gui.screen_manager.current = "HOME"
         
         
@@ -281,7 +169,7 @@ class HoofdBar(GridLayout):
         
         #eerste rij
         self.add_widget(Label(
-                text="actieve rekeningen:",
+                text="Actieve rekeningen:",
                 size_hint_y=0.2,
                 font_size=20))
         
@@ -291,7 +179,7 @@ class HoofdBar(GridLayout):
                 cols=global_vars.kassa_cols,
                 rows=global_vars.kassa_rows)
         for i in range(1,global_vars.kassa_cols * global_vars.kassa_rows+1):
-            self.button_grid.add_widget(Button(text=str(i)))
+            self.button_grid.add_widget(Button(text=''))
         
         self.add_widget(self.button_grid)
         
@@ -457,7 +345,7 @@ class ProductBar(BoxLayout):
                 markup=True)
         label.bind(width=self.update_text_width)
         grid.add_widget(label)
-        verwijder_grid = GridLayout(cols=2, spacing=[5,5])
+        verwijder_grid = GridLayout(cols=2, spacing=[5,0])
         verwijder_grid.add_widget(Label(
                 text="naam:",
                 font_size=17,
@@ -646,11 +534,141 @@ class ProductBar(BoxLayout):
         popup.open()
 
 
+class LijstLabel(ScrollView):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        #witte achtergrond
+
+        with self.canvas.before:
+            #rgba
+            Color(220/255, 220/255, 230/255, 1)  # green; colors range from 0-1 instead of 0-255
+            self.rect = Rectangle(size=self.size, pos=self.pos)
+
+        self.bind(size=self._update_rect, pos=self._update_rect)
+
+        #Scrollview attributen
+        self.bar_width = 5
+        
+        # ScrollView does not allow us to add more than one widget, so we need to trick it
+        # by creating a layout and placing two widgets inside it
+        # Layout is going to have one collumn and and size_hint_y set to None,
+        # so height wo't default to any size (we are going to set it on our own)
+        self.layout = GridLayout(size_hint_y=None, cols=4)
+        self.add_widget(self.layout)
+
+        # Now we need two wodgets - Label for chat history and 'artificial' widget below
+        # so we can scroll to it every new message and keep new messages visible
+        # We want to enable markup, so we can set colors for example
+        
+        self.naam = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
+        self.type = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
+        self.prijs = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
+        self.zichtbaar = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1)) #test
+
+        # We add them to our layout
+        self.list = [self.naam, self.type, self.prijs, self.zichtbaar]
+
+        for el in self.list:
+            self.layout.add_widget(el)
+
+            
+        #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
+        #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
+        
+        #data inladen
+        Clock.schedule_once(self.update_from_db,1)
+            
+    # Methos called externally to add new message to the chat history  
+    def update_chat_history(self, product, _):
+        #we kunnen geen nieuw label maken, dit zal voor problemen zorgen
+        #ook kunnen we update_chat_history pas oproepen als het scherm getekent wordt
+
+        # First add new line and message itself
+        self.naam.text += '\n' + product.get('naam','***')
+        self.type.text += '\n' + product.get('type','***')
+        self.prijs.text += '\n' + str(product.get('prijs','***'))
+        if product.get('zichtbaar','***') == "[b][u]ZICHTBAAR:[/b][/u]":
+            self.zichtbaar.text += '\n' + "[b][u]ZICHTBAAR:[/b][/u]"
+        else:
+            self.zichtbaar.text += '\n' + global_vars.zichtbaar_int[product.get('zichtbaar',2)]
+    
+
+        # Set layout height to whatever height of self.naam text is + 15 pixels
+        # (adds a bit of space at the bottom)
+        # Set chat history label to whatever height of chat history text is
+        # Set width of chat history text to 98 of the label width (adds small margins)
+        self.layout.height = self.naam.texture_size[1] + global_vars.expand_size
+        for el in self.list:
+            el.height = el.texture_size[1]
+            #el.text_size = (el.width * 0.98, None) #kan later problemen geven
+    
+    
+    def verklein_update_list(self, aantal=-1, _=None):
+        if (aantal == -1):
+            aantal = self.naam.text.count('\n')
+        for el in self.list:
+            el.text = "".join([i+'\n' for i in el.text.split('\n')][:-aantal])
+            
+        self.layout.height = self.naam.texture_size[1] - global_vars.expand_size*aantal
+        for el in self.list:
+            el.height = el.texture_size[1]
+                    
+    
+    def add_update_list(self, _=None):
+        #https://github.com/kivy/kivy/issues/1317
+        product = self.dq.popleft()
+        Clock.schedule_once(partial(self.update_chat_history, product), 0.0001)
+        if len(self.dq) != 0:
+            Clock.schedule_once(self.add_update_list, 0.01)
+        else:
+            self.stopped_loop = True
+        
+        
+    def add_queue(self, product):
+        self.dq.append(product)
+        if self.stopped_loop:
+            self.stopped_loop = False
+            self.add_update_list()
+            
+    
+    def extend_queue(self, product_queue):
+        self.dq.extend(product_queue)
+        if self.stopped_loop:
+            self.stopped_loop = False
+            self.add_update_list()
+            
+    
+    def _update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
+    
+    
+    def update_from_db(self, _):
+        self.stopped_loop = True
+        self.dq = deque()
+        self.dq.append(func.to_dict("[b][u]TYPE:[/b][/u]",
+                                    "[b][u]NAAM:[/b][/u]",
+                                    "[b][u]PRIJS:[/b][/u]",
+                                    "[b][u]ZICHTBAAR:[/b][/u]"))
+        db_io = database.InitProduct(global_vars.db)
+        for i in database.getAllProduct(db_io):
+            self.add_queue(func.to_dict(*i))
+        database.CloseIO(db_io)
+    
+    def reload_from_db(self):
+        Clock.schedule_once(partial(self.verklein_update_list,-1), 0.5) #all
+        Clock.schedule_once(self.update_from_db, 1)
+        
+
    
-#random       
+#random - testing
 class scherm1(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.cols=1
+        
+        self.navbar = NavigatieBar(huidig="setting")
+        self.add_widget(self.navbar)
         self.add_widget(Label(text="scherm1"))
         
         
@@ -672,7 +690,17 @@ class ServerGui(App):
         self.productscherm = ProductScherm()
         scherm = Screen(name="PRODUCTEN")
         scherm.add_widget(self.productscherm)
-        self.screen_manager.add_widget(scherm)                
+        self.screen_manager.add_widget(scherm)
+        
+        self.connectscherm = ConnectScherm()
+        scherm = Screen(name="CONNECTIES")
+        scherm.add_widget(self.connectscherm)
+        self.screen_manager.add_widget(scherm)
+
+        self.test = scherm1()
+        scherm = Screen(name="SETTINGS")
+        scherm.add_widget(self.test)
+        self.screen_manager.add_widget(scherm)
         
         return self.screen_manager
 
