@@ -1,5 +1,6 @@
-from functools import partial
+from functools import partial #instead of lamda functions
 from collections import deque
+import threading
 
 #kivy
 import kivy
@@ -9,6 +10,7 @@ from kivy.graphics import Color, Rectangle
 
 #uix
 from kivy.uix.label import Label
+from kivy.uix.switch import Switch
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
@@ -22,6 +24,7 @@ from kivy.core.window import Window
 from kivy.clock import Clock
 
 #zelfgeschreven
+import socket_server
 import database
 import global_vars
 import func
@@ -106,11 +109,12 @@ class ConnectScherm(GridLayout):
         self.add_widget(self.navbar)
         
         #hoofdscherm
-        
+        self.connectbar = ConnectBar()
+        self.add_widget(self.connectbar)
         
         
         #leeglabel
-        self.add_widget(Label())
+        #self.add_widget(Label())
         
 #bars
 class NavigatieBar(BoxLayout):
@@ -534,6 +538,48 @@ class ProductBar(BoxLayout):
         popup.open()
 
 
+class ConnectBar(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 2
+        
+        #on/off switch
+        self.add_widget(Label(
+                text="Server: ",
+                size_hint_y=None,
+                height=50,
+                font_size=22))
+        server_status = Switch(active=False, size_hint_y=None, height=50)
+        server_status.bind(active=self.switch_server)
+        self.add_widget(server_status)
+        
+        #aanvaard connecties
+        self.add_widget(Label(
+                text="Nieuwe connecties aanvaarden: ",
+                size_hint_y=None,
+                height=50,
+                font_size=22))
+        aanvaard_status = Switch(active=True, size_hint_y=None, height=50)
+        aanvaard_status.bind(active=self.switch_aanvaard)
+        self.add_widget(aanvaard_status)
+        
+    def switch_server(self, instance, value):
+        print(value)
+        if value:
+            #launch server
+            socket_server.RUN = True
+            threading.Thread(target=socket_server.start_listening, args=(True,), daemon=True).start()
+        else:
+            socket_server.RUN = False
+            #verander stop variabele
+            pass
+    
+    def switch_aanvaard(self, instance, value):
+        pass
+        
+        
+
+#gebruikt bij productscherm
 class LijstLabel(ScrollView):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
