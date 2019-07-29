@@ -108,3 +108,9 @@ client/credentials.txt
 
 # sqlite
 *.db
+
+# testing
+connect_test.py
+
+# networkprot
+network_prot.txt
