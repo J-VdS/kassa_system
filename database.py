@@ -2,7 +2,7 @@
 import sqlite3
 from pickle import loads, dumps
 #import time
-import func
+#import func
 
 
 def CloseIO(db_io):
@@ -18,7 +18,7 @@ def InitProduct(db):
     #tables_check aanwezig
     #producten tabel
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs REAL, active INTEGER)")
-    print("---Product Table Loaded ---")
+    #print("---Product Table Loaded ---")
     conn.commit()
     return (conn, c) #geef tuple met (connectie, cursor) terug
    
@@ -54,6 +54,13 @@ def AddProduct(db_io, type, naam, prijs, active):
 def getAllProduct(db_io):
     conn, c = db_io
     c.execute("SELECT type, naam, prijs, active FROM producten ORDER BY naam COLLATE NOCASE ASC")
+    data = c.fetchall()
+    return data
+
+
+def getAllProductClient(db_io):
+    conn, c = db_io
+    c.execute("SELECT type, naam FROM producten WHERE active = ?", ('1'),)
     data = c.fetchall()
     return data
 

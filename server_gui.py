@@ -542,16 +542,16 @@ class ConnectBar(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 2
-        
+
         #on/off switch
         self.add_widget(Label(
                 text="Server: ",
                 size_hint_y=None,
                 height=50,
                 font_size=22))
-        server_status = Switch(active=False, size_hint_y=None, height=50)
-        server_status.bind(active=self.switch_server)
-        self.add_widget(server_status)
+        self.server_status = Switch(active=False, size_hint_y=None, height=50)
+        self.server_status.bind(active=self.switch_server)
+        self.add_widget(self.server_status)
         
         #aanvaard connecties
         self.add_widget(Label(
@@ -563,20 +563,36 @@ class ConnectBar(GridLayout):
         aanvaard_status.bind(active=self.switch_aanvaard)
         self.add_widget(aanvaard_status)
         
+        #server_info
+        self.auto_off = False
+        
+        
     def switch_server(self, instance, value):
-        print(value)
         if value:
             #launch server
             socket_server.RUN = True
-            threading.Thread(target=socket_server.start_listening, args=(True,), daemon=True).start()
+            threading.Thread(target=socket_server.start_listening,
+                             args=(global_vars.db, self.switch_server_off),
+                             daemon=True).start()
         else:
-            socket_server.RUN = False
+            
             #verander stop variabele
-            pass
+            socket_server.RUN = False
+            if not(self.auto_off):
+                #trigger shutdown
+                socket_server.TriggerSD()
+            else:
+                self.auto_off = False
+           
+        
+    def switch_server_off(self):
+        self.auto_off = True
+        self.server_status.active = False    
+    
     
     def switch_aanvaard(self, instance, value):
         pass
-        
+
         
 
 #gebruikt bij productscherm

@@ -111,3 +111,6 @@ client/credentials.txt
 
 # testing
 connect_test.py
+
+# networkprot
+network_prot.txt
