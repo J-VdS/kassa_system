@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import socket
 import errno
+import pickle
 from threading import Thread
 
-HEADER_LENGTH = 10
+HEADERLENGTH = 10
 client_socket = None
 
 # Connects to the server
-def connect(ip, port, my_username, error_callback):
+def connect(ip, port, my_username, pwd, error_callback):
 
     global client_socket
 
@@ -21,23 +22,46 @@ def connect(ip, port, my_username, error_callback):
         client_socket.connect((ip, port))
     except Exception as e:
         # Connection error
+        client_socket.close()
         error_callback('Connection error: {}'.format(str(e)))
         return False
 
     # Prepare username and header and send them
     # We need to encode username to bytes, then count number of bytes and prepare header of fixed size, that we encode to bytes as well
-    username = my_username.encode('utf-8')
-    username_header = f"{len(username):<{HEADER_LENGTH}}".encode('utf-8')
-    client_socket.send(username_header + username)
-
+    #msg = pickle.dumps({"naam":my_username, "pwd":pwd})
+    #msg_header = f"{len(msg):<{HEADER_LENGTH}}".encode('utf-8')
+    client_socket.send(makeMsg({"naam":my_username, "pwd":pwd}))
     return True
+
+
+def disconnect():
+    client_socket.close()
+
+
+def makeMsg(msg):
+    msg = pickle.dumps(msg)
+    msg_header = f"{len(msg):<{HEADERLENGTH}}".encode('utf-8')  
+    return msg_header + msg
+
+
+#def receiveMsg():
+#    lengte = int(client_socket.recv(HEADERLENGTH).decode('utf-8'))
+#    return pickle.loads(client_socket.recv(lengte))
+    
+    
+def requestData(request):
+    client_socket.send(makeMsg(request))
+    lengte = int(client_socket.recv(HEADERLENGTH).decode('utf-8'))
+    return pickle.loads(client_socket.recv(lengte))
+    
 
 # Sends a message to the server
 def send(message):
     # Encode message to bytes, prepare header and convert to bytes, like for username above, then send
     message = message.encode('utf-8')
-    message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+    message_header = f"{len(message):<{HEADERLENGTH}}".encode('utf-8')
     client_socket.send(message_header + message)
+
 
 # Starts listening function in a thread
 # incoming_message_callback - callback to be called when new message arrives
