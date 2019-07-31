@@ -30,6 +30,7 @@ COLOURS = {} #type:color_tuple
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
 ROWS = 4
+LIJNLENGTE = 28
 
 class LoginScreen(GridLayout):
     def __init__(self, **kwargs):
@@ -121,7 +122,6 @@ class LoginScreen(GridLayout):
         DATA.set_prod(socket_client.requestData(req))
         
         DATA.set_verkoper(naam)
-        print(DATA.get_prod())
         #maak productpage
         print("switch...")
         m_app.make_prod_page()
@@ -186,13 +186,14 @@ class HuidigeBestellingScreen(GridLayout):
         super().__init__(**kwargs)
         self.cols = 1
         
-        #aparte labels, scrollview wss die productnaam en aantal op het einde weergeven
-        self.add_widget(Label(text="work in progress"))
-        
         #knop terug
         knop = Button(text="ga terug")
         knop.bind(on_press=self.terug)
         self.add_widget(knop)
+        
+        #order
+        self.bestelling = LijstLabel()
+        self.add_widget(self.bestelling)
         
     
     def terug(self, _):
@@ -255,10 +256,14 @@ class ProductScreen(GridLayout):
     def klik(self, instance):
         if instance.text != "":
             DATA.bestelling_add_prod(instance.text, 1)
-        else:
-            print("LEEG")
-        
+            #temp
+            m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
+            self.update_list = DATA.bestelling_list()
+            Clock.schedule_once(self.refill, 0.5)
+            #message = "{:<28}1".format(instance.text.strip())
+
     
+
     def switch_page(self, instance):
         vorig = self.paginaNr
         if instance.text == "->":
@@ -288,6 +293,12 @@ class ProductScreen(GridLayout):
                 self.prods_knoppen[i].text = data[i][1]
             except:
                 self.prods_knoppen[i].text = ""
+    
+    
+    def refill(self, *_):
+        if len(self.update_list):
+            m_app.bestelling_pagina.bestelling.update_bestelling(self.update_list.pop(0))
+            Clock.schedule_once(self.refill,0.01)
                 
 
 class KassaClientApp(App):
@@ -410,6 +421,15 @@ class Client_storage():
             self.bestelling["opm"].append(opm)
             
         print("[BESTELLING] %s" %(self.bestelling))
+    
+    def bestelling_list(self):
+        msg = []
+        for key in self.bestelling:
+            if key == "opm" or key == "info":
+                continue
+            msg.append("{:<28}{}".format(key, self.bestelling[key]))
+        return msg
+            
         
         
 #scrolllabel
@@ -431,43 +451,45 @@ class LijstLabel(ScrollView):
         self.layout = GridLayout(size_hint_y=None, cols=1)
         self.add_widget(self.layout)
 
-        self.bestelling = Label(text="", markup=True, size_hint_y=None)
+        self.bestelling = Label(
+                text="\n", markup=True,
+                size_hint_y=None,
+                color=(0,0,0,1),
+                font_name="RobotoMono-Regular") #noodzakelijk voor spacing
         #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
         #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
-        
+        self.layout.add_widget(self.bestelling)
             
+    
     # Methos called externally to add new message to the chat history  
-    def update_bestelling(self, product, _):
+    def update_bestelling(self, lijn):
         #we kunnen geen nieuw label maken, dit zal voor problemen zorgen
         #ook kunnen we update_chat_history pas oproepen als het scherm getekent wordt
 
-        # First add new line and message itself
-    
-
+        #voeg bericht toe
+        self.bestelling.text += lijn + '\n'
+        
         # Set layout height to whatever height of self.naam text is + 15 pixels
         # (adds a bit of space at the bottom)
         # Set chat history label to whatever height of chat history text is
         # Set width of chat history text to 98 of the label width (adds small margins)
-        self.layout.height = self.naam.texture_size[1] + 15
-        for el in self.list:
-            el.height = el.texture_size[1]
+        self.layout.height = self.bestelling.texture_size[1] + 15
+        self.bestelling.height = self.bestelling.texture_size[1]
             #el.text_size = (el.width * 0.98, None) #kan later problemen geven
-    
     
     def verklein_bestelling(self, aantal=-1, _=None):
         if (aantal == -1):
-            aantal = self.naam.text.count('\n')
-        for el in self.list:
-            el.text = "".join([i+'\n' for i in el.text.split('\n')][:-aantal])
-            
-        self.layout.height = self.naam.texture_size[1] - 15*aantal
-        for el in self.list:
-            el.height = el.texture_size[1]
+            aantal = self.bestelling.text.count('\n')
+        self.bestelling.text = "".join([i+'\n' for i in self.bestelling.text.split('\n')][:-aantal])
+
+        self.layout.height = self.bestelling.texture_size[1] - 15*aantal
+        self.bestelling.height = self.bestelling.texture_size[1]
                     
     
     def _update_rect(self, instance, value):
         self.rect.pos = instance.pos
         self.rect.size = instance.size
+
     
     
 def show_error(message):    
