@@ -10,7 +10,7 @@ from kivy.core.window import Window
 #achtergrond
 from kivy.graphics import Color, Rectangle
 #uix elementen
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 from kivy.uix.gridlayout import GridLayout 
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
@@ -25,12 +25,12 @@ import socket_client
 kivy.require("1.10.1") #vw voor de versie
 
 DATA = None#Client_storage()
-DEBUG = False
 COLOURS = {} #type:color_tuple 
+
+DEBUG = False
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
 ROWS = 4
-LIJNLENGTE = 28
 
 class LoginScreen(GridLayout):
     def __init__(self, **kwargs):
@@ -157,14 +157,22 @@ class KlantInfoScreen(GridLayout):
         self.cols = 1
         
         self.add_widget(Label(text="Info van de klant."))
+        
         self.add_widget(Label(text="Verkoper: "))
-        self.add_widget(TextInput(text=DATA.get_verkoper()))
+        self.verkoper = TextInput(text=DATA.get_verkoper())
+        self.add_widget(self.verkoper)
+        
         self.add_widget(Label(text="ID:"))
-        self.add_widget(TextInput(input_type='number'))     
+        self.ID = TextInput(input_type='number')
+        self.add_widget(self.ID)
+        
         self.add_widget(Label(text="Tafelnummer:"))
-        self.add_widget(TextInput(input_type='number'))   
+        self.tafel = TextInput(input_type='number') 
+        self.add_widget(self.tafel)
+        
         self.add_widget(Label(text="Naam:"))
-        self.add_widget(TextInput())
+        self.naam = TextInput()
+        self.add_widget(self.naam)
         
         knop = Button(text="Ga verder")
         knop.bind(on_press=self.start_bestelling)
@@ -172,7 +180,18 @@ class KlantInfoScreen(GridLayout):
         
     
     def start_bestelling(self, _):
-        #TODO: verwerk data
+        verkoper = self.verkoper.text.strip()
+        ID = self.ID.text.strip()
+        naam = self.naam.text.strip()
+        tafel = self.tafel.text.strip()
+        
+        #TODO popups wanneer
+        DATA.set_creds(naam, ID, tafel, verkoper)
+        
+        #restore de velden
+        self.ID.text = ""
+        self.naam.text = ""
+        self.tafel.text = ""
         
         m_app.screen_manager.current = "product"
         
@@ -186,15 +205,33 @@ class HuidigeBestellingScreen(GridLayout):
         super().__init__(**kwargs)
         self.cols = 1
         
+        #verzend knop, stuurt je terug naar nieuwe rekening
+        knop = Button(text="Send", size_hint_y=None, height=50,
+                      background_color=(0,1,0,1))
+        knop.bind(on_press=self.send_bestelling)
+        self.add_widget(knop)        
+        
+        #voeg opmerking toe
+        knop = Button(text="Opmerkingen", size_hint_y=None, height=50)
+        #knop.bind(on_press=)
+        self.add_widget(knop)
+                
         #knop terug
-        knop = Button(text="ga terug")
+        knop = Button(text="ga terug", size_hint_y=None, height=50,
+                      background_color=(0,0.2,0.8,1))
         knop.bind(on_press=self.terug)
         self.add_widget(knop)
+        
         
         #order
         self.bestelling = LijstLabel()
         self.add_widget(self.bestelling)
         
+        
+    def send_bestelling(self, _):
+        socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling()})
+        m_app.screen_manager.current = "klantinfo"
+    
     
     def terug(self, _):
         m_app.screen_manager.current = "product"
@@ -261,7 +298,6 @@ class ProductScreen(GridLayout):
             self.update_list = DATA.bestelling_list()
             Clock.schedule_once(self.refill, 0.5)
             #message = "{:<28}1".format(instance.text.strip())
-
     
 
     def switch_page(self, instance):
@@ -309,7 +345,7 @@ class KassaClientApp(App):
         
     
     def build(self):
-        self.screen_manager = ScreenManager()
+        self.screen_manager = ScreenManager(transition=FadeTransition())
         
         self.login_pagina = LoginScreen()
         scherm = Screen(name='login')

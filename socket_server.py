@@ -141,6 +141,7 @@ def start_listening(db, crash_func, password=None, get_items=None, store_order=N
                     elif message['req'] == "BST":
                         #verwerk bestelling
                         pass
+                        #stuur succes, gelukt
                     elif message['req'] == "MSG":
                         pass
                     #print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')

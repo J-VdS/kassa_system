@@ -53,15 +53,11 @@ def requestData(request):
     client_socket.send(makeMsg(request))
     lengte = int(client_socket.recv(HEADERLENGTH).decode('utf-8'))
     return pickle.loads(client_socket.recv(lengte))
+
+
+def sendData(request):
+    client_socket.send(makeMsg(request))
     
-
-# Sends a message to the server
-def send(message):
-    # Encode message to bytes, prepare header and convert to bytes, like for username above, then send
-    message = message.encode('utf-8')
-    message_header = f"{len(message):<{HEADERLENGTH}}".encode('utf-8')
-    client_socket.send(message_header + message)
-
 
 # Starts listening function in a thread
 # incoming_message_callback - callback to be called when new message arrives
