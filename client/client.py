@@ -7,6 +7,8 @@ from kivy.app import App
 from kivy.clock import Clock
 #core
 from kivy.core.window import Window
+#achtergrond
+from kivy.graphics import Color, Rectangle
 #uix elementen
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.gridlayout import GridLayout 
@@ -14,6 +16,7 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
 
 #networking
 import socket_client
@@ -22,6 +25,11 @@ import socket_client
 kivy.require("1.10.1") #vw voor de versie
 
 DATA = None#Client_storage()
+DEBUG = False
+COLOURS = {} #type:color_tuple 
+#ToDo: aanpasbaar door de gebruiker
+COLS = 2
+ROWS = 4
 
 class LoginScreen(GridLayout):
     def __init__(self, **kwargs):
@@ -103,6 +111,7 @@ class LoginScreen(GridLayout):
         naam = self.naam.text
         wachtwoord = self.password.text
         
+        
         if not socket_client.connect(ip, poort, naam, wachtwoord, show_error):
             #connection failed
             return
@@ -112,10 +121,10 @@ class LoginScreen(GridLayout):
         DATA.set_prod(socket_client.requestData(req))
         
         DATA.set_verkoper(naam)
-        
+        print(DATA.get_prod())
         #maak productpage
         print("switch...")
-        m_app.make_prod_pages()
+        m_app.make_prod_page()
         m_app.make_connect_pages()
         
         m_app.screen_manager.current = "klantinfo"
@@ -163,9 +172,123 @@ class KlantInfoScreen(GridLayout):
         
     
     def start_bestelling(self, _):
-        m_app.info_pagina.change_info("start bestelling")
-        m_app.screen_manager.current = "info"
+        #TODO: verwerk data
+        
+        m_app.screen_manager.current = "product"
+        
+        
+
+class HuidigeBestellingScreen(GridLayout):
+    '''
+        geeft weer wat er al besteld is
+    '''
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        
+        #aparte labels, scrollview wss die productnaam en aantal op het einde weergeven
+        self.add_widget(Label(text="work in progress"))
+        
+        #knop terug
+        knop = Button(text="ga terug")
+        knop.bind(on_press=self.terug)
+        self.add_widget(knop)
+        
     
+    def terug(self, _):
+        m_app.screen_manager.current = "product"
+        
+        
+class ProductScreen(GridLayout):
+    '''
+        knoppen
+        knop ('<', '>') en in het midden textinput voor aantal
+        label met paginanr
+    '''
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        self.rows = 3
+        
+        self.paginaNr = 0
+        self.prods = []
+        self.prods_knoppen = []
+        
+        #paginaNr:
+        self.paginaNr_label = Label(
+                text=f"Pagina {self.paginaNr+1}",
+                size_hint_y=None,
+                height=35)
+        self.add_widget(self.paginaNr_label)
+        
+        #knopjes
+        self.knopLayout = GridLayout(cols=COLS)
+        for _ in range(COLS*ROWS):
+            self.prods_knoppen.append(Button(text=""))
+            self.prods_knoppen[-1].bind(on_press=self.klik)
+            self.knopLayout.add_widget(self.prods_knoppen[-1])
+        
+        knop = Button(text="<-")
+        knop.bind(on_press=self.switch_page)
+        self.knopLayout.add_widget(knop)
+        
+        knop = Button(text="->")
+        knop.bind(on_press=self.switch_page)
+        self.knopLayout.add_widget(knop)
+        
+        self.add_widget(self.knopLayout)
+        
+        knop = Button(
+                text="Huidige bestelling...",
+                background_color=(0,1,0,1),
+                size_hint_y=0.15)
+        knop.bind(on_press=self.zie_huidig)
+        self.add_widget(knop)
+            
+        self.vul_in()          
+        
+        
+    def zie_huidig(self, _):
+        m_app.screen_manager.current = "bestelling"
+            
+        
+    def klik(self, instance):
+        if instance.text != "":
+            DATA.bestelling_add_prod(instance.text, 1)
+        else:
+            print("LEEG")
+        
+    
+    def switch_page(self, instance):
+        vorig = self.paginaNr
+        if instance.text == "->":
+            self.paginaNr += 1 if (self.paginaNr+1<DATA.get_num_pages()) else 0
+        else:
+            self.paginaNr -= 1 if (self.paginaNr>0) else 0
+        
+        #controles nodig
+        #kan beter met een return waarde gebeuren !
+        if vorig != self.paginaNr:
+            #pas de producten aan
+            self.vul_in()
+            #pas paginaNrlabel aan
+            self.paginaNr_label.text = f"Pagina {self.paginaNr+1}"
+        
+        
+    def vul_in(self):
+        data = DATA.get_sort_prod()
+        if len(data)<self.paginaNr*COLS*ROWS:
+            end = len(data)
+        else:
+            end = COLS*ROWS*(self.paginaNr+1)
+        data = data[COLS*ROWS*self.paginaNr:end]
+        for i in range(COLS*ROWS):
+            try:
+                print(data[i])
+                self.prods_knoppen[i].text = data[i][1]
+            except:
+                self.prods_knoppen[i].text = ""
+                
 
 class KassaClientApp(App):
     def __init__(self, **kwargs):
@@ -191,27 +314,45 @@ class KassaClientApp(App):
 
     
     def make_connect_pages(self):
+        #login
         self.klant_info_pagina = KlantInfoScreen()
         scherm = Screen(name="klantinfo")
         scherm.add_widget(self.klant_info_pagina)
         self.screen_manager.add_widget(scherm)
         
+        #huidige bestelling
+        self.bestelling_pagina = HuidigeBestellingScreen()
+        scherm = Screen(name="bestelling")
+        scherm.add_widget(self.bestelling_pagina)
+        self.screen_manager.add_widget(scherm)
+        
     
-    def make_prod_pages(self):
-        pass
+    def make_prod_page(self):
+        self.prod_pagina = ProductScreen()
+        scherm = Screen(name="product")
+        scherm.add_widget(self.prod_pagina)
+        self.screen_manager.add_widget(scherm)
     
     
     def delete_prod_pages(self):
         pass
+    
+    
+    def goHome(self, *_):
+        self.screen_manager.current = "login"
 
 
+#datastructuur voor alle info
 class Client_storage():
     def __init__(self):
         self._prod = {}
         self._prod_list = []
         self.verkoper = ""
+        
+        #bevat alle info voor de server en de kassa
+        self.bestelling = {} 
     
-    
+    #setters
     def set_prod(self, prod):
         self._prod = prod
         for type in self._prod:
@@ -221,6 +362,19 @@ class Client_storage():
     
     def set_verkoper(self, verkoper):
         self.verkoper = verkoper
+    
+    
+    def set_creds(self, naam, id, tafelnr, verkoper):
+        if verkoper != self.verkoper:
+            self.verkoper = verkoper
+        self.bestelling.clear() #maak alles leeg
+        self.bestelling["info"] = {"naam":naam, "id":id, "tafel":tafelnr, "verkoper":verkoper}
+        self.bestelling["opm"] = []
+            
+        
+    #getters
+    def get_bestelling(self):
+        return self.bestelling
     
     
     def get_prod(self):
@@ -237,18 +391,97 @@ class Client_storage():
     
     def check_prod(self, prod):
         return prod == self._prod
-        
+ 
+    def get_num_pages(self):
+        geh, rest = divmod(len(self._prod_list), COLS*ROWS)
+        return geh if (rest==0) else (geh + 1)
     
-def show_error(message):
+    #bestelling
+    def bestelling_add_prod(self, prod, aantal, opm=None):
+        '''
+            voegt een product toe aan de bestelling        
+        '''
+        if prod in self.bestelling:
+            self.bestelling[prod] += aantal
+        else:
+            self.bestelling[prod] = aantal
+            
+        if opm:
+            self.bestelling["opm"].append(opm)
+            
+        print("[BESTELLING] %s" %(self.bestelling))
+        
+        
+#scrolllabel
+class LijstLabel(ScrollView):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        #witte achtergrond
+
+        with self.canvas.before:
+            #rgba
+            Color(220/255, 220/255, 230/255, 1)  # green; colors range from 0-1 instead of 0-255
+            self.rect = Rectangle(size=self.size, pos=self.pos)
+
+        self.bind(size=self._update_rect, pos=self._update_rect)
+
+        #Scrollview attributen
+        self.bar_width = 5
+        
+        self.layout = GridLayout(size_hint_y=None, cols=1)
+        self.add_widget(self.layout)
+
+        self.bestelling = Label(text="", markup=True, size_hint_y=None)
+        #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
+        #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
+        
+            
+    # Methos called externally to add new message to the chat history  
+    def update_bestelling(self, product, _):
+        #we kunnen geen nieuw label maken, dit zal voor problemen zorgen
+        #ook kunnen we update_chat_history pas oproepen als het scherm getekent wordt
+
+        # First add new line and message itself
+    
+
+        # Set layout height to whatever height of self.naam text is + 15 pixels
+        # (adds a bit of space at the bottom)
+        # Set chat history label to whatever height of chat history text is
+        # Set width of chat history text to 98 of the label width (adds small margins)
+        self.layout.height = self.naam.texture_size[1] + 15
+        for el in self.list:
+            el.height = el.texture_size[1]
+            #el.text_size = (el.width * 0.98, None) #kan later problemen geven
+    
+    
+    def verklein_bestelling(self, aantal=-1, _=None):
+        if (aantal == -1):
+            aantal = self.naam.text.count('\n')
+        for el in self.list:
+            el.text = "".join([i+'\n' for i in el.text.split('\n')][:-aantal])
+            
+        self.layout.height = self.naam.texture_size[1] - 15*aantal
+        for el in self.list:
+            el.height = el.texture_size[1]
+                    
+    
+    def _update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
+    
+    
+def show_error(message):    
     m_app.info_pagina.change_info(message)
     m_app.screen_manager.current = 'info'
-    Clock.schedule_once(sys.exit, 5)
+    if DEBUG:
+        Clock.schedule_once(sys.exit, 5)
+    else:
+        Clock.schedule_once(m_app.goHome, 5)
+    socket_client.disconnect()
+
 
 if __name__ == "__main__":
     DATA = Client_storage()
     m_app = KassaClientApp()
     m_app.run()
-    DATA.set_prod({1:['k', 'b','x'], 3:['a','c'], 4:['t']})
-    print(DATA.get_prod())
-    print(DATA.get_sort_prod())
     
