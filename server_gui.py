@@ -563,6 +563,18 @@ class ConnectBar(GridLayout):
         aanvaard_status.bind(active=self.switch_aanvaard)
         self.add_widget(aanvaard_status)
         
+        #huidig IP adres
+        self.add_widget(Label(
+                text="IP adres server:",
+                size_hint_y=None,
+                height=50,
+                font_size=22))
+        self.add_widget(Label(
+                text=socket_server.get_host_ip(),
+                size_hint_y=None,
+                height=50,
+                font_size=22))
+        
         #server_info
         self.auto_off = False
         

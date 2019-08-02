@@ -39,6 +39,10 @@ def get_products(db_io):
     products = pickle.dumps(func.sort_by_type(database.getAllProductClient(db_io)))
     msg = f"{len(products):<{HEADERLENGTH}}".encode("utf-8") + products
     return msg
+
+
+def get_host_ip():   
+    return socket.gethostbyname(socket.gethostname())
     
 
 def TriggerSD():
