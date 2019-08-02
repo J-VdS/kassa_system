@@ -111,6 +111,7 @@ client/credentials.txt
 
 # testing
 connect_test.py
+client/output.txt
 
 # networkprot
 network_prot.txt

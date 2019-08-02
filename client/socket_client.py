@@ -6,11 +6,14 @@ from threading import Thread
 
 HEADERLENGTH = 10
 client_socket = None
+ON_ERR = None
 
 # Connects to the server
 def connect(ip, port, my_username, pwd, error_callback):
 
     global client_socket
+    global ON_ERR
+    ON_ERR = error_callback
 
     # Create a socket
     # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
@@ -22,7 +25,7 @@ def connect(ip, port, my_username, pwd, error_callback):
         client_socket.connect((ip, port))
     except Exception as e:
         # Connection error
-        client_socket.close()
+        #client_socket.close()
         error_callback('Connection error: {}'.format(str(e)))
         return False
 
@@ -50,15 +53,22 @@ def makeMsg(msg):
     
     
 def requestData(request):
-    client_socket.send(makeMsg(request))
-    lengte = int(client_socket.recv(HEADERLENGTH).decode('utf-8'))
-    return pickle.loads(client_socket.recv(lengte))
+    try:
+        client_socket.send(makeMsg(request))
+        lengte = int(client_socket.recv(HEADERLENGTH).decode('utf-8'))
+        return pickle.loads(client_socket.recv(lengte))
+    except Exception as e:
+        ON_ERR('Connection error: {}'.format(str(e)))
 
 
 def sendData(request):
-    client_socket.send(makeMsg(request))
+    try:
+        client_socket.send(makeMsg(request))
+    except Exception as e:
+        ON_ERR('Connection error: {}'.format(str(e)))
     
-
+#------------------------- niet nodig ----------------------------------
+        
 # Starts listening function in a thread
 # incoming_message_callback - callback to be called when new message arrives
 # error_callback - callback to be called on error

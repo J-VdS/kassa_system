@@ -29,6 +29,8 @@ DATA = None#Client_storage()
 COLOURS = {"drank":(0.8,0.2,0,1),
            "gerecht":(0,0.2,1,1),} #type:color_tuple 
 
+#debug
+from kivy.logger import LoggerHistory
 DEBUG = False
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
@@ -254,7 +256,7 @@ class HuidigeBestellingScreen(GridLayout):
         
         #voeg opmerking toe
         knop = Button(text="Opmerkingen", size_hint_y=None, height=70)
-        #knop.bind(on_press=)
+        knop.bind(on_press=self.opmerkingen)
         self.add_widget(knop)
                 
         #knop terug
@@ -271,25 +273,24 @@ class HuidigeBestellingScreen(GridLayout):
         
     def send_bestelling(self, _):
         #TODO: popup indien de bestelling leeg is
+        #in principe dit geen gevolgen mogen geven.
         print("[BESTELLING] %s" %(DATA.get_bestelling()))
         socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling()})
         m_app.screen_manager.current = "klantinfo"
-    
-    
-    def terug(self, _):
-        m_app.screen_manager.current = "product"
-        
+            
     
     def verwijder(self, _):
         self.popup = Popup(title="Info")
         layout = GridLayout(cols=1)
         
-        self.label = Label(text="Wil je je bestelling verwijderen?\nDit kan niet ongedaan worden gemaakt.",
-                           height=Window.size[1]*.8,
-                           size_hint_y=None,
-                           font_size=30)
-        self.label.bind(width=self._update_text_width)
-        layout.add_widget(self.label)
+        label = Label(text="Wil je je bestelling verwijderen?\n\nDit kan niet ongedaan worden gemaakt.",
+                      height=Window.size[1]*.8,
+                      size_hint_y=None,
+                      font_size=30,
+                      halign="center",
+                      valign="middle")
+        label.bind(width=self._update_width)
+        layout.add_widget(label)
         
         knoplayout = BoxLayout(orientation="horizontal")
         
@@ -307,13 +308,40 @@ class HuidigeBestellingScreen(GridLayout):
         self.popup.open()        
        
         
-    def _update_text_width(self, *_):
-        self.label.text_size = (self.label.width * .9, None)
+    def _update_width(self, obj, _):
+        obj.text_size = (obj.width * .9, None)
         
     
     def _verwijder_bevestigd(self, *_):
         m_app.screen_manager.current = "klantinfo"
         self.popup.dismiss() 
+    
+    
+    def opmerkingen(self, _):
+        self.popup = Popup(title="Opmerkingen")
+        layout = GridLayout(cols=1)
+        
+        self.opm_input = TextInput(text=DATA.get_opm(), 
+                                   height=Window.size[1]*.8,
+                                   size_hint_y=None,)
+        self.opm_input.bind(width=self._update_width)
+        layout.add_widget(self.opm_input)
+        
+        knop = Button(text="toevoegen", width=Window.size[0]*.4)
+        knop.bind(on_press=self._opmerking_toevoegen)
+        layout.add_widget(knop)
+        
+
+        self.popup.add_widget(layout)                        
+        self.popup.open()        
+    
+    
+    def _opmerking_toevoegen(self, _):
+        DATA.set_opm(self.opm_input.text.strip())
+        self.popup.dismiss()
+    
+    def terug(self, _):
+        m_app.screen_manager.current = "product"
         
          
         
@@ -497,7 +525,11 @@ class Client_storage():
             self.verkoper = verkoper
         self.bestelling.clear() #maak alles leeg
         self.bestelling["info"] = {"naam":naam, "id":id, "tafel":tafelnr, "verkoper":verkoper}
-        self.bestelling["opm"] = []
+        self.bestelling["opm"] = ""
+        
+
+    def set_opm(self, opm):
+        self.bestelling["opm"] = opm        
         
         
     #getters
@@ -515,6 +547,10 @@ class Client_storage():
     
     def get_verkoper(self):
         return self.verkoper
+    
+    
+    def get_opm(self):
+        return self.bestelling["opm"]
     
     
     def check_prod(self, prod):
@@ -619,6 +655,12 @@ def show_error(message):
 
 
 if __name__ == "__main__":
+    #DEBUG loggin
+    if not(DEBUG):
+        sys.stderr = open('output.txt', 'w')
+        sys.stdout = sys.stderr
+        print('\n'.join([str(l) for l in LoggerHistory.history]))
+    
     DATA = Client_storage()
     m_app = KassaClientApp()
     m_app.run()
