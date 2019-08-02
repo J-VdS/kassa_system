@@ -123,7 +123,10 @@ class LoginScreen(GridLayout):
         
         #maak de product page en sla alle data op in de datastructuur
         req = {'req':'GET'}
-        DATA.set_prod(socket_client.requestData(req))
+        ret = socket_client.requestData(req)
+        if ret == -1:
+            return
+        DATA.set_prod(ret)
         
         DATA.set_verkoper(naam)
         
@@ -273,10 +276,11 @@ class HuidigeBestellingScreen(GridLayout):
         
     def send_bestelling(self, _):
         #TODO: popup indien de bestelling leeg is
-        #in principe dit geen gevolgen mogen geven.
+        #in principe zou dit geen gevolgen mogen geven.
         print("[BESTELLING] %s" %(DATA.get_bestelling()))
-        socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling()})
-        m_app.screen_manager.current = "klantinfo"
+        if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling()}) != -1:
+            #TODO: backup
+            m_app.screen_manager.current = "klantinfo"
             
     
     def verwijder(self, _):

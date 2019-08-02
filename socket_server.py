@@ -43,7 +43,7 @@ def get_products(db_io):
 
 def TriggerSD():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((IP,POORT))
+    s.connect(('127.0.0.1',POORT))
     s.send("{:<{}}".format(0,HEADERLENGTH).encode("utf-8")) #eig fout
     s.close()
     

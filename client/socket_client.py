@@ -59,14 +59,16 @@ def requestData(request):
         return pickle.loads(client_socket.recv(lengte))
     except Exception as e:
         ON_ERR('Connection error: {}'.format(str(e)))
+        return -1
 
 
 def sendData(request):
     try:
         client_socket.send(makeMsg(request))
+        return 0
     except Exception as e:
         ON_ERR('Connection error: {}'.format(str(e)))
-    
+        return -1
 #------------------------- niet nodig ----------------------------------
         
 # Starts listening function in a thread
