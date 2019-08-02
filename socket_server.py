@@ -12,7 +12,7 @@ import sys
 #RUN_SERVER = True
 
 HEADERLENGTH = 10 #10
-IP = "127.0.0.1"
+IP = "0.0.0.0"
 POORT = 1740
 RUN = True
 ACCEPT = True
@@ -160,6 +160,9 @@ def start_listening(db, crash_func, password=None, get_items=None, store_order=N
         print(f"line {line}: {str(e)}")
         crash_func()
     finally:
+        for s in sockets_list:
+            if sockets_list != server_socket:
+                s.close()
         print("DB connection closed")
         database.CloseIO(db_io)
         print("SERVER closed")

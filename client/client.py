@@ -11,7 +11,8 @@ from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle
 #uix elementen
 from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
-from kivy.uix.gridlayout import GridLayout 
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
@@ -25,7 +26,8 @@ import socket_client
 kivy.require("1.10.1") #vw voor de versie
 
 DATA = None#Client_storage()
-COLOURS = {} #type:color_tuple 
+COLOURS = {"drank":(0.8,0.2,0,1),
+           "gerecht":(0,0.2,1,1),} #type:color_tuple 
 
 DEBUG = False
 #ToDo: aanpasbaar door de gebruiker
@@ -86,7 +88,7 @@ class LoginScreen(GridLayout):
             Clock.schedule_once(self.connect, 1)
             
         else:
-            popup = Popup(title="test")
+            popup = Popup(title="Info")
             layout = GridLayout(cols=1)
             
             layout.add_widget(Label(text="Vul alle velden in!",
@@ -122,8 +124,8 @@ class LoginScreen(GridLayout):
         DATA.set_prod(socket_client.requestData(req))
         
         DATA.set_verkoper(naam)
+        
         #maak productpage
-        print("switch...")
         m_app.make_prod_page()
         m_app.make_connect_pages()
         
@@ -139,7 +141,7 @@ class InfoScreen(GridLayout):
         
         self.label = Label(halign="center", valign="middle", font_size=30)
         
-        self.label.bind(width=self.update_text_width)
+        self.label.bind(width=self._update_text_width)
         
         self.add_widget(self.label)
         
@@ -147,7 +149,7 @@ class InfoScreen(GridLayout):
     def change_info(self, info):
         self.label.text = info
     
-    def update_text_width(self, *_):
+    def _update_text_width(self, *_):
         self.label.text_size = (self.label.width * .9, None)
         
         
@@ -159,19 +161,19 @@ class KlantInfoScreen(GridLayout):
         self.add_widget(Label(text="Info van de klant."))
         
         self.add_widget(Label(text="Verkoper: "))
-        self.verkoper = TextInput(text=DATA.get_verkoper())
+        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False)
         self.add_widget(self.verkoper)
         
         self.add_widget(Label(text="ID:"))
-        self.ID = TextInput(input_type='number')
+        self.ID = TextInput(input_type='number', multiline=False)
         self.add_widget(self.ID)
         
         self.add_widget(Label(text="Tafelnummer:"))
-        self.tafel = TextInput(input_type='number') 
+        self.tafel = TextInput(input_type='number', multiline=False) 
         self.add_widget(self.tafel)
         
         self.add_widget(Label(text="Naam:"))
-        self.naam = TextInput()
+        self.naam = TextInput(multiline=False)
         self.add_widget(self.naam)
         
         knop = Button(text="Ga verder")
@@ -185,16 +187,49 @@ class KlantInfoScreen(GridLayout):
         naam = self.naam.text.strip()
         tafel = self.tafel.text.strip()
         
-        #TODO popups wanneer
-        DATA.set_creds(naam, ID, tafel, verkoper)
+        if (ID == "")+(naam == "")+(tafel == "")+(verkoper == ""):
+            #popup vul alle velden in
+            popup = Popup(title="Info")
+            layout = GridLayout(cols=1)
+            
+            layout.add_widget(Label(text="Vul alle velden in!",
+                                    height=Window.size[1]*.8,
+                                    size_hint_y=None,
+                                    font_size=30))
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
+            return
+        elif not(ID.isdigit()) or not(tafel.isdigit()):
+            #popup gebruik nummers
+            popup = Popup(title="Info")
+            layout = GridLayout(cols=1)
+            
+            layout.add_widget(Label(text="ID en tafelnummer\nmoeten getallen zijn!",
+                                    height=Window.size[1]*.8,
+                                    size_hint_y=None,
+                                    font_size=30))
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
+            return
+        
+        DATA.set_creds(naam, int(ID), int(tafel), verkoper)
         
         #restore de velden
         self.ID.text = ""
         self.naam.text = ""
         self.tafel.text = ""
         
-        m_app.screen_manager.current = "product"
-        
+        m_app.screen_manager.current = "product"       
         
 
 class HuidigeBestellingScreen(GridLayout):
@@ -206,18 +241,24 @@ class HuidigeBestellingScreen(GridLayout):
         self.cols = 1
         
         #verzend knop, stuurt je terug naar nieuwe rekening
-        knop = Button(text="Send", size_hint_y=None, height=50,
+        knop = Button(text="Send", size_hint_y=None, height=70,
                       background_color=(0,1,0,1))
         knop.bind(on_press=self.send_bestelling)
-        self.add_widget(knop)        
+        self.add_widget(knop)
+        
+        #verwijder bestelling
+        knop = Button(text="Verwijder", size_hint_y=None, height=70,
+                      background_color=(1,1,0,1))
+        knop.bind(on_press=self.verwijder)
+        self.add_widget(knop)
         
         #voeg opmerking toe
-        knop = Button(text="Opmerkingen", size_hint_y=None, height=50)
+        knop = Button(text="Opmerkingen", size_hint_y=None, height=70)
         #knop.bind(on_press=)
         self.add_widget(knop)
                 
         #knop terug
-        knop = Button(text="ga terug", size_hint_y=None, height=50,
+        knop = Button(text="ga terug", size_hint_y=None, height=70,
                       background_color=(0,0.2,0.8,1))
         knop.bind(on_press=self.terug)
         self.add_widget(knop)
@@ -229,6 +270,8 @@ class HuidigeBestellingScreen(GridLayout):
         
         
     def send_bestelling(self, _):
+        #TODO: popup indien de bestelling leeg is
+        print("[BESTELLING] %s" %(DATA.get_bestelling()))
         socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling()})
         m_app.screen_manager.current = "klantinfo"
     
@@ -236,6 +279,43 @@ class HuidigeBestellingScreen(GridLayout):
     def terug(self, _):
         m_app.screen_manager.current = "product"
         
+    
+    def verwijder(self, _):
+        self.popup = Popup(title="Info")
+        layout = GridLayout(cols=1)
+        
+        self.label = Label(text="Wil je je bestelling verwijderen?\nDit kan niet ongedaan worden gemaakt.",
+                           height=Window.size[1]*.8,
+                           size_hint_y=None,
+                           font_size=30)
+        self.label.bind(width=self._update_text_width)
+        layout.add_widget(self.label)
+        
+        knoplayout = BoxLayout(orientation="horizontal")
+        
+        knop = Button(text="annuleer",width=Window.size[0]*.4)
+        knop.bind(on_press=self.popup.dismiss)
+        knoplayout.add_widget(knop)
+        
+        knop = Button(text="verwijder", width=Window.size[0]*.4)
+        knop.bind(on_press=self._verwijder_bevestigd)
+        knoplayout.add_widget(knop)
+        
+        
+        layout.add_widget(knoplayout)
+        self.popup.add_widget(layout)                        
+        self.popup.open()        
+       
+        
+    def _update_text_width(self, *_):
+        self.label.text_size = (self.label.width * .9, None)
+        
+    
+    def _verwijder_bevestigd(self, *_):
+        m_app.screen_manager.current = "klantinfo"
+        self.popup.dismiss() 
+        
+         
         
 class ProductScreen(GridLayout):
     '''
@@ -325,10 +405,11 @@ class ProductScreen(GridLayout):
         data = data[COLS*ROWS*self.paginaNr:end]
         for i in range(COLS*ROWS):
             try:
-                print(data[i])
                 self.prods_knoppen[i].text = data[i][1]
+                self.prods_knoppen[i].background_color = COLOURS.get(data[i][0], (1,1,1,1))
             except:
                 self.prods_knoppen[i].text = ""
+                self.prods_knoppen[i].background_color = (1,1,1,1)
     
     
     def refill(self, *_):
@@ -417,7 +498,7 @@ class Client_storage():
         self.bestelling.clear() #maak alles leeg
         self.bestelling["info"] = {"naam":naam, "id":id, "tafel":tafelnr, "verkoper":verkoper}
         self.bestelling["opm"] = []
-            
+        
         
     #getters
     def get_bestelling(self):
@@ -456,7 +537,6 @@ class Client_storage():
         if opm:
             self.bestelling["opm"].append(opm)
             
-        print("[BESTELLING] %s" %(self.bestelling))
     
     def bestelling_list(self):
         msg = []
