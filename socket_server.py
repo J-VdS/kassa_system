@@ -52,7 +52,7 @@ def TriggerSD():
     s.close()
     
 
-def start_listening(db, crash_func, password=None, get_items=None, store_order=None):
+def start_listening(db, crash_func, update_func, password=None, get_items=None, store_order=None):
     #we zullen een connectie proberen te openen met de db om daar de producten op te vragen,
     #en de bestellingen in op te slaan.
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -66,7 +66,7 @@ def start_listening(db, crash_func, password=None, get_items=None, store_order=N
     sockets_list = [server_socket]
     connecties = {} #socket:naam --> komt van allereerste bericht dat we zullen ontvangen
     
-    db_io = database.InitProduct(db)
+    db_io = database.OpenIO(db)
     
     try:
         print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
@@ -145,7 +145,10 @@ def start_listening(db, crash_func, password=None, get_items=None, store_order=N
                     elif message['req'] == "BST":
                         #stuur naar printer
                         #verwerk bestelling
-                        database.addBestelling(db_io, message['bestelling']['info'], message['bestelling']['BST'])
+                        ret = database.addBestelling(db_io, message['bestelling']['info'], message['bestelling']['BST'])
+                        if ret == 1:
+                            #herlaad de rekeningen
+                            update_func(db_io)
                         #stuur succes, gelukt
                     elif message['req'] == "MSG":
                         pass

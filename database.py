@@ -18,24 +18,25 @@ def CloseIO(db_io):
     db_io[1].close() #conn
     db_io[0].close() #cursor
 
+def OpenIO(db):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    return (conn, c)
 
 def InitProduct(db):
     ''' Maakt de producten tabel en zorgt voor db_io '''
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
+    pass
+
+def InitTabels(db_io):
+    conn, c = db_io
     #tables_check aanwezig
     #producten tabel
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs REAL, active INTEGER)")
     c.execute("CREATE TABLE IF NOT EXISTS bestellingen(id INTEGER, bestelling BLOB, open INTEGER, prijs REAL)")
     #print("---Product Table Loaded ---")
     conn.commit()
-    return (conn, c) #geef tuple met (connectie, cursor) terug
    
     
-def InitBestelling(db):
-    pass
-
-
 def AddProduct(db_io, type, naam, prijs, active):
     ''' 
         voegt een product toe aan de producten tabel
@@ -106,7 +107,7 @@ def zichtProduct(db_io, naam, active):
         conn.commit()
         return 0
     
-
+#bestellingen
 def addBestelling(db_io, info, bestelling):
     '''
         db_io (tuple): connectie met db
@@ -120,13 +121,21 @@ def addBestelling(db_io, info, bestelling):
         #maak een nieuw ID aan
         bst = pickle.dumps(bestelling)
         c.execute("INSERT INTO bestellingen (id, bestelling, open) VALUES (?,?,?)", (info["id"], bst, 1))
+        conn.commit()
+        return 1
     else:
-        bst = update_dict(pickle.loads(data), bestelling)
+        bst = update_dict(pickle.loads(data[0]), bestelling)
         c.execute("UPDATE bestellingen SET bestelling = ? WHERE id = ?", (bst, info["id"]))
-    
-    conn.commit()  
-    
-        
+        conn.commit()
+        return 0
+      
+
+
+def getIDs(db_io):
+    conn, c = db_io
+    c.execute("SELECT id FROM bestellingen WHERE open = 1 ORDER BY id COLLATE NOCASE ASC")
+    data = c.fetchall()
+    return data    
         
 #old
 def loadTables(db):

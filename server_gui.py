@@ -116,6 +116,16 @@ class ConnectScherm(GridLayout):
         #leeglabel
         #self.add_widget(Label())
         
+        
+class RekeningScherm(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        
+        #lijstlabel links, midden al de knoppen met de producten en rechts speciale actie knoppen
+        #interface voor aantal te wijzigen of te verwijderen
+        
+        
 #bars
 class NavigatieBar(BoxLayout):
     def __init__(self, huidig="hoofd", **kwargs):
@@ -178,16 +188,61 @@ class HoofdBar(GridLayout):
                 font_size=20))
         
         #tweede rij
+        self.paginaNr = self.add_widget(Label(
+                text="Pagina 1",
+                size_hint_y=None,
+                height=35,
+                font_size=16))
+        
+        #derde rij
+        self.buttons = []
         self.button_grid = GridLayout(
                 spacing=[10,15],
                 cols=global_vars.kassa_cols,
                 rows=global_vars.kassa_rows)
-        for i in range(1,global_vars.kassa_cols * global_vars.kassa_rows+1):
-            self.button_grid.add_widget(Button(text=''))
-        
+        aantal_knoppen = global_vars.kassa_cols * global_vars.kassa_rows
+        for i in range(aantal_knoppen):
+            if i == (aantal_knoppen - global_vars.kassa_cols):
+                knop = Button(text="<-", font_size=22, background_color=(0,1,0,1))
+                knop.bind(on_pres=self.switch_pagina)
+                self.button_grid.add_widget(knop)
+            elif i == (aantal_knoppen - 1):
+                knop = Button(text="->", font_size=22, background_color=(0,1,0,1))
+                knop.bind(on_press=self.switch_pagina)
+                self.button_grid.add_widget(knop)
+            else:
+                self.buttons.append(Button(text=''))
+                self.buttons[-1].bind(on_press=self.switch_rekening)
+                self.button_grid.add_widget(self.buttons[-1])
+                
         self.add_widget(self.button_grid)
         
-
+        #db_io
+        self.db_io = database.OpenIO(global_vars.db)
+        
+        #Clock.schedule_interval(self.update_rekeningen, 30)
+        self.update_rekeningen(self.db_io)
+    
+    
+    def switch_rekening(self, instance):
+        print(instance.text)
+        
+        
+    def switch_pagina(self, instance):
+        #verander van pagina
+        pass
+        
+        
+    def update_rekeningen(self, db_io):
+        #deze functie wordt meegegeven in de serverthread
+        #TODO: meerdere pagina support
+        data = list(database.getIDs(db_io)) #[(1,),(3,)] - lijst van tuples met 1 element
+        for nr, knop in enumerate(self.buttons):
+            try:
+                knop.text = str(data[nr][0])
+            except:
+                knop.text = ""
+                
 
 class ProductBar(BoxLayout):
     def __init__(self, **kwargs):
@@ -201,7 +256,7 @@ class ProductBar(BoxLayout):
         self.add_widget(self._zichtbaar_verwijder_blok())
         
         #database_interactie
-        self.db_io = None #database.InitProduct(global_vars.db)
+        self.db_io = None #database.(global_vars.db)
         
     def set_lijst_bar(self, disp):
         self.lijst_bar = disp
@@ -419,15 +474,13 @@ class ProductBar(BoxLayout):
         azicht = self.add_zichtbaar.text       
         
         if (anaam == "")+(atype == "-")+(aprijs == ""):
-            #TODO: maak een popup "vul alle velden in"
             self.makePopup("Vul alle velden in !")
         elif not func.is_number(aprijs):
-            #TODO: maak een popup met ongeldig getal (gebruik '.')
             self.makePopup("Vul een geldige prijs in! Voor een komma moet je een punt gebruiken!")
         else:
             try:
                 #TODO: remove
-                db_io = database.InitProduct(global_vars.db)
+                db_io = database.OpenIO(global_vars.db)
                 azicht = global_vars.zichtbaar_int.index(azicht)
                 ret = database.AddProduct(db_io, atype, anaam, float(aprijs), azicht)
                 if  ret == 0:
@@ -464,7 +517,7 @@ class ProductBar(BoxLayout):
             self.makePopup("Vul een geldige prijs in! Voor een komma moet je een punt gebruiken!")
         else:
             #TODO: remove
-            db_io = database.InitProduct(global_vars.db)
+            db_io = database.OpenIO(global_vars.db)
             bzicht = global_vars.zichtbaar_int.index(bzicht)
             ret =  database.editProduct(db_io, bnaam, btype, float(bprijs), bzicht)
             if ret == 0:
@@ -487,7 +540,7 @@ class ProductBar(BoxLayout):
             self.makePopup("Vul het naamveld in !")
         else:
             #TODO: remove
-            db_io = database.InitProduct(global_vars.db)
+            db_io = database.OpenIO(global_vars.db)
             ret = database.deleteProduct(db_io, vnaam)
             if ret == 0:
                 self.makePopup("Product met naam %s succesvol verwijdert." %(vnaam,),
@@ -508,7 +561,7 @@ class ProductBar(BoxLayout):
         else:
             #TODO: remove
             zzicht = global_vars.zichtbaar_int.index(zzicht)
-            db_io = database.InitProduct(global_vars.db)
+            db_io = database.OpenIO(global_vars.db)
             ret = database.zichtProduct(db_io, znaam, zzicht)
             if ret == 0:
                 self.makePopup("Product met naam %s succesvol aangepast." %(znaam,),
@@ -584,7 +637,9 @@ class ConnectBar(GridLayout):
             #launch server
             socket_server.RUN = True
             threading.Thread(target=socket_server.start_listening,
-                             args=(global_vars.db, self.switch_server_off),
+                             args=(global_vars.db, 
+                                   self.switch_server_off,
+                                   gui.hoofdscherm.hoofdbar.update_rekeningen),
                              daemon=True).start()
         else:
             
@@ -724,7 +779,7 @@ class LijstLabel(ScrollView):
                                     "[b][u]NAAM:[/b][/u]",
                                     "[b][u]PRIJS:[/b][/u]",
                                     "[b][u]ZICHTBAAR:[/b][/u]"))
-        db_io = database.InitProduct(global_vars.db)
+        db_io = database.OpenIO(global_vars.db)
         for i in database.getAllProduct(db_io):
             self.add_queue(func.to_dict(*i))
         database.CloseIO(db_io)
@@ -777,9 +832,23 @@ class ServerGui(App):
         self.screen_manager.add_widget(scherm)
         
         return self.screen_manager
+    
+    
+    def on_stop(self):
+        #mss sluit de overige db_io, socket connections
+        try:
+            database.CloseIO(self.hoofdscherm.hoofdbar.db_io)
+        except:
+            pass
+    
 
 
 if __name__ == "__main__":
+    #maak de tabellen
+    db_io = database.OpenIO(global_vars.db)
+    database.InitTabels(db_io)
+    database.CloseIO(db_io)
+    
     #fullscreen
     #Window.fullscreen = "auto"
     Window.maximize()

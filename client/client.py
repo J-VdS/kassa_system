@@ -371,7 +371,7 @@ class ProductScreen(GridLayout):
         self.paginaNr_label = Label(
                 text=f"Pagina {self.paginaNr+1}",
                 size_hint_y=None,
-                height=35)
+                height=50)
         self.add_widget(self.paginaNr_label)
         
         #knopjes
@@ -438,13 +438,13 @@ class ProductScreen(GridLayout):
         else:
             end = COLS*ROWS*(self.paginaNr+1)
         data = data[COLS*ROWS*self.paginaNr:end]
-        for i in range(COLS*ROWS):
+        for i, knop in enumerate(self.prods_knoppen):
             try:
-                self.prods_knoppen[i].text = data[i][1]
-                self.prods_knoppen[i].background_color = COLOURS.get(data[i][0], (1,1,1,1))
+                knop.text = data[i][1]
+                knop.background_color = COLOURS.get(data[i][0], (1,1,1,1))
             except:
-                self.prods_knoppen[i].text = ""
-                self.prods_knoppen[i].background_color = (1,1,1,1)
+                knop.text = ""
+                knop.background_color = (1,1,1,1)
     
     
     def refill(self, *_):
