@@ -143,8 +143,9 @@ def start_listening(db, crash_func, password=None, get_items=None, store_order=N
                         notified_socket.send(get_products(db_io))
                         print(f"{user} vroeg alle producten op")
                     elif message['req'] == "BST":
+                        #stuur naar printer
                         #verwerk bestelling
-                        pass
+                        database.addBestelling(db_io, message['bestelling']['info'], message['bestelling']['BST'])
                         #stuur succes, gelukt
                     elif message['req'] == "MSG":
                         pass

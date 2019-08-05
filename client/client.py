@@ -281,6 +281,9 @@ class HuidigeBestellingScreen(GridLayout):
         if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling()}) != -1:
             #TODO: backup
             m_app.screen_manager.current = "klantinfo"
+        else:
+            #smth went wrong
+            pass
             
     
     def verwijder(self, _):
@@ -530,6 +533,7 @@ class Client_storage():
         self.bestelling.clear() #maak alles leeg
         self.bestelling["info"] = {"naam":naam, "id":id, "tafel":tafelnr, "verkoper":verkoper}
         self.bestelling["opm"] = ""
+        self.bestelling["BST"] = {}
         
 
     def set_opm(self, opm):
@@ -569,10 +573,10 @@ class Client_storage():
         '''
             voegt een product toe aan de bestelling        
         '''
-        if prod in self.bestelling:
-            self.bestelling[prod] += aantal
+        if prod in self.bestelling['BST']:
+            self.bestelling['BST'][prod] += aantal
         else:
-            self.bestelling[prod] = aantal
+            self.bestelling['BST'][prod] = aantal
             
         if opm:
             self.bestelling["opm"].append(opm)
@@ -580,10 +584,8 @@ class Client_storage():
     
     def bestelling_list(self):
         msg = []
-        for key in self.bestelling:
-            if key == "opm" or key == "info":
-                continue
-            msg.append("{:<28}{}".format(key, self.bestelling[key]))
+        for key in self.bestelling['BST']:
+            msg.append("{:<28}{}".format(key, self.bestelling['BST'][key]))
         return msg
             
         

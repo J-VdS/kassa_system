@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 import sqlite3
-from pickle import loads, dumps
+import pickle
 #import time
 #import func
+
+def update_dict(oud, nieuw):
+    for key in nieuw:
+        if key in oud:
+            oud[key] += nieuw[key]
+        else:
+            oud[key] = nieuw[key]    
+    return oud
 
 
 def CloseIO(db_io):
@@ -18,6 +26,7 @@ def InitProduct(db):
     #tables_check aanwezig
     #producten tabel
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs REAL, active INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS bestellingen(id INTEGER, bestelling BLOB, open INTEGER, prijs REAL)")
     #print("---Product Table Loaded ---")
     conn.commit()
     return (conn, c) #geef tuple met (connectie, cursor) terug
@@ -96,6 +105,27 @@ def zichtProduct(db_io, naam, active):
         c.execute("UPDATE producten SET active = ? WHERE naam = ?", (active, naam))
         conn.commit()
         return 0
+    
+
+def addBestelling(db_io, info, bestelling):
+    '''
+        db_io (tuple): connectie met db
+        info (dict): die info bevat over de klant en de verkoper
+        bestelling (dict): nieuwe bestelling
+    '''
+    conn, c = db_io
+    c.execute("SELECT bestelling FROM bestellingen WHERE id = ?", (info["id"],))
+    data = c.fetchone()
+    if not data:
+        #maak een nieuw ID aan
+        bst = pickle.dumps(bestelling)
+        c.execute("INSERT INTO bestellingen (id, bestelling, open) VALUES (?,?,?)", (info["id"], bst, 1))
+    else:
+        bst = update_dict(pickle.loads(data), bestelling)
+        c.execute("UPDATE bestellingen SET bestelling = ? WHERE id = ?", (bst, info["id"]))
+    
+    conn.commit()  
+    
         
         
 #old
@@ -123,7 +153,7 @@ def getTypeItem(db):
 	return data
 
 #++++++++++++++++++ bestellingen ++++++++++++++++++
-
+"""
 def bestelling(db, id, bestelling, tafel=None):
 	'''
 		db :: type string, name or path db
@@ -180,3 +210,4 @@ if __name__ == "__main__":
 	#bestelling("test.db", 3, dumps({i:i**2 for i in range(10)}))
 	#bestelling("test.db", 3, dumps({i:1 for i in range(2,8)}))
 	pass
+"""
