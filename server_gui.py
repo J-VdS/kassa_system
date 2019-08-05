@@ -92,7 +92,7 @@ class ProductScherm(GridLayout):
         self.add_widget(self.productbar)
         
         #producten, scrollable label --> zal mss een layout moeten worden
-        self.history = LijstLabel(height=Window.size[1]*0.5, size_hint_y=None)
+        self.history = ProductLijstLabel(height=Window.size[1]*0.5, size_hint_y=None)
         self.add_widget(self.history)
         
         
@@ -117,10 +117,18 @@ class ConnectScherm(GridLayout):
         #self.add_widget(Label())
         
         
-class RekeningScherm(GridLayout):
+class BestelScherm(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
+        
+        #navigatiebar
+        self.navbar = NavigatieBar(huidig=None)
+        self.add_widget(self.navbar)
+        
+        #hoofdscherm
+        self.bestelbar = BestelBar()
+        self.add_widget(self.bestelbar)
         
         #lijstlabel links, midden al de knoppen met de producten en rechts speciale actie knoppen
         #interface voor aantal te wijzigen of te verwijderen
@@ -225,6 +233,8 @@ class HoofdBar(GridLayout):
     
     
     def switch_rekening(self, instance):
+        if instance.text != "":
+            gui.screen_manager.current = "BESTEL"
         print(instance.text)
         
         
@@ -525,9 +535,9 @@ class ProductBar(BoxLayout):
                                    "Succes!")
                 self.lijst_bar.reload_from_db()
                 self.bewerk_naam.text = ""
-                self.bewerk_prijs = ""
-                self.bewerk_type = "-"
-                self.bewerk_zichtbaar = "Ja"
+                self.bewerk_prijs.text = ""
+                self.bewerk_type.text = "-"
+                self.bewerk_zichtbaar.text = "Ja"
             else:
                 self.makePopup("Er bestaat geen product met deze naam!",
                                "Naam Error")
@@ -660,10 +670,91 @@ class ConnectBar(GridLayout):
     def switch_aanvaard(self, instance, value):
         pass
 
+
+class BestelBar(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 3
+        self.rows = 1
+        
+        #huidige bestelling
+        self.bestel_label = LijstLabel(size_hint_x=0.6)
+        self.add_widget(self.bestel_label)
+        
+        #product knoppen
+        self.product_grid = GridLayout(cols=global_vars.product_cols)
+        for _ in range(global_vars.product_rows*global_vars.product_cols):
+            self.product_grid.add_widget(Button(text=""))
+        self.add_widget(self.product_grid)
+        
+        #actie knoppen
+        self.actie_grid = GridLayout(cols=1, size_hint_x=0.2)
+        for _ in range(global_vars.product_rows):
+            self.actie_grid.add_widget(Button(text="actie"))
+        self.add_widget(self.actie_grid)
+    
+
+#scrolllabel -> gekopieerd van client.py
+class LijstLabel(ScrollView):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        #witte achtergrond
+
+        with self.canvas.before:
+            #rgba
+            Color(220/255, 220/255, 230/255, 1)  # green; colors range from 0-1 instead of 0-255
+            self.rect = Rectangle(size=self.size, pos=self.pos)
+
+        self.bind(size=self._update_rect, pos=self._update_rect)
+
+        #Scrollview attributen
+        self.bar_width = 5
+        
+        self.layout = GridLayout(size_hint_y=None, cols=1)
+        self.add_widget(self.layout)
+
+        self.bestelling = Label(
+                text="\n", markup=True,
+                size_hint_y=None,
+                color=(0,0,0,1),
+                font_name="RobotoMono-Regular") #noodzakelijk voor spacing
+        #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
+        #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
+        self.layout.add_widget(self.bestelling)
+            
+    
+    # Methos called externally to add new message to the chat history  
+    def update_bestelling(self, lijn):
+        #we kunnen geen nieuw label maken, dit zal voor problemen zorgen
+        #ook kunnen we update_chat_history pas oproepen als het scherm getekent wordt
+
+        #voeg bericht toe
+        self.bestelling.text += lijn + '\n'
+        
+        # Set layout height to whatever height of self.naam text is + 15 pixels
+        # (adds a bit of space at the bottom)
+        # Set chat history label to whatever height of chat history text is
+        # Set width of chat history text to 98 of the label width (adds small margins)
+        self.layout.height = self.bestelling.texture_size[1] + 15
+        self.bestelling.height = self.bestelling.texture_size[1]
+            #el.text_size = (el.width * 0.98, None) #kan later problemen geven
+    
+    def verklein_bestelling(self, aantal=-1, _=None):
+        if (aantal == -1):
+            aantal = self.bestelling.text.count('\n')
+        self.bestelling.text = "".join([i+'\n' for i in self.bestelling.text.split('\n')][:-aantal])
+
+        self.layout.height = self.bestelling.texture_size[1] - 15*aantal
+        self.bestelling.height = self.bestelling.texture_size[1]
+                    
+    
+    def _update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
         
 
 #gebruikt bij productscherm
-class LijstLabel(ScrollView):
+class ProductLijstLabel(ScrollView):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         #witte achtergrond
@@ -829,6 +920,11 @@ class ServerGui(App):
         self.test = scherm1()
         scherm = Screen(name="SETTINGS")
         scherm.add_widget(self.test)
+        self.screen_manager.add_widget(scherm)
+        
+        self.rekeningscherm = BestelScherm()
+        scherm = Screen(name="BESTEL")
+        scherm.add_widget(self.rekeningscherm)
         self.screen_manager.add_widget(scherm)
         
         return self.screen_manager

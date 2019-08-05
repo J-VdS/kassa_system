@@ -5,3 +5,6 @@ expand_size = 15
 
 kassa_cols = 8
 kassa_rows = 5
+
+product_cols = 4
+product_rows = 5
