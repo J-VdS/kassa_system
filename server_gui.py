@@ -196,11 +196,13 @@ class HoofdBar(GridLayout):
                 font_size=20))
         
         #tweede rij
-        self.paginaNr = self.add_widget(Label(
+        self.paginaNr = 0
+        self.pagina_label = Label(
                 text="Pagina 1",
                 size_hint_y=None,
                 height=35,
-                font_size=16))
+                font_size=16)
+        self.add_widget(self.pagina_label)
         
         #derde rij
         self.buttons = []
@@ -234,8 +236,21 @@ class HoofdBar(GridLayout):
     
     def switch_rekening(self, instance):
         if instance.text != "":
+            bestelling = database.getBestelling(self.db_io, int(instance.text))
+            if bestelling == -1:
+                #TODO popup
+                self.update_rekeningen(self.db_io)
+                return
+            
+            #TODO vermijd de update elke keer
+            gui.DATA.set_bestelling(bestelling)
+            gui.DATA.set_info({"ID":int(instance.text)})
+            gui.DATA.set_prod_list(database.getAllProductKassa(self.db_io))
+            
+
             gui.screen_manager.current = "BESTEL"
-        print(instance.text)
+            print("Switch rekening:", instance.text)
+        
         
         
     def switch_pagina(self, instance):
@@ -675,25 +690,70 @@ class BestelBar(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 3
-        self.rows = 1
+        self.rows = 2
+        self.spacing = [10,5]
+        
+        #huidige pagina
+        self.paginaNr = 0
+        self.add_widget(Label(
+                text=" ",
+                size_hint_x=0.4, 
+                size_hint_y=None,
+                height=35))
+
+        self.pagina_label = Label(
+                text="Pagina 1",
+                size_hint_y=None,
+                height=35,
+                font_size=16)
+        self.add_widget(self.pagina_label)
+
+        self.add_widget(Label(
+                text=" ",
+                size_hint_x=0.2,
+                size_hint_y=None,
+                height=35))
         
         #huidige bestelling
-        self.bestel_label = LijstLabel(size_hint_x=0.6)
+        self.bestel_label = LijstLabel(size_hint_x=0.4)
         self.add_widget(self.bestel_label)
         
         #product knoppen
+        self.product_knoppen = []
         self.product_grid = GridLayout(cols=global_vars.product_cols)
         for _ in range(global_vars.product_rows*global_vars.product_cols):
-            self.product_grid.add_widget(Button(text=""))
+            self.product_knoppen.append(Button(text=""))
+            self.product_knoppen[-1].bind(on_press=self.klikProduct)
+            self.product_grid.add_widget(self.product_knoppen[-1])
         self.add_widget(self.product_grid)
         
         #actie knoppen
         self.actie_grid = GridLayout(cols=1, size_hint_x=0.2)
-        for _ in range(global_vars.product_rows):
+        for _ in range(global_vars.product_rows-1):
             self.actie_grid.add_widget(Button(text="actie"))
+            
+        knop = Button(text="<-", size_hint_y=0.5, font_size=22, background_color=(0,1,0,1))
+        #knop.bind(on_press=)
+        self.actie_grid.add_widget(knop)
+        
+        knop = Button(text="->", size_hint_y=0.5, font_size=22, background_color=(0,1,0,1))
+        #knop.bind(on_press=)
+        self.actie_grid.add_widget(knop)
+        
         self.add_widget(self.actie_grid)
+        
+        
+    def klikProduct(self, instance):
+        print("Klik:", instance.text)
     
-
+       
+    def switchPagina(self, instance):
+        if instance.text == "<-":
+            pass
+        else:
+            pass
+        
+    
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
     def __init__(self, **kwargs):
@@ -929,6 +989,9 @@ class ServerGui(App):
         
         return self.screen_manager
     
+    def on_start(self):
+        self.DATA = func.Client_storage()
+    
     
     def on_stop(self):
         #mss sluit de overige db_io, socket connections
@@ -939,7 +1002,7 @@ class ServerGui(App):
     
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     #maak de tabellen
     db_io = database.OpenIO(global_vars.db)
     database.InitTabels(db_io)

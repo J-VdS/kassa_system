@@ -569,7 +569,7 @@ class Client_storage():
         return geh if (rest==0) else (geh + 1)
     
     #bestelling
-    def bestelling_add_prod(self, prod, aantal, opm=None):
+    def bestelling_add_prod(self, prod, aantal):
         '''
             voegt een product toe aan de bestelling        
         '''
@@ -577,9 +577,6 @@ class Client_storage():
             self.bestelling['BST'][prod] += aantal
         else:
             self.bestelling['BST'][prod] = aantal
-            
-        if opm:
-            self.bestelling["opm"].append(opm)
             
     
     def bestelling_list(self):

@@ -32,7 +32,7 @@ def InitTabels(db_io):
     #tables_check aanwezig
     #producten tabel
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs REAL, active INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS bestellingen(id INTEGER, bestelling BLOB, open INTEGER, prijs REAL)")
+    c.execute("CREATE TABLE IF NOT EXISTS bestellingen(id INTEGER, bestelling BLOB, open INTEGER, prijs REAL, naam TEXT)")
     #print("---Product Table Loaded ---")
     conn.commit()
    
@@ -73,6 +73,13 @@ def getAllProductClient(db_io):
     c.execute("SELECT type, naam FROM producten WHERE active = ?", ('1'),)
     data = c.fetchall()
     return data
+
+
+def getAllProductKassa(db_io):
+    conn, c = db_io
+    c.execute("SELECT type, naam, prijs FROM producten WHERE active = 1 OR active = 2 ORDER BY naam COLLATE NOCASE ASC")
+    data = c.fetchall()
+    return data #lijst bestaande uit tuples
 
 
 def editProduct(db_io, naam, type, prijs, active):
@@ -120,7 +127,7 @@ def addBestelling(db_io, info, bestelling):
     if not data:
         #maak een nieuw ID aan
         bst = pickle.dumps(bestelling)
-        c.execute("INSERT INTO bestellingen (id, bestelling, open) VALUES (?,?,?)", (info["id"], bst, 1))
+        c.execute("INSERT INTO bestellingen (id, naam, bestelling, open) VALUES (?,?,?,?)", (info["id"], info["naam"], bst, 1))
         conn.commit()
         return 1
     else:
@@ -130,6 +137,16 @@ def addBestelling(db_io, info, bestelling):
         return 0
       
 
+def getBestelling(db_io, ID):
+    conn, c = db_io
+    c.execute("SELECT bestelling FROM bestellingen WHERE id = ?", (ID,))
+    data = c.fetchone()
+    if not data:
+        #er was geen bestelling met dit ID!
+        return -1
+    else:
+        return pickle.loads(data[0]) #{product:aantal}
+
 
 def getIDs(db_io):
     conn, c = db_io
@@ -138,12 +155,13 @@ def getIDs(db_io):
     return data    
         
 #old
+"""
 def loadTables(db):
 	conn = sqlite3.connect(db)
 	c = conn.cursor()
 	#tables
 	c.execute("CREATE TABLE IF NOT EXISTS items(type TEXT, naam TEXT, prijs REAL, active INTEGER, locatie INTEGER)")
-	c.execute("CREATE TABLE IF NOT EXISTS bestellingen(id INTEGER PRIMARY KEY, tafel INTEGER, totaal INTEGER, items BLOB)")
+	c.execute("CREATE TABLE IF NOT EXISTS bestellingen(id INTEGER PRIMARY KEY, tafel INTEGER, totaal INTEGER, items BLOB, naam TEXT)")
 	conn.commit()
 	c.close()
 	conn.close()
@@ -162,7 +180,6 @@ def getTypeItem(db):
 	return data
 
 #++++++++++++++++++ bestellingen ++++++++++++++++++
-"""
 def bestelling(db, id, bestelling, tafel=None):
 	'''
 		db :: type string, name or path db
