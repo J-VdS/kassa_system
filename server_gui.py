@@ -247,7 +247,7 @@ class HoofdBar(GridLayout):
             gui.DATA.set_info({"ID":int(instance.text)})
             gui.DATA.set_prod_list(database.getAllProductKassa(self.db_io))
             
-
+            gui.rekeningscherm.bestelbar.reset()
             gui.screen_manager.current = "BESTEL"
             print("Switch rekening:", instance.text)
         
@@ -685,7 +685,7 @@ class ConnectBar(GridLayout):
     def switch_aanvaard(self, instance, value):
         pass
 
-
+#gebaseerd op de clientversie
 class BestelBar(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -730,14 +730,15 @@ class BestelBar(GridLayout):
         #actie knoppen
         self.actie_grid = GridLayout(cols=1, size_hint_x=0.2)
         for _ in range(global_vars.product_rows-1):
-            self.actie_grid.add_widget(Button(text="actie"))
-            
+            self.actie_grid.add_widget(Button(text=" "))
+        
+        #navigatieknoppen
         knop = Button(text="<-", size_hint_y=0.5, font_size=22, background_color=(0,1,0,1))
-        #knop.bind(on_press=)
+        knop.bind(on_press=self.switchPagina)
         self.actie_grid.add_widget(knop)
         
         knop = Button(text="->", size_hint_y=0.5, font_size=22, background_color=(0,1,0,1))
-        #knop.bind(on_press=)
+        knop.bind(on_press=self.switchPagina)
         self.actie_grid.add_widget(knop)
         
         self.add_widget(self.actie_grid)
@@ -746,14 +747,40 @@ class BestelBar(GridLayout):
     def klikProduct(self, instance):
         print("Klik:", instance.text)
     
+    
+    def reset(self):
+        self.paginaNr = 0
+        self.vul_in()
+        #maak het label leeg of populate het
+    
+    def vul_in(self):
+        data = gui.DATA.get_prod()
+        COLS = global_vars.product_cols
+        ROWS = global_vars.product_rows
+        if len(data)<self.paginaNr*COLS*ROWS:
+            end = len(data)
+        else:
+            end = COLS*ROWS*(self.paginaNr+1)
+        data = data[COLS*ROWS*self.paginaNr:end]
+        for i, knop in enumerate(self.product_knoppen):
+            try:
+                knop.text = data[i][1]
+                knop.background_color = global_vars.COLOURS.get(data[i][0], (1,1,1,1))
+            except:
+                knop.text = ""
+                knop.background_color = (1,1,1,1)
+    
        
     def switchPagina(self, instance):
-        if instance.text == "<-":
-            pass
+        if instance.text == "->":
+            self.paginaNr += 1 if (self.paginaNr+1<gui.DATA.get_num_pages(global_vars.product_cols, global_vars.product_rows)) else 0
         else:
-            pass
+            self.paginaNr -= 1 if (self.paginaNr>0) else 0
         
-    
+        self.pagina_label.text = "Pagina " + str(self.paginaNr)
+        self.vul_in()        
+        
+        
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
     def __init__(self, **kwargs):

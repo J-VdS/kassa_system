@@ -120,6 +120,10 @@ def addBestelling(db_io, info, bestelling):
         db_io (tuple): connectie met db
         info (dict): die info bevat over de klant en de verkoper
         bestelling (dict): nieuwe bestelling
+        
+        return:
+            1 - nieuwe rekening wordt geopend
+            0 - bestelling wordt toegevoegd
     '''
     conn, c = db_io
     c.execute("SELECT bestelling FROM bestellingen WHERE id = ?", (info["id"],))
@@ -127,11 +131,11 @@ def addBestelling(db_io, info, bestelling):
     if not data:
         #maak een nieuw ID aan
         bst = pickle.dumps(bestelling)
-        c.execute("INSERT INTO bestellingen (id, naam, bestelling, open) VALUES (?,?,?,?)", (info["id"], info["naam"], bst, 1))
+        c.execute("INSERT INTO bestellingen (id, naam, bestelling, open) VALUES (?,?,?,?)", (info["id"], str(info["naam"]), bst, 1))
         conn.commit()
         return 1
     else:
-        bst = update_dict(pickle.loads(data[0]), bestelling)
+        bst = pickle.dumps(update_dict(pickle.loads(data[0]), bestelling))
         c.execute("UPDATE bestellingen SET bestelling = ? WHERE id = ?", (bst, info["id"]))
         conn.commit()
         return 0

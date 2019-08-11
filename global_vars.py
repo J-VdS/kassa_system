@@ -8,3 +8,4 @@ kassa_rows = 5
 
 product_cols = 4
 product_rows = 5
+COLOURS = {}

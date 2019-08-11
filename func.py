@@ -44,6 +44,7 @@ class Client_storage():
             for prod in self._prod[type]:
                 self._prod_list.append((type, prod))
                     
+    
     def set_prod_list(self, prod):
         self._prod_list = prod            
     
