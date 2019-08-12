@@ -777,7 +777,7 @@ class BestelBar(GridLayout):
         else:
             self.paginaNr -= 1 if (self.paginaNr>0) else 0
         
-        self.pagina_label.text = "Pagina " + str(self.paginaNr)
+        self.pagina_label.text = "Pagina " + str(self.paginaNr+1)
         self.vul_in()        
         
         

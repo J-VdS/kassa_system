@@ -227,6 +227,8 @@ class KlantInfoScreen(GridLayout):
             popup.open()
             return
         
+        #maak huidige bestelling leeg
+        m_app.bestelling_pagina.bestelling.verklein_bestelling()
         DATA.set_creds(naam, int(ID), int(tafel), verkoper)
         
         #restore de velden
