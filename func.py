@@ -37,13 +37,12 @@ class Client_storage():
     #setters
     def set_prod(self, prod):
         '''
-            prod (dict): {type:[product,]}
+            prod is lijst bestaande uit [(type, naam, prijs)]
         '''
-        self._prod = prod
-        for type in self._prod:
-            for prod in self._prod[type]:
-                self._prod_list.append((type, prod))
-                    
+        for type, naam, prijs in prod:
+            self._prod[naam] = (type, naam, prijs)
+        self._prod_list = prod
+        
     
     def set_prod_list(self, prod):
         self._prod_list = prod            
@@ -89,7 +88,7 @@ class Client_storage():
             
     
     def bestelling_list(self):
-        msg = []
+        msg = ["{:^28}{}".format("Product", "#"), "-"*29]
         for key in self.bestelling:
             msg.append("{:<28}{}".format(key, self.bestelling[key]))
         return msg

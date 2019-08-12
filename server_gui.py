@@ -245,7 +245,8 @@ class HoofdBar(GridLayout):
             #TODO vermijd de update elke keer
             gui.DATA.set_bestelling(bestelling)
             gui.DATA.set_info({"ID":int(instance.text)})
-            gui.DATA.set_prod_list(database.getAllProductKassa(self.db_io))
+            gui.rekeningscherm.bestelbar.set_ID(instance.text)
+            gui.DATA.set_prod(database.getAllProductKassa(self.db_io))
             
             gui.rekeningscherm.bestelbar.reset()
             gui.screen_manager.current = "BESTEL"
@@ -684,8 +685,10 @@ class ConnectBar(GridLayout):
     
     def switch_aanvaard(self, instance, value):
         pass
+    
 
 #gebaseerd op de clientversie
+#TODO: gewoon waar de bar is lol
 class BestelBar(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -695,24 +698,27 @@ class BestelBar(GridLayout):
         
         #huidige pagina
         self.paginaNr = 0
-        self.add_widget(Label(
-                text=" ",
-                size_hint_x=0.4, 
-                size_hint_y=None,
-                height=35))
+        self.ID_label = Label(
+                text="ID: ",
+                size_hint_x = 0.4, 
+                size_hint_y = None,
+                font_size = 20,
+                height = 35,
+                markup = True)
+        self.add_widget(self.ID_label)
 
         self.pagina_label = Label(
                 text="Pagina 1",
-                size_hint_y=None,
-                height=35,
-                font_size=16)
+                size_hint_y = None,
+                height = 35,
+                font_size = 16)
         self.add_widget(self.pagina_label)
 
         self.add_widget(Label(
                 text=" ",
-                size_hint_x=0.2,
-                size_hint_y=None,
-                height=35))
+                size_hint_x = 0.2,
+                size_hint_y = None,
+                height = 35))
         
         #huidige bestelling
         self.bestel_label = LijstLabel(size_hint_x=0.4)
@@ -745,13 +751,25 @@ class BestelBar(GridLayout):
         
         
     def klikProduct(self, instance):
-        print("Klik:", instance.text)
+        #TODO voeg toe aan een lokale bestelling, indien we het ook naar de printer willen sturen!
+        #en de db aan moeten passen
+        if instance.text.strip() == "":
+            return
+        gui.DATA.bestelling_add_prod(instance.text, 1)
+        self.bestel_label.verklein_bestelling() #volledig weg
+        self.update_list = gui.DATA.bestelling_list()
+        Clock.schedule_once(self.refill, 0.5)
     
     
     def reset(self):
         self.paginaNr = 0
+        self.pagina_label.text = "Pagina 1"
         self.vul_in()
         #maak het label leeg of populate het
+        self.bestel_label.verklein_bestelling() #volledig weg
+        self.update_list = gui.DATA.bestelling_list()
+        Clock.schedule_once(self.refill, 0.5)
+        
     
     def vul_in(self):
         data = gui.DATA.get_prod()
@@ -778,7 +796,18 @@ class BestelBar(GridLayout):
             self.paginaNr -= 1 if (self.paginaNr>0) else 0
         
         self.pagina_label.text = "Pagina " + str(self.paginaNr+1)
-        self.vul_in()        
+        self.vul_in()
+        
+        
+    def set_ID(self, ID):
+        self.ID_label.text = "[b]ID: %s[/b]" % (ID)
+    
+    #bestellabelfuncties    
+    #vult het label
+    def refill(self, *_):
+        if len(self.update_list):
+            self.bestel_label.update_bestelling(self.update_list.pop(0))
+            Clock.schedule_once(self.refill,0.01)
         
         
 #scrolllabel -> gekopieerd van client.py
@@ -978,12 +1007,7 @@ class scherm1(GridLayout):
         self.add_widget(self.navbar)
         self.add_widget(Label(text="scherm1"))
         
-        
-class scherm2(GridLayout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.add_widget(Label(text="scherm2"))
-
+    
 #gui
 class ServerGui(App):
     def build(self):
@@ -1024,8 +1048,9 @@ class ServerGui(App):
         #mss sluit de overige db_io, socket connections
         try:
             database.CloseIO(self.hoofdscherm.hoofdbar.db_io)
-        except:
-            pass
+            gui.connectscherm.connectbar.switch_server_off()
+        except Exception as e:
+            print("[ERROR_EXIT]", e)
     
 
 
