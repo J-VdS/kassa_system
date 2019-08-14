@@ -721,8 +721,18 @@ class BestelBar(GridLayout):
                 height = 35))
         
         #huidige bestelling
-        self.bestel_label = LijstLabel(size_hint_x=0.4)
-        self.add_widget(self.bestel_label)
+        self.bestel_label = LijstLabel()
+        leftLayout = GridLayout(cols=1, rows=2, size_hint_x=0.4)
+        leftLayout.add_widget(self.bestel_label)
+        knopLayout = GridLayout(cols=5, rows=1, size_hint_y=None, height=50)
+        
+        for text in ["UP", "DOWN", "[b]+[/b]", "[b]-[/b]", "DEL"]:
+            knop = Button(text=text, font_size=20, markup=True)
+            knop.bind(on_press=self.edit_knop)
+            knopLayout.add_widget(knop)
+        leftLayout.add_widget(knopLayout)
+        self.add_widget(leftLayout)
+        
         
         #product knoppen
         self.product_knoppen = []
@@ -808,7 +818,11 @@ class BestelBar(GridLayout):
         if len(self.update_list):
             self.bestel_label.update_bestelling(self.update_list.pop(0))
             Clock.schedule_once(self.refill,0.01)
-        
+            
+            
+    def edit_knop(self, instance):
+        pass
+    
         
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
@@ -1058,8 +1072,7 @@ if __name__ == "__main__":
     #maak de tabellen
     db_io = database.OpenIO(global_vars.db)
     database.InitTabels(db_io)
-    database.CloseIO(db_io)
-    
+    database.CloseIO(db_io)    
     #fullscreen
     #Window.fullscreen = "auto"
     Window.maximize()

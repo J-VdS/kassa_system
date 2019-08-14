@@ -17,7 +17,7 @@ def start_listening():
     s.bind((ip, poort))
     
     s.listen()
-    
+    #In principe is er maar 1 connectie en dat is met de kassa!
     
     s.close()
     
