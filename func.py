@@ -32,8 +32,7 @@ class Client_storage():
         self.bestelling = {} #{prod:aantal}
         self.info = {}#ID, prijs, 
         
-    
-    
+
     #setters
     def set_prod(self, prod):
         '''
@@ -76,6 +75,10 @@ class Client_storage():
         geh, rest = divmod(len(self._prod_list), COLS*ROWS)
         return geh if (rest==0) else (geh + 1)
     
+    
+    def get_info(self):
+        return self.info
+    
     #bestelling
     def bestelling_add_prod(self, prod, aantal, opm=None):
         '''
@@ -92,4 +95,23 @@ class Client_storage():
         for key in self.bestelling:
             msg.append("{:<28}{}".format(key, self.bestelling[key]))
         return msg
+
+
+    def bereken_prijs(self):
+        totaal = 0
+        for product in self.bestelling:
+            #probleem wanneer product verwijdert wordt uit de DB!
+            #prijs moet laatste vlag blijven!
+            prod_prijs = self._prod.get(product, ["ERROR"])[-1]
+            if prod_prijs == "ERROR":
+                return prod_prijs
+            totaal += prod_prijs * self.bestelling[product]
+        return totaal
+
+            
+
+
+
+
+
             

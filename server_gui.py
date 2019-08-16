@@ -531,6 +531,7 @@ class ProductBar(BoxLayout):
                 self.add_prijs.text = ""
                 self.add_zichtbaar.text = "Ja"
                 database.CloseIO(db_io)
+                
     
     def _bewerk_product(self, _):
         bnaam = self.bewerk_naam.text.strip().lower()
@@ -696,6 +697,8 @@ class BestelBar(GridLayout):
         self.rows = 2
         self.spacing = [10,5]
         
+        self._bewerk = False
+        
         #huidige pagina
         self.paginaNr = 0
         self.ID_label = Label(
@@ -722,8 +725,15 @@ class BestelBar(GridLayout):
         
         #huidige bestelling
         self.bestel_label = LijstLabel()
-        leftLayout = GridLayout(cols=1, rows=2, size_hint_x=0.4)
+        leftLayout = GridLayout(cols=1, rows=3, size_hint_x=0.4)
         leftLayout.add_widget(self.bestel_label)
+        self.totaal_label = Label(
+                text="{:<25}€{:>6}".format("TOTAAL:", 0),
+                size_hint_y=None,
+                font_name="RobotoMono-Regular",
+                height=35)
+        leftLayout.add_widget(self.totaal_label)
+        
         knopLayout = GridLayout(cols=5, rows=1, size_hint_y=None, height=50)
         
         for text in ["UP", "DOWN", "[b]+[/b]", "[b]-[/b]", "DEL"]:
@@ -745,8 +755,19 @@ class BestelBar(GridLayout):
         
         #actie knoppen
         self.actie_grid = GridLayout(cols=1, size_hint_x=0.2)
-        for _ in range(global_vars.product_rows-1):
-            self.actie_grid.add_widget(Button(text=" "))
+        for _ in range(global_vars.product_rows-2):
+            knop = Button(text=" ")
+            knop.bind(on_press=self.actie)
+            self.actie_grid.add_widget(knop)
+            
+        knop = Button(text="HERLAAD", size_hint_y=0.5, font_size=22, background_color=(0,0.2,0.9,1))
+        knop.bind(on_press=self.actie)
+        self.actie_grid.add_widget(knop)
+           
+        self.bewerk_knop = Button(text="BERWERK", size_hint_y=0.5, font_size=22, background_color=(1,1,1,1))
+        self.bewerk_knop.bind(on_press=self.actie)
+        self.actie_grid.add_widget(self.bewerk_knop)
+
         
         #navigatieknoppen
         knop = Button(text="<-", size_hint_y=0.5, font_size=22, background_color=(0,1,0,1))
@@ -763,6 +784,10 @@ class BestelBar(GridLayout):
     def klikProduct(self, instance):
         #TODO voeg toe aan een lokale bestelling, indien we het ook naar de printer willen sturen!
         #en de db aan moeten passen
+        #doe enkel iets als self._bewerk aanstaat!
+        if not(self._bewerk):
+            self.makePopup(global_vars.bewerk_NT)
+            return
         if instance.text.strip() == "":
             return
         gui.DATA.bestelling_add_prod(instance.text, 1)
@@ -774,11 +799,19 @@ class BestelBar(GridLayout):
     def reset(self):
         self.paginaNr = 0
         self.pagina_label.text = "Pagina 1"
+        self._bewerk = False
+        self.bewerk_knop.text = "BEWERK"
+        self.bewerk_knop.background_color = (1,1,1,1)
+        
         self.vul_in()
         #maak het label leeg of populate het
         self.bestel_label.verklein_bestelling() #volledig weg
+        #laadt de bestelgeschiedenis in 
         self.update_list = gui.DATA.bestelling_list()
         Clock.schedule_once(self.refill, 0.5)
+        
+        #vul totaal in
+        self.totaal_label.text = "{:<25}€{:>6}".format("TOTAAL:", gui.DATA.bereken_prijs())
         
     
     def vul_in(self):
@@ -821,8 +854,79 @@ class BestelBar(GridLayout):
             
             
     def edit_knop(self, instance):
-        pass
+        if not(self._bewerk):
+            self.makePopup(global_vars.bewerk_NT)
+            return 
+        cmd = instance.text
+        if cmd == "[b]-[/b]":
+            pass
+        elif cmd == "[b]+[/b]":
+            pass
+        elif cmd == "DEL":
+            pass
+        elif cmd == "UP":
+            pass
+        else:
+            #cmd == "DOWN":
+            pass
     
+    
+    def actie(self, instance):
+        knop = instance.text.strip()
+        if knop == "":
+            return
+        elif knop == "HERLAAD":
+            db_io = database.OpenIO(global_vars.db)
+            bestelling = database.getBestelling(db_io, gui.DATA.get_info()["ID"])
+            if bestelling == -1:
+                #TODO popup
+                #normaal zou dit nooit mogen voorvallen
+                return
+            
+            gui.DATA.set_bestelling(bestelling)
+            #gui.DATA.set_info({"ID":int(instance.text)})
+            self.reset()
+
+        elif knop == "BEWERK":
+            #zet een variabele dat toelaat om te bewerken op True
+            self._bewerk = True
+            self.makePopup(global_vars.bewerk_start)
+            self.bewerk_knop.text = "OPSLAAN"
+            self.bewerk_knop.background_color = (0.96,0.25,0.25,1)
+            
+            
+        elif knop == "OPSLAAN":
+            #zet een variabele dat toelaat om te bewerken weer op False en pas de bestelling in de db aan
+            self._bewerk = False
+            self.makePopup(global_vars.bewerk_opslaan)
+            self.bewerk_knop.text = "BEWERK"
+            self.bewerk_knop.background_color = (1,1,1,1)
+            
+        
+    #POPUP
+    def makePopup(self, text):
+        popup = Popup(title="Bewerken", size=(400,400), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+                
+        label = Label(text=text, font_size=20, valign="center")                      
+        label.bind(width=self.update_text_width)
+        layout.add_widget(label)   
+        
+        knop = Button(text="sluit", size_hint_y=None, height=40)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
+    
+    
+    def update_text_width(self, obj, _):
+        '''
+            Dit is noodzakelijk voor automatische multiline
+        '''
+        obj.text_size = (obj.width * .9, None)
+        
+        
         
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
@@ -1053,6 +1157,7 @@ class ServerGui(App):
         self.screen_manager.add_widget(scherm)
         
         return self.screen_manager
+    
     
     def on_start(self):
         self.DATA = func.Client_storage()

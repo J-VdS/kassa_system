@@ -9,3 +9,7 @@ kassa_rows = 5
 product_cols = 4
 product_rows = 5
 COLOURS = {}
+
+bewerk_NT = "Bewerken is niet toegelaten.\nJe moet eerst bewerken activeren!"
+bewerk_opslaan = "De bewerkte bestelling wordt overschreven!\n\nNaargelang de instelling worden de toegevoegde artikelen naar de printer(s) gestuurd."
+bewerk_start = "Opgepast dit is een gevaarlijke actie en kan niet ongedaan worden gemaakt.\nDit zal de huidige bestelling in het systeem overschrijven.\nIndien je klaar ben met bewerken moet je op opslaan klikken."
