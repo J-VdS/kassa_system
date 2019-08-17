@@ -319,7 +319,7 @@ class ProductBar(BoxLayout):
                 multiline=False,
                 font_size=17,
                 size_hint_y=None,
-                height=30)
+                height=35)
         info_grid.add_widget(self.add_naam)
         
         info_grid.add_widget(Label(text="prijs:", font_size=17))
@@ -327,7 +327,7 @@ class ProductBar(BoxLayout):
                 multiline=False, 
                 font_size=17,
                 size_hint_y=None,
-                height=30)
+                height=35)
         info_grid.add_widget(self.add_prijs)
         
         info_grid.add_widget(Label(text="zichtbaar?",font_size=17))
@@ -373,7 +373,7 @@ class ProductBar(BoxLayout):
                 multiline=False,
                 font_size=17,
                 size_hint_y=None,
-                height=30)
+                height=35)
         info_grid.add_widget(self.bewerk_naam)
         
         info_grid.add_widget(Label(text="type:", font_size=17))
@@ -390,7 +390,7 @@ class ProductBar(BoxLayout):
                 multiline=False,
                 font_size=17,
                 size_hint_y=None,
-                height=30)
+                height=35)
         info_grid.add_widget(self.bewerk_prijs)
         
         info_grid.add_widget(Label(text="zichtbaar?", font_size=17))
@@ -440,7 +440,7 @@ class ProductBar(BoxLayout):
                 multiline=False,
                 font_size=17,
                 size_hint_y=None,
-                height=30)
+                height=35)
         verwijder_grid.add_widget(self.verwijder_naam)
         
         grid.add_widget(verwijder_grid)
@@ -462,7 +462,7 @@ class ProductBar(BoxLayout):
                 multiline=False, 
                 font_size=17,
                 size_hint_y=None,
-                height=30)
+                height=35)
         zichtbaar_grid.add_widget(self.zichtbaar_naam)
         
         zichtbaar_grid.add_widget(Label(text="zichtbaar?", font_size=17))
@@ -511,7 +511,7 @@ class ProductBar(BoxLayout):
                 ret = database.AddProduct(db_io, atype, anaam, float(aprijs), azicht)
                 if  ret == 0:
                     #popup succes
-                    self.makePopup("Product met naam %s en prijs €%s toegevoegd." %(anaam,aprijs),
+                    self.makePopup("Product met naam: %s en prijs: €%s toegevoegd." %(anaam,aprijs),
                                    "Succes!")
                     #print ook bij op het scherm
                     self.lijst_bar.add_queue(func.to_dict(atype, anaam, aprijs, azicht))
