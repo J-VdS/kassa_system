@@ -82,6 +82,13 @@ def getAllProductKassa(db_io):
     return data #lijst bestaande uit tuples
 
 
+def getTypes(db_io):
+    conn, c = db_io
+    c.execute("SELECT DISTINCT type FROM producten")
+    data = c.fetchall()
+    return data
+
+
 def editProduct(db_io, naam, type, prijs, active):
     conn, c = db_io
     c.execute("SELECT * FROM producten WHERE naam = ?", (naam,))
@@ -156,7 +163,8 @@ def getIDs(db_io):
     conn, c = db_io
     c.execute("SELECT id FROM bestellingen WHERE open = 1 ORDER BY id COLLATE NOCASE ASC")
     data = c.fetchall()
-    return data    
+    return data  
+
         
 #old
 """

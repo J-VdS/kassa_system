@@ -14,6 +14,7 @@ from kivy.uix.switch import Switch
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
+from kivy.uix.checkbox import CheckBox
 from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -735,8 +736,7 @@ class PrinterBar(GridLayout):
         self.onder.add_widget(self.poort_veld)
         
         knop = Button(text="selecteer types", height = self.ROW_HEIGHT, size_hint_y=None, font_size=20)
-        #maak een popup en selecteer de types daar
-        #knop.bind(on_press=)
+        knop.bind(on_press=self.select_type)
         self.onder.add_widget(knop)
         
         knop = Button(text="+", height = self.ROW_HEIGHT, size_hint_y=None, font_size=22, width=50, size_hint_x=None)
@@ -747,8 +747,11 @@ class PrinterBar(GridLayout):
         #self.voorbeeld()
         
         #variabele dat alle printers opslaat
+        self.huidige_types = []
         self.printers = [] #[ip, poort, (types,)] ID van de knop is de index van deze lijst
         self.print_widgets = []
+        self.checkboxes = {}
+        
         
     def _update_rect(self, instance, value):
         self._rect.pos = instance.pos
@@ -758,24 +761,49 @@ class PrinterBar(GridLayout):
     def _update_rect2(self, instance, value):
         self._rect2.pos = instance.pos
         self._rect2.size = instance.size
+        
+        
+    def _update_text_width(self, obj, _):
+        '''
+            Dit is noodzakelijk voor automatische multiline
+        '''
+        obj.text_size = (obj.width * .9, None)
     
     
     def help_popup(self, instance):
-        pass
+        popup = Popup(title="Printers - help", size=(640,480), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+                
+        label = Label(text=global_vars.help_connect, font_size=18, valign="center")                      
+        label.bind(width=self._update_text_width)
+        layout.add_widget(label)   
+        
+        knop = Button(text="sluit", size_hint_y=None, height=40)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
     
     
     def toevoegen(self, instance):
         #TODO controles
         IP = self.ip_veld.text.strip()
         POORT = self.poort_veld.text.strip()
+        types = []
+        for key in self.checkboxes:
+            if key.active:
+                types.append(self.checkboxes[key])
+                
         if IP == "" or POORT == "":
             #TODO vul velden in
-            pass
+            return
         elif not(POORT.isdigit()):
             #TODO popup geen nummer
             return
-        #elif geen type
-        types = ("test1", "test2")
+        elif types == []:
+            #TODO selecteer types
+            return
         
         
         ID = len(self.printers)
@@ -799,7 +827,7 @@ class PrinterBar(GridLayout):
         
         #pasop als er 1 wordt verwijdert moeten alle ID's worden aangepast
         knop = Button(text="bekijk types", id=str(ID), height = self.ROW_HEIGHT, size_hint_y=None, font_size=20)
-        #knop.bind(on_press=)
+        knop.bind(on_press=self.zie_type)
         widget_list.append(knop)
         knop = Button(text="X", id=str(ID), height = self.ROW_HEIGHT, size_hint_y=None, font_size=20, width=50, size_hint_x=None)
         knop.bind(on_press=self.verwijder)
@@ -812,6 +840,7 @@ class PrinterBar(GridLayout):
         #reset widgets
         self.ip_veld.text = ""
         self.poort_veld.text = ""
+        self.huidige_types = []
         #reset de popup, wss niet nodig
     
     
@@ -829,32 +858,56 @@ class PrinterBar(GridLayout):
             self.onder.remove_widget(wid)
         del widgets
         del self.printers[ID]
+    
+    
+    def select_type(self, _):
+        db_io = database.OpenIO(global_vars.db)
+        types = database.getTypes(db_io) #((type,), (type,))
+        database.CloseIO(db_io)
         
+        popup = Popup(title="Typeselectie", size=(400,400), size_hint=(None,None))
+        layout = GridLayout(cols=2)
+        #label = Label(text=global_vars.connect_info_type, font_size=18, valign="center")                      
+        #label.bind(width=self._update_text_width)
+        #layout.add_widget(label)
+        self.checkboxes = {} #{obj:type}
+        for type in types:
+            cb = CheckBox(size_hint_x=None, width=60)
+            self.checkboxes[cb] = type[0]
+            layout.add_widget(cb)
+            layout.add_widget(Label(text=type[0], font_size=18))
+        
+        layout.add_widget(Label(size_hint_x=None, width=60))
+        knop = Button(text="sluit", size_hint_y=None, height=40)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
         
     
-    def voorbeeld(self):
-        self.onder.add_widget(Label(
-                text="test",
-                width= self.IP_WIDTH,
-                size_hint_x=None,
-                height = self.ROW_HEIGHT,
-                size_hint_y=None,
-                font_size=20,
-                color=(0,0,0,1)))
-        self.onder.add_widget(Label(
-                text="1033",
-                height = self.ROW_HEIGHT,
-                size_hint_y=None,
-                font_size=20,
-                color=(0,0,0,1)))
-        #probleem, weet welke lijn je namelijk tegenkomt
-        knop = Button(text="bekijk types", height = self.ROW_HEIGHT, size_hint_y=None, font_size=20)
-        #knop.bind(on_press=)
-        self.onder.add_widget(knop)
-        knop = Button(text="X", height = self.ROW_HEIGHT, size_hint_y=None, font_size=20, width=50, size_hint_x=None)
-        #knop.bind(on_press=self.verwijder_aanpas)
-        self.onder.add_widget(knop)
-            
+    def zie_type(self, instance):
+        ID = int(instance.id)
+        
+        popup = Popup(title="Typeselectie", size=(400,400), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+        #label = Label(text=global_vars.connect_info_type, font_size=18, valign="center")                      
+        #label.bind(width=self._update_text_width)
+        #layout.add_widget(label)
+        
+        for type in self.printers[ID][2]:
+            layout.add_widget(Label(text=type, font_size=18))
+        
+        layout.add_widget(Label(size_hint_x=None, width=60))
+        knop = Button(text="sluit", size_hint_y=None, height=40)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
+        
+        
+        
 
 #gebaseerd op de clientversie
 #TODO: gewoon waar de bar is lol
