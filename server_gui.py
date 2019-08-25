@@ -109,12 +109,14 @@ class ConnectScherm(GridLayout):
         self.add_widget(self.navbar)
         
         #hoofdscherm
-        self.connectbar = ConnectBar()
+        self.connectbar = ConnectBar(height=150, size_hint_y=None)
         self.add_widget(self.connectbar)
         
+        self.printer_bar = PrinterBar()
+        self.add_widget(self.printer_bar)
         
         #leeglabel
-        #self.add_widget(Label())
+        self.add_widget(Label(size_hint_y=None, height=25))
         
         
 class BestelScherm(GridLayout):
@@ -687,6 +689,105 @@ class ConnectBar(GridLayout):
     def switch_aanvaard(self, instance, value):
         pass
     
+
+class PrinterBar(GridLayout):
+    IP_WIDTH = 800
+    ROW_HEIGHT = 50
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        top = GridLayout(cols=5, rows=1, height=50, size_hint_y=None)
+        with top.canvas.before:
+            #rgba
+            Color(1, 0.4, 0, 0.8)  # green; colors range from 0-1 instead of 0-255
+            self._rect2 = Rectangle(size=top.size, pos=top.pos)
+        top.bind(size=self._update_rect2, pos=self._update_rect2)
+
+        top.add_widget(Label(
+                text="IP printers",
+                font_size=25,
+                halign="center",
+                size_hint_x=None,
+                width=self.IP_WIDTH))
+        top.add_widget(Label(text="poort",font_size=25))
+        top.add_widget(Label(text="Print types",font_size=25))
+        knop = Button(text="?", width=50, size_hint_x=None, font_size=25)
+        knop.bind(on_press=self.help_popup)
+        top.add_widget(knop)
+        self.add_widget(top)
+        
+        #dymisch opgevuld
+        self.onder = GridLayout(cols=4)
+        with self.onder.canvas.before:
+            #rgba
+            Color(1, 1, 1, 1)  # green; colors range from 0-1 instead of 0-255
+            self._rect = Rectangle(size=self.onder.size, pos=self.onder.pos)
+
+        self.onder.bind(size=self._update_rect, pos=self._update_rect)
+
+        self.add_widget(self.onder)
+        
+        self.ip_veld = TextInput(size_hint=(None, None), width=self.IP_WIDTH, height=self.ROW_HEIGHT, multiline=False, font_size=20)
+        self.onder.add_widget(self.ip_veld)
+        
+        self.poort_veld = TextInput(size_hint_y=None, height=self.ROW_HEIGHT, multiline=False, font_size=20)
+        self.onder.add_widget(self.poort_veld)
+        
+        knop = Button(text="selecteer types", height = self.ROW_HEIGHT, size_hint_y=None, font_size=20)
+        #knop.bind(on_press=)
+        self.onder.add_widget(knop)
+        
+        knop = Button(text="+", height = self.ROW_HEIGHT, size_hint_y=None, font_size=22, width=50, size_hint_x=None)
+        knop.bind(on_press=self.verwijder_aanpas)
+        self.onder.add_widget(knop)
+        
+        #TODO: verwijder
+        self.voorbeeld()
+        
+        #variabele dat alle printers opslaat
+        self.printers = [] #[ip, poort, (types,)]
+        
+    def _update_rect(self, instance, value):
+        self._rect.pos = instance.pos
+        self._rect.size = instance.size
+        
+    def _update_rect2(self, instance, value):
+        self._rect2.pos = instance.pos
+        self._rect2.size = instance.size
+    
+    
+    def help_popup(self, instance):
+        pass
+    
+    
+    def verwijder_aanpas(self, instance):
+        pass
+        
+    
+    def voorbeeld(self):
+        self.onder.add_widget(Label(
+                text="test",
+                width= self.IP_WIDTH,
+                size_hint_x=None,
+                height = self.ROW_HEIGHT,
+                size_hint_y=None,
+                font_size=20,
+                color=(0,0,0,1)))
+        self.onder.add_widget(Label(
+                text="1033",
+                height = self.ROW_HEIGHT,
+                size_hint_y=None,
+                font_size=20,
+                color=(0,0,0,1)))
+        #probleem, weet welke lijn je namelijk tegenkomt
+        knop = Button(text="bekijk types", height = self.ROW_HEIGHT, size_hint_y=None, font_size=20)
+        #knop.bind(on_press=)
+        self.onder.add_widget(knop)
+        knop = Button(text="X", height = self.ROW_HEIGHT, size_hint_y=None, font_size=20, width=50, size_hint_x=None)
+        #knop.bind(on_press=self.verwijder_aanpas)
+        self.onder.add_widget(knop)
+            
 
 #gebaseerd op de clientversie
 #TODO: gewoon waar de bar is lol
