@@ -735,22 +735,25 @@ class PrinterBar(GridLayout):
         self.onder.add_widget(self.poort_veld)
         
         knop = Button(text="selecteer types", height = self.ROW_HEIGHT, size_hint_y=None, font_size=20)
+        #maak een popup en selecteer de types daar
         #knop.bind(on_press=)
         self.onder.add_widget(knop)
         
         knop = Button(text="+", height = self.ROW_HEIGHT, size_hint_y=None, font_size=22, width=50, size_hint_x=None)
-        knop.bind(on_press=self.verwijder_aanpas)
+        knop.bind(on_press=self.toevoegen)
         self.onder.add_widget(knop)
         
         #TODO: verwijder
-        self.voorbeeld()
+        #self.voorbeeld()
         
         #variabele dat alle printers opslaat
-        self.printers = [] #[ip, poort, (types,)]
+        self.printers = [] #[ip, poort, (types,)] ID van de knop is de index van deze lijst
+        self.print_widgets = []
         
     def _update_rect(self, instance, value):
         self._rect.pos = instance.pos
         self._rect.size = instance.size
+        
         
     def _update_rect2(self, instance, value):
         self._rect2.pos = instance.pos
@@ -761,8 +764,72 @@ class PrinterBar(GridLayout):
         pass
     
     
-    def verwijder_aanpas(self, instance):
-        pass
+    def toevoegen(self, instance):
+        #TODO controles
+        IP = self.ip_veld.text.strip()
+        POORT = self.poort_veld.text.strip()
+        if IP == "" or POORT == "":
+            #TODO vul velden in
+            pass
+        elif not(POORT.isdigit()):
+            #TODO popup geen nummer
+            return
+        #elif geen type
+        types = ("test1", "test2")
+        
+        
+        ID = len(self.printers)
+        self.printers.append((IP, int(POORT), types))
+        widget_list = [
+            Label(
+                    text=IP,
+                    width= self.IP_WIDTH,
+                    size_hint_x=None,
+                    height = self.ROW_HEIGHT,
+                    size_hint_y=None,
+                    font_size=20,
+                    color=(0,0,0,1)),
+            Label(
+                    text=POORT,
+                    height = self.ROW_HEIGHT,
+                    size_hint_y=None,
+                    font_size=20,
+                    color=(0,0,0,1))]
+        
+        
+        #pasop als er 1 wordt verwijdert moeten alle ID's worden aangepast
+        knop = Button(text="bekijk types", id=str(ID), height = self.ROW_HEIGHT, size_hint_y=None, font_size=20)
+        #knop.bind(on_press=)
+        widget_list.append(knop)
+        knop = Button(text="X", id=str(ID), height = self.ROW_HEIGHT, size_hint_y=None, font_size=20, width=50, size_hint_x=None)
+        knop.bind(on_press=self.verwijder)
+        widget_list.append(knop)
+        
+        for wid in widget_list:
+            self.onder.add_widget(wid)
+        self.print_widgets.append(widget_list)
+        
+        #reset widgets
+        self.ip_veld.text = ""
+        self.poort_veld.text = ""
+        #reset de popup, wss niet nodig
+    
+    
+    def verwijder(self, instance):
+        ID = int(instance.id)
+        if ID != len(self.printers)-1:
+            #for lus en ID van de knoppen aanpassen
+            for i in self.print_widgets[ID+1:]:
+                _, _, knop1, knop2 = i
+                knop1.id = str(int(knop1.id)-1)
+                knop2.id = str(int(knop2.id)-1)        
+        
+        widgets = self.print_widgets.pop(ID)
+        for wid in widgets:
+            self.onder.remove_widget(wid)
+        del widgets
+        del self.printers[ID]
+        
         
     
     def voorbeeld(self):
