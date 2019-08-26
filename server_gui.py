@@ -1,6 +1,8 @@
 from functools import partial #instead of lamda functions
 from collections import deque
 import threading
+import os
+import pickle
 
 #kivy
 import kivy
@@ -743,14 +745,13 @@ class PrinterBar(GridLayout):
         knop.bind(on_press=self.toevoegen)
         self.onder.add_widget(knop)
         
-        #TODO: verwijder
-        #self.voorbeeld()
-        
         #variabele dat alle printers opslaat
         self.printers = [] #[ip, poort, (types,)] ID van de knop is de index van deze lijst
         self.print_widgets = []
         self.checkboxes = {}
         
+        if os.path.isfile(global_vars.printer_file):
+            self.laad_data(global_vars.printer_file)
         
     def _update_rect(self, instance, value):
         self._rect.pos = instance.pos
@@ -801,24 +802,37 @@ class PrinterBar(GridLayout):
         popup.open()
     
     
-    def toevoegen(self, instance):
-        IP = self.ip_veld.text.strip()
-        POORT = self.poort_veld.text.strip()
-        types = []
-        for key in self.checkboxes:
-            if key.active:
-                types.append(self.checkboxes[key])
-                
-        if IP == "" or POORT == "":
-            self.error_popup("Vul alle velden in!")
-            return
-        elif not(POORT.isdigit()):
-            self.error_popup("Een poort is een positief getal.")
-            return
-        elif types == []:
-            self.error_popup("Selecteer minstens 1 type!")
-            return
+    def laad_data(self, path):
+        with open(path, 'rb') as f:    
+            printers = pickle.load(f)
+        for i in printers:
+            self.toevoegen(0, *i)
+    
+    def store_data(self, path):
+        with open(path, 'wb') as f:
+            pickle.dump(self.printers,f)
         
+    
+    def toevoegen(self, _, IP=None, POORT=None, types=None):
+        if (IP==None)+(POORT==None)+(types==None):
+            IP = self.ip_veld.text.strip()
+            POORT = self.poort_veld.text.strip()
+            types = []
+            for key in self.checkboxes:
+                if key.active:
+                    types.append(self.checkboxes[key])
+                    
+            if IP == "" or POORT == "":
+                self.error_popup("Vul alle velden in!")
+                return
+            elif not(POORT.isdigit()):
+                self.error_popup("Een poort is een positief getal.")
+                return
+            elif types == []:
+                self.error_popup("Selecteer minstens 1 type!")
+                return
+        else:
+            POORT = str(POORT)
         
         ID = len(self.printers)
         self.printers.append((IP, int(POORT), types))
@@ -857,6 +871,7 @@ class PrinterBar(GridLayout):
         self.poort_veld.text = ""
         #reset de popup, wss niet nodig
     
+        self.store_data(global_vars.printer_file)
     
     def verwijder(self, instance):
         ID = int(instance.id)
@@ -873,6 +888,8 @@ class PrinterBar(GridLayout):
         del widgets
         del self.printers[ID]
         socket_server.PRINTERS = self.printers
+        
+        self.store_data(global_vars.printer_file)
     
     
     def select_type(self, _):
@@ -920,8 +937,6 @@ class PrinterBar(GridLayout):
         
         popup.add_widget(layout)                        
         popup.open()
-        
-        
         
 
 #gebaseerd op de clientversie
