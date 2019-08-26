@@ -31,7 +31,7 @@ COLOURS = {"drank":(0.8,0.2,0,1),
 
 #debug
 from kivy.logger import LoggerHistory
-DEBUG = True #TODO aanpassen
+DEBUG = False
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
 ROWS = 4
@@ -279,7 +279,7 @@ class HuidigeBestellingScreen(GridLayout):
     def send_bestelling(self, _):
         #TODO: popup indien de bestelling leeg is
         #in principe zou dit geen gevolgen mogen geven.
-        print("[BESTELLING] %s" %(DATA.get_bestelling()))
+        #print("[BESTELLING] %s" %(DATA.get_bestelling()))
         if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling()}) != -1:
             #TODO: backup
             m_app.screen_manager.current = "klantinfo"
@@ -588,7 +588,6 @@ class Client_storage():
     def bestelling_list(self):
         msg = []
         for type in self.bestelling['BST'].values():
-            print(type)
             for key in type:
                 msg.append("{:<28}{}".format(key, type[key]))
         return msg
