@@ -16,6 +16,7 @@ IP = "0.0.0.0"
 POORT = 1740
 RUN = True
 ACCEPT = True
+PRINTERS = []
 
 #verwerkt de data
 def handles_message(client_socket):
@@ -144,6 +145,7 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         print(f"{user} vroeg alle producten op")
                     elif message['req'] == "BST":
                         #stuur naar printer
+                        
                         #verwerk bestelling
                         ret = database.addBestelling(db_io, message['bestelling']['info'], message['bestelling']['BST'])
                         if ret == 1:

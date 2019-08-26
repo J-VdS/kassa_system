@@ -747,7 +747,6 @@ class PrinterBar(GridLayout):
         #self.voorbeeld()
         
         #variabele dat alle printers opslaat
-        self.huidige_types = []
         self.printers = [] #[ip, poort, (types,)] ID van de knop is de index van deze lijst
         self.print_widgets = []
         self.checkboxes = {}
@@ -784,10 +783,25 @@ class PrinterBar(GridLayout):
         
         popup.add_widget(layout)                        
         popup.open()
+        
+        
+    def error_popup(self, text):
+        popup = Popup(title="Printers - error", size=(400,400), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+                
+        label = Label(text=text, font_size=18, valign="center")                      
+        label.bind(width=self._update_text_width)
+        layout.add_widget(label)   
+        
+        knop = Button(text="sluit", size_hint_y=None, height=40)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
     
     
     def toevoegen(self, instance):
-        #TODO controles
         IP = self.ip_veld.text.strip()
         POORT = self.poort_veld.text.strip()
         types = []
@@ -796,18 +810,19 @@ class PrinterBar(GridLayout):
                 types.append(self.checkboxes[key])
                 
         if IP == "" or POORT == "":
-            #TODO vul velden in
+            self.error_popup("Vul alle velden in!")
             return
         elif not(POORT.isdigit()):
-            #TODO popup geen nummer
+            self.error_popup("Een poort is een positief getal.")
             return
         elif types == []:
-            #TODO selecteer types
+            self.error_popup("Selecteer minstens 1 type!")
             return
         
         
         ID = len(self.printers)
         self.printers.append((IP, int(POORT), types))
+        socket_server.PRINTERS = self.printers
         widget_list = [
             Label(
                     text=IP,
@@ -840,7 +855,6 @@ class PrinterBar(GridLayout):
         #reset widgets
         self.ip_veld.text = ""
         self.poort_veld.text = ""
-        self.huidige_types = []
         #reset de popup, wss niet nodig
     
     
@@ -858,6 +872,7 @@ class PrinterBar(GridLayout):
             self.onder.remove_widget(wid)
         del widgets
         del self.printers[ID]
+        socket_server.PRINTERS = self.printers
     
     
     def select_type(self, _):
@@ -910,7 +925,6 @@ class PrinterBar(GridLayout):
         
 
 #gebaseerd op de clientversie
-#TODO: gewoon waar de bar is lol
 class BestelBar(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
