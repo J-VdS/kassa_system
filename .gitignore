@@ -115,3 +115,6 @@ client/output.txt
 
 # networkprot
 network_prot.txt
+
+#printer_data
+.printer.data
