@@ -16,7 +16,7 @@ IP = "0.0.0.0"
 POORT = 1740
 RUN = True
 ACCEPT = True
-PRINTERS = []
+PRINTERS = [] #(ip, poort, [type,])
 
 #verwerkt de data
 def handles_message(client_socket):
@@ -51,6 +51,36 @@ def TriggerSD():
     s.connect(('127.0.0.1',POORT))
     s.send("{:<{}}".format(0,HEADERLENGTH).encode("utf-8")) #eig fout
     s.close()
+    
+
+def makeMsg(msg):
+    msg = pickle.dumps(msg)
+    msg_header = f"{len(msg):<{HEADERLENGTH}}".encode('utf-8')  
+    return msg_header + msg
+    
+
+def printer_bestelling(bestelling):
+    producten = bestelling['BST']
+    print(producten)
+    info = bestelling['info']
+    opm = bestelling['opm']
+    for ip, poort, types in PRINTERS:
+        print(types)
+        b = {}
+        for t in types:
+            b.update(producten.get(t, {}))
+        print(b)
+        msg = makeMsg({'info':info, 'opm':opm, 'BST':b})
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect((ip, poort))
+            s.send(msg)
+        except:
+            #verwijder de printer uit de lijst van connecties, en geef popup
+            pass
+        finally:
+            s.close()
+        
     
 
 def start_listening(db, crash_func, update_func, password=None, get_items=None, store_order=None):
@@ -145,9 +175,13 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         print(f"{user} vroeg alle producten op")
                     elif message['req'] == "BST":
                         #stuur naar printer
-                        
+                        printer_bestelling(message['bestelling'])
                         #verwerk bestelling
-                        ret = database.addBestelling(db_io, message['bestelling']['info'], message['bestelling']['BST'])
+                        #{bestelling:{BST:{type:{}}}
+                        best = {}
+                        for d in message['bestelling']['BST'].values():
+                            best.update(d)
+                        ret = database.addBestelling(db_io, message['bestelling']['info'], best)
                         if ret == 1:
                             #herlaad de rekeningen
                             update_func(db_io)

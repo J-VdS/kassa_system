@@ -31,7 +31,7 @@ COLOURS = {"drank":(0.8,0.2,0,1),
 
 #debug
 from kivy.logger import LoggerHistory
-DEBUG = False
+DEBUG = True #TODO aanpassen
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
 ROWS = 4
@@ -409,7 +409,7 @@ class ProductScreen(GridLayout):
         
     def klik(self, instance):
         if instance.text != "":
-            DATA.bestelling_add_prod(instance.text, 1)
+            DATA.bestelling_add_prod(instance.text, instance.id, 1)
             #temp
             m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
             self.update_list = DATA.bestelling_list()
@@ -443,6 +443,7 @@ class ProductScreen(GridLayout):
         for i, knop in enumerate(self.prods_knoppen):
             try:
                 knop.text = data[i][1]
+                knop.id = data[i][0]
                 knop.background_color = COLOURS.get(data[i][0], (1,1,1,1))
             except:
                 knop.text = ""
@@ -571,20 +572,25 @@ class Client_storage():
         return geh if (rest==0) else (geh + 1)
     
     #bestelling
-    def bestelling_add_prod(self, prod, aantal):
+    def bestelling_add_prod(self, prod, type, aantal):
         '''
             voegt een product toe aan de bestelling        
         '''
-        if prod in self.bestelling['BST']:
-            self.bestelling['BST'][prod] += aantal
+        if not(type in self.bestelling['BST']):
+            self.bestelling['BST'][type] = {}
+            self.bestelling['BST'][type][prod] = aantal  
+        elif prod in self.bestelling['BST'][type]:
+            self.bestelling['BST'][type][prod] += aantal
         else:
-            self.bestelling['BST'][prod] = aantal
+            self.bestelling['BST'][type][prod] = aantal
             
     
     def bestelling_list(self):
         msg = []
-        for key in self.bestelling['BST']:
-            msg.append("{:<28}{}".format(key, self.bestelling['BST'][key]))
+        for type in self.bestelling['BST'].values():
+            print(type)
+            for key in type:
+                msg.append("{:<28}{}".format(key, type[key]))
         return msg
             
         
