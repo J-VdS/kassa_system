@@ -17,7 +17,7 @@ from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 from kivy.uix.checkbox import CheckBox
-from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition
+from kivy.uix.screenmanager import Screen, ScreenManager, NoTransition#, FadeTransition
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
@@ -218,15 +218,15 @@ class HoofdBar(GridLayout):
         aantal_knoppen = global_vars.kassa_cols * global_vars.kassa_rows
         for i in range(aantal_knoppen):
             if i == (aantal_knoppen - global_vars.kassa_cols):
-                knop = Button(text="<-", font_size=22, background_color=(0,1,0,1))
-                knop.bind(on_pres=self.switch_pagina)
+                knop = Button(text="<-", font_size=25, background_color=(0,1,0,1))
+                knop.bind(on_press=self.switch_pagina)
                 self.button_grid.add_widget(knop)
             elif i == (aantal_knoppen - 1):
-                knop = Button(text="->", font_size=22, background_color=(0,1,0,1))
+                knop = Button(text="->", font_size=25, background_color=(0,1,0,1))
                 knop.bind(on_press=self.switch_pagina)
                 self.button_grid.add_widget(knop)
             else:
-                self.buttons.append(Button(text=''))
+                self.buttons.append(Button(text='', font_size=20))
                 self.buttons[-1].bind(on_press=self.switch_rekening)
                 self.button_grid.add_widget(self.buttons[-1])
                 
@@ -260,14 +260,35 @@ class HoofdBar(GridLayout):
         
         
     def switch_pagina(self, instance):
+        data = list(database.getIDs(self.db_io))
+        aantal_knoppen = len(self.buttons)
+        geh, rest = divmod(len(data), aantal_knoppen)
+        paginas = geh if (rest == 0) else (geh+1)
         #verander van pagina
-        pass
+        print(self.paginaNr)
+        if instance.text == "->":
+            self.paginaNr += (self.paginaNr+1 < paginas)
+        else:
+            #instance.text == "<-":
+            self.paginaNr -= (self.paginaNr != 0)
+        
+        data = data[self.paginaNr*aantal_knoppen:]
+        self.update_rekeningen(data=data)
+        
+        self.pagina_label.text = f"Pagina {self.paginaNr+1}"
         
         
-    def update_rekeningen(self, db_io):
+    def update_rekeningen(self, db_io=None, data=None):
         #deze functie wordt meegegeven in de serverthread
         #TODO: meerdere pagina support
-        data = list(database.getIDs(db_io)) #[(1,),(3,)] - lijst van tuples met 1 element
+        if db_io:
+            data = list(database.getIDs(db_io)) #[(1,),(3,)] - lijst van tuples met 1 element
+
+        aantal_buttons = len(self.buttons)
+        
+        geh, rest = divmod(len(data), aantal_buttons)
+        self.num_paginas = geh if (rest==0) else (geh + 1)
+        
         for nr, knop in enumerate(self.buttons):
             try:
                 knop.text = str(data[nr][0])
@@ -1379,7 +1400,7 @@ class scherm1(GridLayout):
 #gui
 class ServerGui(App):
     def build(self):
-        self.screen_manager = ScreenManager(transition=FadeTransition())
+        self.screen_manager = ScreenManager(transition=NoTransition()) #FadeTransition())
         
         self.hoofdscherm = HoofdScherm()
         scherm = Screen(name="HOME")
