@@ -74,14 +74,31 @@ def printer_bestelling(bestelling):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((ip, poort))
+            print("verzenden...")
             s.send(msg)
-        except:
+            print("verzonden...")
+        except Exception as e:
             #verwijder de printer uit de lijst van connecties, en geef popup
-            pass
+            print("Error:", e)
         finally:
             s.close()
         
-    
+        
+def sluit_printers():
+    msg = makeMsg({"STOP":True})
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    for ip, poort, _ in PRINTERS:
+        try:
+            s.connect((ip, poort))
+            print("verzenden...")
+            s.send(msg)
+            print("verzonden...")
+        except Exception as e:
+            #verwijder de printer uit de lijst van connecties, en geef popup
+            print("Error:", e)
+        finally:
+            s.close()
+
 
 def start_listening(db, crash_func, update_func, password=None, get_items=None, store_order=None):
     #we zullen een connectie proberen te openen met de db om daar de producten op te vragen,

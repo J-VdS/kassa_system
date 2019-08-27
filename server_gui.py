@@ -119,7 +119,14 @@ class ConnectScherm(GridLayout):
         self.add_widget(self.printer_bar)
         
         #leeglabel
-        self.add_widget(Label(size_hint_y=None, height=25))
+        #self.add_widget(Label(size_hint_y=None, height=25))
+        knop = Button(text="Alle printers afsluiten...", size_hint_y=None, height=30)
+        knop.bind(on_press=self.kill_printers)
+        self.add_widget(knop)
+        
+    
+    def kill_printers(self, _=None):
+        socket_server.sluit_printers()        
         
         
 class BestelScherm(GridLayout):
@@ -894,7 +901,9 @@ class PrinterBar(GridLayout):
     
         self.store_data(global_vars.printer_file)
     
+    
     def verwijder(self, instance):
+        #TODO: sluit ook die printer indien die open staat !
         ID = int(instance.id)
         if ID != len(self.printers)-1:
             #for lus en ID van de knoppen aanpassen
@@ -1439,6 +1448,9 @@ class ServerGui(App):
         try:
             database.CloseIO(self.hoofdscherm.hoofdbar.db_io)
             gui.connectscherm.connectbar.switch_server_off()
+            
+            #altijd als laatste want meestal error
+            gui.connectscherm.kill_printers()
         except Exception as e:
             print("[ERROR_EXIT]", e)
     

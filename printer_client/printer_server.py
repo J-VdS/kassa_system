@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#TODO; stuur bevestiging aangekomen en geprint
 
-#from escpos import printer
+
 import socket #communicatie met de kassa
 import queue  #bestellingen
-import pickle #
-#from threading import Thread
+import pickle #decode data
+import select #socket verkeer
+from escpos.printer import Usb
+from threading import Thread, Condition
+
+#error handling
+import sys 
 
 #network constants
-ip = "0.0.0.0"
-poort = 1741
+IP = "0.0.0.0"
+POORT = 1741
+HEADERLENGTH = 10
 
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
@@ -25,46 +32,184 @@ print_queue = queue.Queue()
 STOP_LOOP = False
 
 
+#verwerkt de data
+def handles_message(client_socket):
+    try:
+        message_header = client_socket.recv(HEADERLENGTH)
+        
+        #connection closed
+        if not len(message_header):
+            return 0
+        
+        lengte = int(message_header.decode("utf-8"))
+        print("lengte:", lengte)
+        data = client_socket.recv(lengte) #pickled-data
+        print("unpickled:", pickle.loads(data))
+        return pickle.loads(data) #dict bevat request en eventuele data
+    except:
+        return 0
+
+
 def start_listening():
+    global STOP_LOOP
+    global print_queue
+    cond = Condition()
+    Thread(target=start_printloop, args=(cond,)).start() #geen deamon!
+    
+    
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((ip, poort))
+    s.bind((IP,POORT))
     
     s.listen()
     #In principe is er maar 1 connectie en dat is met de kassa!
     
-    s.close()
+    #lijst met sockets
+    sockets_list = [s]
+    
+    try:
+        print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
+        while not(STOP_LOOP):
+            # Calls Unix select() system call or Windows select() WinSock call with three parameters:
+            #   - rlist - sockets to be monitored for incoming data
+            #   - wlist - sockets for data to be send to (checks if for example buffers are not full and socket is ready to send some data)
+            #   - xlist - sockets to be monitored for exceptions (we want to monitor all sockets for errors, so we can use rlist)
+            # Returns lists:
+            #   - reading - sockets we received some data on (that way we don't have to check sockets manually)
+            #   - writing - sockets ready for data to be send thru them
+            #   - errors  - sockets with some exceptions
+            # This is a blocking call, code execution will "wait" here and "get" notified in case any action should be taken
+            read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
+            
+            # Iterate over notified sockets
+            for notified_socket in read_sockets:
+        
+                # If notified socket is a server socket - new connection, accept it
+                if notified_socket == s:
+        
+                    # Accept new connection
+                    # That gives us new socket - client socket, connected to this given client only, it's unique for that client
+                    # The other returned object is ip/port set
+                    print("accept")
+                    client_socket, client_address = s.accept()
+                    read_sockets.append(client_socket)
+        
+                    '''#ontvang
+                    lengte = int(client_socket.recv(HEADERLENGTH).decode("utf-8"))
+                    print("lengte:",lengte)
+                    if not lengte:
+                        client_socket.close()
+                        continue
+                    data = pickle.loads(client_socket.recv(lengte))
+                    print(data)
+                    
+                    # Add accepted socket to select.select() list
+                    sockets_list.append(client_socket)
+                            
+                    # Also save username and username header
+                    connecties[client_socket] = data['naam']
+                    
+                    #print mss ook de naam
+                    print('Accepted new connection from {}:{}'.format(client_address, data['naam']))
+                    '''
+                # Else existing socket is sending a message
+                else:                    
+                    # Receive message
+                    print("bericht")
+                    message = handles_message(notified_socket)
+                    
+                    # Get user by notified socket, so we will know who sent the message
+                    #user = connecties[notified_socket]
+                    
+                    # If False, client disconnected, cleanup
+                    if not(message):
+                        #print(f"Connectie met {user} gesloten!")
+                        #gebruik conn.close() om de connectie te sluiten!
+                        # Remove from list for socket.socket()
+                        sockets_list.remove(notified_socket)
+        
+                        # Remove from our list of users
+                        #del connecties[notified_socket]
+                        notified_socket.close() #mss ni nodig - close connection
+                        
+                        continue
+                    
+                    with cond:
+                            print_queue.put(message)
+                            cond.notify()
+
+                    if "STOP" in message:
+                        STOP_LOOP = True
+                        break
+
+
+            # It's not really necessary to have this, but will handle some socket exceptions just in case
+            for notified_socket in exception_sockets:
+                # Remove from list for socket.socket()
+                sockets_list.remove(notified_socket)
+    
+    
+    except Exception as e:
+        print("Error ", e)
+        STOP_LOOP = True
+    finally:
+        for sock in sockets_list:
+            if sockets_list != s:
+                sock.close()
+        s.close()
 
 
 def open_printer():
     global printer_obj
-    printer_obj = printer.Usb(ID_VENDOR, ID_PRODUCT, 0, IN_END, OUT_END)
+    printer_obj = Usb(ID_VENDOR, ID_PRODUCT, 0, IN_END, OUT_END)
     
 
 def close_printer():
     global printer_obj
     printer_obj.close()
-
-
-def start_printloop():
-    #loopt in thread
-    open_printer()
+    
+    
+def start_printloop(conditie):
+    global STOP_LOOP
+    global print_queue
+        
+    #open_printer()
+    
     try:
-        while not(STOP_LOOP):
-            if not(print_queue.empty()):
-                print_command = print_queue.get()
-                #verwerk(print_command)
-                #verwerk de data en stuur naar de printer
+        #hij zal enkel afsluiten indien de print_queue leeg is en de connectie gesloten is!
+        while not(STOP_LOOP) or not(print_queue.empty()):
+            with conditie:
+                while print_queue.empty():
+                    conditie.wait()
+                #stuur naar de printer
+                ret = printer_verwerk(print_queue.get())
+                if not(ret):
+                    break
     except Exception as e:
         print(e)
         #schrijf ook alle error naar een file want programma loopt wss in een lus
-    
     finally:
-        close_printer()
-     
+        pass
+        #close_printer()
+         
+        
+def printer_verwerk(obj):
+    if "close" in obj:
+        return False
+    try:
+        #print en verwerk
+        print("BESTELLING: ", obj)
+    except Exception as e:
+        trace_back = sys.exc_info()[2]
+        line = trace_back.tb_lineno
+        print(f"line {line}: {str(e)}")
+    
+    finally:    
+        return True
+    
 
 if __name__ == "__main__":
-    pass
+    start_listening()
     
 
 
