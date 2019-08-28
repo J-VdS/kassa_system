@@ -21,7 +21,7 @@ HEADERLENGTH = 10
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
 ID_VENDOR = 0x0456  #hex 0xabcd
-ID_PRODUCT = 0x808 #hex 0xabcd
+ID_PRODUCT = 0x0808 #hex 0xabcd
 OUT_END = 0x81 #hex
 IN_END = 0x03 #hex
 
@@ -202,7 +202,7 @@ def printer_verwerk(obj):
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
-        print(f"line {line}: {str(e)}")
+        print("line {}: {}".format(str(line), str(e)))
     
     finally:    
         return True
