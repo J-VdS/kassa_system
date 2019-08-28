@@ -1,3 +1,2 @@
 kivy==1.10.1
-
-python-escpos
+python-escpos==2.2.0

@@ -17,4 +17,4 @@ bewerk_start = "Opgepast dit is een gevaarlijke actie en kan niet ongedaan worde
 help_connect = "Om een printer toe te voegen moet je het IP adres en de poort van je printer invullen in de daarvoor voorziene tekstvakken. Je moet ook de types selecteren. Zo zal een 'gerecht' worden doorgestuurd naar de keuken, 'drank' naar de bar, ... Om de printer toe te voegen moet je op '+' drukken.\n\n Je kan je printer ook verwijderen via 'X'."
 connect_info_type = "help"
 
-printer_file = ".printers.data"
+printer_file = "printers.data"
