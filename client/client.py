@@ -248,31 +248,31 @@ class HuidigeBestellingScreen(GridLayout):
         self.cols = 1
         
         #verzend knop, stuurt je terug naar nieuwe rekening
-        knop = Button(text="Send", size_hint_y=None, height=70,
+        knop = Button(text="Send", size_hint_y=0.125,
                       background_color=(0,1,0,1))
         knop.bind(on_press=self.send_bestelling)
         self.add_widget(knop)
         
         #verwijder bestelling
-        knop = Button(text="Verwijder", size_hint_y=None, height=70,
+        knop = Button(text="Verwijder", size_hint_y=0.125,
                       background_color=(1,1,0,1))
         knop.bind(on_press=self.verwijder)
         self.add_widget(knop)
         
         #voeg opmerking toe
-        knop = Button(text="Opmerkingen", size_hint_y=None, height=70)
+        knop = Button(text="Opmerkingen", size_hint_y=0.125)
         knop.bind(on_press=self.opmerkingen)
         self.add_widget(knop)
                 
         #knop terug
-        knop = Button(text="ga terug", size_hint_y=None, height=70,
+        knop = Button(text="ga terug", size_hint_y=0.125,
                       background_color=(0,0.2,0.8,1))
         knop.bind(on_press=self.terug)
         self.add_widget(knop)
         
         
         #order
-        self.bestelling = LijstLabel()
+        self.bestelling = LijstLabel(size_hint_y=0.5)
         self.add_widget(self.bestelling)
         
         

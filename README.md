@@ -29,6 +29,9 @@ Om de kassa te gebruiken heb je momenteel python (> 3.6) nodig. En start server_
  - [ ] nagaan correct afsluiten!
  - [ ] herschrijven netcode
  - [ ] ( geluid uit )
+ 
+ ### stress test:
+ - [ ] voeg een time.sleep toe aan printserver bij het verwerken van een bericht. Sluit de connectie via de server_gui, normaal zou de printer blijven printen.
 
 Indien er problemen of vragen zijn, vermeldt deze dan in de Issues tab van github.com .
  
