@@ -163,11 +163,11 @@ class KlantInfoScreen(GridLayout):
         super().__init__(**kwargs)
         self.cols = 1
         
-        self.add_widget(Label(text="Info van de klant."))
+        self.add_widget(Label(text="Info van de klant.", size_hint_y=0.2))
         
-        self.add_widget(Label(text="Verkoper: "))
-        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False)
-        self.add_widget(self.verkoper)
+        self.add_widget(Label(text="Naam:"))
+        self.naam = TextInput(multiline=False)
+        self.add_widget(self.naam)
         
         self.add_widget(Label(text="ID:"))
         self.ID = TextInput(input_type='number', multiline=False)
@@ -177,9 +177,9 @@ class KlantInfoScreen(GridLayout):
         self.tafel = TextInput(input_type='number', multiline=False) 
         self.add_widget(self.tafel)
         
-        self.add_widget(Label(text="Naam:"))
-        self.naam = TextInput(multiline=False)
-        self.add_widget(self.naam)
+        self.add_widget(Label(text="Verkoper: "))
+        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False)
+        self.add_widget(self.verkoper)
         
         knop = Button(text="Ga verder")
         knop.bind(on_press=self.start_bestelling)
@@ -332,7 +332,8 @@ class HuidigeBestellingScreen(GridLayout):
         
         self.opm_input = TextInput(text=DATA.get_opm(), 
                                    height=Window.size[1]*.8,
-                                   size_hint_y=None,)
+                                   size_hint_y=None,
+                                   font_size=22)
         self.opm_input.bind(width=self._update_width)
         layout.add_widget(self.opm_input)
         
@@ -363,7 +364,7 @@ class ProductScreen(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
-        self.rows = 3
+        self.rows = 4
         
         self.paginaNr = 0
         self.prods = []
@@ -383,15 +384,27 @@ class ProductScreen(GridLayout):
             self.prods_knoppen[-1].bind(on_press=self.klik)
             self.knopLayout.add_widget(self.prods_knoppen[-1])
         
-        knop = Button(text="<-")
+        knop = Button(text="<-", size_hint_y=0.5)
         knop.bind(on_press=self.switch_page)
         self.knopLayout.add_widget(knop)
         
-        knop = Button(text="->")
+        knop = Button(text="->", size_hint_y=0.5)
         knop.bind(on_press=self.switch_page)
         self.knopLayout.add_widget(knop)
         
         self.add_widget(self.knopLayout)
+        
+        laatste_klik_lay = GridLayout(cols=1, rows=1, size_hint_y=0.18)
+        self.laatste_klik = Label(text="", font_size=22, color=(0,0,0,1))
+        with laatste_klik_lay.canvas.before:
+            #rgba
+            Color(1, 1, 1, 1)  # green; colors range from 0-1 instead of 0-255
+            self._rect = Rectangle(size=laatste_klik_lay.size, pos=laatste_klik_lay.pos)
+
+        laatste_klik_lay.bind(size=self._update_rect, pos=self._update_rect)
+
+        laatste_klik_lay.add_widget(self.laatste_klik)
+        self.add_widget(laatste_klik_lay)
         
         knop = Button(
                 text="Huidige bestelling...",
@@ -409,12 +422,13 @@ class ProductScreen(GridLayout):
         
     def klik(self, instance):
         if instance.text != "":
-            DATA.bestelling_add_prod(instance.text, instance.id, 1)
+            laatste_kliks = DATA.bestelling_add_prod(instance.text, instance.id, 1)
             #temp
             m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
             self.update_list = DATA.bestelling_list()
             Clock.schedule_once(self.refill, 0.5)
             #message = "{:<28}1".format(instance.text.strip())
+            self.laatste_klik.text = "{} (x{})".format(*laatste_kliks)
     
 
     def switch_page(self, instance):
@@ -454,6 +468,11 @@ class ProductScreen(GridLayout):
         if len(self.update_list):
             m_app.bestelling_pagina.bestelling.update_bestelling(self.update_list.pop(0))
             Clock.schedule_once(self.refill,0.01)
+    
+    #witte achtergrond
+    def _update_rect(self, instance, _):
+        self._rect.pos = instance.pos
+        self._rect.size = instance.size
                 
 
 class KassaClientApp(App):
@@ -517,6 +536,9 @@ class Client_storage():
         
         #bevat alle info voor de server en de kassa
         self.bestelling = {} 
+        
+        #laatste kliks + counter
+        self.laatste_kliks = [None, 0] #[naam prod, aantal]
     
     #setters
     def set_prod(self, prod):
@@ -537,6 +559,8 @@ class Client_storage():
         self.bestelling["info"] = {"naam":naam, "id":id, "tafel":tafelnr, "verkoper":verkoper}
         self.bestelling["opm"] = ""
         self.bestelling["BST"] = {}
+        
+        self.laatste_kliks = [None, 0]
         
 
     def set_opm(self, opm):
@@ -583,7 +607,14 @@ class Client_storage():
             self.bestelling['BST'][type][prod] += aantal
         else:
             self.bestelling['BST'][type][prod] = aantal
-            
+        
+        if prod == self.laatste_kliks[0]:
+            self.laatste_kliks[1] += 1
+        else:
+            self.laatste_kliks = [prod, 1]
+        return self.laatste_kliks
+    
+    
     
     def bestelling_list(self):
         msg = []

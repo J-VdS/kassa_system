@@ -20,6 +20,7 @@ HEADERLENGTH = 10
 
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
+#breedte is 32 wss
 ID_VENDOR = 0x0456  #hex 0xabcd
 ID_PRODUCT = 0x0808 #hex 0xabcd
 OUT_END = 0x81 #hex
@@ -173,7 +174,7 @@ def start_printloop(conditie):
     global STOP_LOOP
     global print_queue
         
-    #open_printer()
+    open_printer()
     
     try:
         #hij zal enkel afsluiten indien de print_queue leeg is en de connectie gesloten is!
@@ -189,8 +190,7 @@ def start_printloop(conditie):
         print(e)
         #schrijf ook alle error naar een file want programma loopt wss in een lus
     finally:
-        pass
-        #close_printer()
+        close_printer()
          
         
 def printer_verwerk(obj):
@@ -198,7 +198,17 @@ def printer_verwerk(obj):
         return False
     try:
         #print en verwerk
-        print("BESTELLING: ", obj)
+        print("INFO:", obj['info'])
+        print("BESTELLING: ", obj['BST'])
+        print("OPM:", obj['opm'])
+        printer_obj.text("ID:{:<13}TAFEL:{}\nN:{}\nV:{}".format(obj['info']['id'], obj['info']['tafel'], obj['info']['naam'], obj['info']['verkoper']))
+        printer_obj.text("-"*34+"\n")
+        for prod in obj['BST']:
+            printer_obj.text("{:<29} {}\n".format(prod, obj['BST'][prod]))
+        if obj["opm"].strip():
+            printer_obj.text(obj["opm"])
+        printer_obj.text("*"*34)
+        printer_obj.cut()
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
