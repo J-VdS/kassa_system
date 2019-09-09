@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 #TODO; stuur bevestiging aangekomen en geprint
 
+#stresstest
+import time
 
 import socket #communicatie met de kassa
 import queue  #bestellingen
 import pickle #decode data
 import select #socket verkeer
-from escpos.printer import Usb
+from escpos import *
 from threading import Thread, Condition
 
 #error handling
@@ -26,7 +28,7 @@ ID_PRODUCT = 0x0808 #hex 0xabcd
 OUT_END = 0x81 #hex
 IN_END = 0x03 #hex
 
-printer_obj = None
+#printer_obj = None
 print_queue = queue.Queue()
 
 #STOP LOOP
@@ -161,20 +163,20 @@ def start_listening():
 
 
 def open_printer():
-    global printer_obj
-    printer_obj = Usb(ID_VENDOR, ID_PRODUCT, 0, IN_END, OUT_END)
+    test = printer.Usb(0x0456,0x0808,0,0x81,0x03)
+    return test 
     
 
-def close_printer():
-    global printer_obj
-    printer_obj.close()
+def close_printer(printer):
+    printer.close()
     
     
 def start_printloop(conditie):
     global STOP_LOOP
     global print_queue
-        
-    open_printer()
+    
+    print("start loop")
+    printer = open_printer()
     
     try:
         #hij zal enkel afsluiten indien de print_queue leeg is en de connectie gesloten is!
@@ -183,17 +185,18 @@ def start_printloop(conditie):
                 while print_queue.empty():
                     conditie.wait()
                 #stuur naar de printer
-                ret = printer_verwerk(print_queue.get())
+                ret = printer_verwerk(printer, print_queue.get())
                 if not(ret):
                     break
+                time.sleep(5)
     except Exception as e:
         print(e)
         #schrijf ook alle error naar een file want programma loopt wss in een lus
     finally:
-        close_printer()
+        close_printer(printer)
          
         
-def printer_verwerk(obj):
+def printer_verwerk(printer_obj, obj):
     if "close" in obj:
         return False
     try:
@@ -201,14 +204,15 @@ def printer_verwerk(obj):
         print("INFO:", obj['info'])
         print("BESTELLING: ", obj['BST'])
         print("OPM:", obj['opm'])
-        printer_obj.text("ID:{:<13}TAFEL:{}\nN:{}\nV:{}".format(obj['info']['id'], obj['info']['tafel'], obj['info']['naam'], obj['info']['verkoper']))
-        printer_obj.text("-"*34+"\n")
+        printer_obj.text("ID:{:<13}TAFEL:{}\nN:{}\nV:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['naam'], obj['info']['verkoper']))
+        printer_obj.text("-"*32+"\n")
         for prod in obj['BST']:
-            printer_obj.text("{:<29} {}\n".format(prod, obj['BST'][prod]))
+            printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
         if obj["opm"].strip():
-            printer_obj.text(obj["opm"])
-        printer_obj.text("*"*34)
-        printer_obj.cut()
+            printer_obj.text("-"*32+'\n'+obj["opm"]+'\n')
+        printer_obj.text("*"*32)
+        printer_obj.cut() #noodzakelijk anders wordt er niets geprint
+        print("geprint")
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
