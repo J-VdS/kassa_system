@@ -236,7 +236,7 @@ class KlantInfoScreen(GridLayout):
         #maak huidige bestelling leeg
         m_app.bestelling_pagina.bestelling.verklein_bestelling()
         #maak laatste klik label leeg
-        m_app.prod_pagina.laaste_klik.text = ""
+        m_app.prod_pagina.laatste_klik.text = ""
         #reset de huidige bestelling en vul nieuwe indentificaties in
         DATA.set_creds(naam, int(ID), int(tafel), verkoper)
         
@@ -629,7 +629,8 @@ class Client_storage():
         #info over de klant en de verkoper
         msg = ["ID:{:<13}T:{}".format(self.bestelling['info']['id'], self.bestelling['info']['tafel']),
                "N:{}".format(self.bestelling['info']['naam']),
-               "V:{}".format(self.bestelling['info']['verkoper'])]
+               "V:{}".format(self.bestelling['info']['verkoper']),
+               "*"*32]
             
         for type in self.bestelling['BST'].values():
             for key in type:
