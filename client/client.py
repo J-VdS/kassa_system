@@ -40,7 +40,7 @@ class LoginScreen(GridLayout):
     def __init__(self, **kwargs):
         super(LoginScreen, self).__init__(**kwargs)
         
-        self.cols = 2
+        self.cols = 1
         
         if os.path.isfile("credentials.txt"):
             with open("credentials.txt", "r") as f:
@@ -50,25 +50,26 @@ class LoginScreen(GridLayout):
             poort = ""
             naam = ""
         
-        
-        self.add_widget(Label(text="ip:"))
+        lay_top = GridLayout(cols=2, rows=4)
+        lay_top.add_widget(Label(text="ip:"))
         self.ip_veld = TextInput(text=ip, multiline=False)
-        self.add_widget(self.ip_veld)
+        lay_top.add_widget(self.ip_veld)
         
-        self.add_widget(Label(text="Poort:"))
+        lay_top.add_widget(Label(text="Poort:"))
         self.poort = TextInput(text=poort, multiline=False)
-        self.add_widget(self.poort)
+        lay_top.add_widget(self.poort)
         
-        self.add_widget(Label(text="Naam:"))
+        lay_top.add_widget(Label(text="Naam:"))
         self.naam = TextInput(text=naam, multiline=False)
-        self.add_widget(self.naam)
+        lay_top.add_widget(self.naam)
         
-        self.add_widget(Label(text="Wachtwoord:"))
+        lay_top.add_widget(Label(text="Wachtwoord:"))
         self.password = TextInput(multiline=False, password=True)
-        self.add_widget(self.password)
+        lay_top.add_widget(self.password)
         
-        self.add_widget(Label())
-        self.knop = Button(text="verbind")
+        self.add_widget(lay_top)
+        
+        self.knop = Button(text="verbinden", font_size=25)
         self.knop.bind(on_press=self.gedrukt)
         self.add_widget(self.knop)
         
@@ -161,25 +162,30 @@ class InfoScreen(GridLayout):
 class KlantInfoScreen(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
         self.cols = 1
         
-        self.add_widget(Label(text="Info van de klant.", size_hint_y=0.2))
+        lay_top = GridLayout(cols=2, rows=4)
         
-        self.add_widget(Label(text="Naam:"))
-        self.naam = TextInput(multiline=False)
-        self.add_widget(self.naam)
+        self.add_widget(Label(text="Info van de klant.", size_hint_y=0.25))
         
-        self.add_widget(Label(text="ID:"))
-        self.ID = TextInput(input_type='number', multiline=False)
-        self.add_widget(self.ID)
+        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=20))
+        self.naam = TextInput(multiline=False, font_size=20)
+        lay_top.add_widget(self.naam)
         
-        self.add_widget(Label(text="Tafelnummer:"))
-        self.tafel = TextInput(input_type='number', multiline=False) 
-        self.add_widget(self.tafel)
+        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=20))
+        self.ID = TextInput(input_type='number', multiline=False, font_size=20)
+        lay_top.add_widget(self.ID)
         
-        self.add_widget(Label(text="Verkoper: "))
-        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False)
-        self.add_widget(self.verkoper)
+        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=20))
+        self.tafel = TextInput(input_type='number', multiline=False, font_size=20) 
+        lay_top.add_widget(self.tafel)
+        
+        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=20))
+        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=20)
+        lay_top.add_widget(self.verkoper)
+        
+        self.add_widget(lay_top)
         
         knop = Button(text="Ga verder")
         knop.bind(on_press=self.start_bestelling)
@@ -229,6 +235,9 @@ class KlantInfoScreen(GridLayout):
         
         #maak huidige bestelling leeg
         m_app.bestelling_pagina.bestelling.verklein_bestelling()
+        #maak laatste klik label leeg
+        m_app.prod_pagina.laaste_klik.text = ""
+        #reset de huidige bestelling en vul nieuwe indentificaties in
         DATA.set_creds(naam, int(ID), int(tafel), verkoper)
         
         #restore de velden
@@ -617,10 +626,14 @@ class Client_storage():
     
     
     def bestelling_list(self):
-        msg = []
+        #info over de klant en de verkoper
+        msg = ["ID:{:<13}T:{}".format(self.bestelling['info']['id'], self.bestelling['info']['tafel']),
+               "N:{}".format(self.bestelling['info']['naam']),
+               "V:{}".format(self.bestelling['info']['verkoper'])]
+            
         for type in self.bestelling['BST'].values():
             for key in type:
-                msg.append("{:<28}{}".format(key, type[key]))
+                msg.append("{:<28} {}".format(key, type[key]))
         return msg
             
         
