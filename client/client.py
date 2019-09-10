@@ -233,12 +233,13 @@ class KlantInfoScreen(GridLayout):
             popup.open()
             return
         
-        #maak huidige bestelling leeg
-        m_app.bestelling_pagina.bestelling.verklein_bestelling()
-        #maak laatste klik label leeg
-        m_app.prod_pagina.laatste_klik.text = ""
         #reset de huidige bestelling en vul nieuwe indentificaties in
         DATA.set_creds(naam, int(ID), int(tafel), verkoper)
+        #maak huidige bestelling leeg
+        m_app.bestelling_pagina.bestelling.verklein_bestelling()
+        #reset de knoppen met producten + labels
+        m_app.prod_pagina.reset()
+        
         
         #restore de velden
         self.ID.text = ""
@@ -389,8 +390,8 @@ class ProductScreen(GridLayout):
         #knopjes
         self.knopLayout = GridLayout(cols=COLS)
         for _ in range(COLS*ROWS):
-            self.prods_knoppen.append(Button(text=""))
-            self.prods_knoppen[-1].bind(on_press=self.klik)
+            self.prods_knoppen.append(Button(text="", halign="center", font_size=18))
+            self.prods_knoppen[-1].bind(on_press=self.klik, width=self._update_text_width)
             self.knopLayout.add_widget(self.prods_knoppen[-1])
         
         knop = Button(text="<-", size_hint_y=0.5)
@@ -427,6 +428,13 @@ class ProductScreen(GridLayout):
         
     def zie_huidig(self, _):
         m_app.screen_manager.current = "bestelling"
+        
+    
+    def reset(self):
+        self.paginaNr = 0
+        self.vul_in()
+        self.paginaNr_label.text = "Pagina {}".format(self.paginaNr+1)
+        self.laatste_klik.text = ""
             
         
     def klik(self, instance):
@@ -438,7 +446,8 @@ class ProductScreen(GridLayout):
             Clock.schedule_once(self.refill, 0.5)
             #message = "{:<28}1".format(instance.text.strip())
             self.laatste_klik.text = "{} (x{})".format(*laatste_kliks)
-    
+                
+            self.vul_in()
 
     def switch_page(self, instance):
         vorig = self.paginaNr
@@ -457,7 +466,7 @@ class ProductScreen(GridLayout):
         
         
     def vul_in(self):
-        data = DATA.get_sort_prod()
+        data = DATA.get_sort_prod_aantal()
         if len(data)<self.paginaNr*COLS*ROWS:
             end = len(data)
         else:
@@ -482,6 +491,10 @@ class ProductScreen(GridLayout):
     def _update_rect(self, instance, _):
         self._rect.pos = instance.pos
         self._rect.size = instance.size
+    
+    #knoppen
+    def _update_text_width(self, instance, _):
+        instance.text_size = (instance.width * .9, None)
                 
 
 class KassaClientApp(App):
@@ -541,6 +554,7 @@ class Client_storage():
     def __init__(self):
         self._prod = {}
         self._prod_list = []
+        self._prod_list_aantal = []
         self.verkoper = ""
         
         #bevat alle info voor de server en de kassa
@@ -554,7 +568,10 @@ class Client_storage():
         self._prod = prod
         for type in self._prod:
             for prod in self._prod[type]:
-                self._prod_list.append((type, prod))
+                self._prod_list.append([type, prod])
+                self._prod_list_aantal.append([type, prod])
+        
+        
         
     
     def set_verkoper(self, verkoper):
@@ -570,7 +587,7 @@ class Client_storage():
         self.bestelling["BST"] = {}
         
         self.laatste_kliks = [None, 0]
-        
+        self._prod_list_aantal = self._prod_list[:]
 
     def set_opm(self, opm):
         self.bestelling["opm"] = opm        
@@ -583,6 +600,10 @@ class Client_storage():
     
     def get_prod(self):
         return self._prod_list
+    
+    
+    def get_sort_prod_aantal(self):
+        return sorted(self._prod_list_aantal, key=lambda el: el[1])
     
     
     def get_sort_prod(self):
@@ -600,15 +621,19 @@ class Client_storage():
     def check_prod(self, prod):
         return prod == self._prod
  
+    
     def get_num_pages(self):
         geh, rest = divmod(len(self._prod_list), COLS*ROWS)
         return geh if (rest==0) else (geh + 1)
+    
     
     #bestelling
     def bestelling_add_prod(self, prod, type, aantal):
         '''
             voegt een product toe aan de bestelling        
         '''
+        if ":" in prod:
+            prod = prod.split(":")[0]
         if not(type in self.bestelling['BST']):
             self.bestelling['BST'][type] = {}
             self.bestelling['BST'][type][prod] = aantal  
@@ -616,6 +641,8 @@ class Client_storage():
             self.bestelling['BST'][type][prod] += aantal
         else:
             self.bestelling['BST'][type][prod] = aantal
+        
+        self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
         
         if prod == self.laatste_kliks[0]:
             self.laatste_kliks[1] += 1

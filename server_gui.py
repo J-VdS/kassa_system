@@ -536,6 +536,8 @@ class ProductBar(BoxLayout):
             self.makePopup("Vul alle velden in !")
         elif not func.is_number(aprijs):
             self.makePopup("Vul een geldige prijs in! Voor een komma moet je een punt gebruiken!")
+        elif len(anaam)>26:
+            self.makePopup("De naam %s is te lang (max 26 letters)"%(anaam))
         else:
             try:
                 #TODO: remove
@@ -575,6 +577,8 @@ class ProductBar(BoxLayout):
             self.makePopup("Vul alle velden in !")
         elif not func.is_number(bprijs):
             self.makePopup("Vul een geldige prijs in! Voor een komma moet je een punt gebruiken!")
+        elif len(bnaam)>26:
+            self.makePopup("De naam %s is te lang (max 26 letters)"%(bnaam))
         else:
             #TODO: remove
             db_io = database.OpenIO(global_vars.db)
