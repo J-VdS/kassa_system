@@ -18,3 +18,5 @@ help_connect = "Om een printer toe te voegen moet je het IP adres en de poort va
 connect_info_type = "help"
 
 printer_file = "printers.data"
+
+knop_verwijder = "U staat op het punt om een rekening te verwijderen. Dit kan niet ongedaan worden gemaakt! Verwijderen is niet hetzelfde als afronden!!!"

@@ -112,7 +112,7 @@ class ConnectScherm(GridLayout):
         self.add_widget(self.navbar)
         
         #hoofdscherm
-        self.connectbar = ConnectBar(height=150, size_hint_y=None)
+        self.connectbar = ConnectBar(size_hint_y=0.5)
         self.add_widget(self.connectbar)
         
         self.printer_bar = PrinterBar()
@@ -145,6 +145,15 @@ class BestelScherm(GridLayout):
         #lijstlabel links, midden al de knoppen met de producten en rechts speciale actie knoppen
         #interface voor aantal te wijzigen of te verwijderen
         
+
+class OptieScherm(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols=1
+        
+        self.navbar = NavigatieBar(huidig="setting")
+        self.add_widget(self.navbar)
+        self.add_widget(Label(text="scherm1"))
         
 #bars
 class NavigatieBar(BoxLayout):
@@ -228,6 +237,10 @@ class HoofdBar(GridLayout):
                 knop = Button(text="<-", font_size=25, background_color=(0,1,0,1))
                 knop.bind(on_press=self.switch_pagina)
                 self.button_grid.add_widget(knop)
+            elif i == (aantal_knoppen - 2):
+                knop = Button(text="NIEUW...", font_size=25, background_color=(1,1,0,1))
+                knop.bind(on_press=self.nieuw)
+                self.button_grid.add_widget(knop)
             elif i == (aantal_knoppen - 1):
                 knop = Button(text="->", font_size=25, background_color=(0,1,0,1))
                 knop.bind(on_press=self.switch_pagina)
@@ -302,6 +315,63 @@ class HoofdBar(GridLayout):
             except:
                 knop.text = ""
                 
+                
+    def nieuw(self, *_):
+        self.popup = Popup(title="Nieuwe rekening", size=(600,400), size_hint=(None,None))
+        alg_layout = GridLayout(cols=1)
+        layout = GridLayout(cols=2)
+        
+        layout.add_widget(Label(text="Naam:", font_size=20))
+        self.pnaam = TextInput(multiline=False, font_size=20)
+        layout.add_widget(self.pnaam)
+        
+        layout.add_widget(Label(text="ID:", font_size=20))
+        self.pID = TextInput(input_type='number', multiline=False, font_size=20)
+        layout.add_widget(self.pID)
+        
+        #layout.add_widget(Label(text="Tafelnummer:", font_size=20))
+        #self.ptafel = TextInput(input_type='number', multiline=False, font_size=20) 
+        #layout.add_widget(self.ptafel)
+        
+        #layout.add_widget(Label(text="Verkoper:", font_size=20))
+        #self.pverkoper = TextInput(text="kassa", multiline=False, font_size=20)
+        #layout.add_widget(self.pverkoper)
+        
+        
+        knop = Button(text="annuleren", size_hint_y=None, height=40)
+        knop.bind(on_press=self.popup.dismiss)
+        layout.add_widget(knop)
+        
+        knop = Button(text="toevoegen", size_hint_y=None, height=40)
+        knop.bind(on_press=self.toevoegen)
+        layout.add_widget(knop)
+        alg_layout.add_widget(layout)
+        
+        self.perror = Label(text="", markup=True, size_hint_y=0.3, font_size=20)
+        alg_layout.add_widget(self.perror)
+        
+        self.popup.add_widget(alg_layout)                        
+        self.popup.open()
+        
+    
+    def toevoegen(self, *_):
+        ID = self.pID.text.strip()
+        naam = self.pnaam.text.strip()
+        if (ID == "") or (naam == ""):
+            self.perror.text = "[color=#ff0000]Vul alle velden in![/color]"
+            return
+        elif not(ID.isdigit()):
+            self.perror.text = "[color=#ff0000]ID moet een getal zijn![/color]"
+            return
+        
+        db_io = database.OpenIO(global_vars.db)
+        
+        ret = database.addBestellingID(db_io, ID, naam)
+        self.update_rekeningen(db_io)
+        database.CloseIO(db_io)
+        print("RET: ", ret)
+        self.popup.dismiss()
+        
 
 class ProductBar(BoxLayout):
     def __init__(self, **kwargs):
@@ -670,6 +740,14 @@ class ConnectBar(GridLayout):
         self.server_status.bind(active=self.switch_server)
         self.add_widget(self.server_status)
         
+        self.add_widget(Label(
+                text="Wachtwoord: ",
+                size_hint_y=None,
+                height=50,
+                font_size=22))
+        self.password_veld = TextInput(multiline=False, font_size=20, height=50, size_hint_y=None)
+        self.add_widget(self.password_veld)
+        
         #aanvaard connecties
         self.add_widget(Label(
                 text="Nieuwe connecties aanvaarden: ",
@@ -985,14 +1063,14 @@ class BestelBar(GridLayout):
         
         #huidige pagina
         self.paginaNr = 0
-        self.ID_label = Label(
-                text="ID: ",
+        self.ID_info = Button(
+                text="Klantinfo:",
                 size_hint_x = 0.4, 
                 size_hint_y = None,
                 font_size = 20,
-                height = 35,
-                markup = True)
-        self.add_widget(self.ID_label)
+                height = 35)
+        self.ID_info.bind(on_press=self.show_info)
+        self.add_widget(self.ID_info)
 
         self.pagina_label = Label(
                 text="Pagina 1",
@@ -1032,17 +1110,25 @@ class BestelBar(GridLayout):
         self.product_knoppen = []
         self.product_grid = GridLayout(cols=global_vars.product_cols)
         for _ in range(global_vars.product_rows*global_vars.product_cols):
-            self.product_knoppen.append(Button(text=""))
-            self.product_knoppen[-1].bind(on_press=self.klikProduct)
+            self.product_knoppen.append(Button(text="", font_size=20, halign="center"))
+            self.product_knoppen[-1].bind(on_press=self.klikProduct, width=self._update_text_width)
             self.product_grid.add_widget(self.product_knoppen[-1])
         self.add_widget(self.product_grid)
         
         #actie knoppen
         self.actie_grid = GridLayout(cols=1, size_hint_x=0.2)
-        for _ in range(global_vars.product_rows-2):
+        for _ in range(global_vars.product_rows-3):
             knop = Button(text=" ")
             knop.bind(on_press=self.actie)
             self.actie_grid.add_widget(knop)
+        
+        knop = Button(text="VERWIJDER", size_hint_y=0.5, font_size=22, background_color=(0,1,0.9,1))
+        knop.bind(on_press=self.actie)
+        self.actie_grid.add_widget(knop)
+        
+        knop = Button(text="AFRONDEN", size_hint_y=0.5, font_size=22, background_color=(1,1,0,1))
+        knop.bind(on_press=self.afronden)
+        self.actie_grid.add_widget(knop)
             
         knop = Button(text="HERLAAD", size_hint_y=0.5, font_size=22, background_color=(0,0.2,0.9,1))
         knop.bind(on_press=self.actie)
@@ -1127,7 +1213,8 @@ class BestelBar(GridLayout):
         
         
     def set_ID(self, ID):
-        self.ID_label.text = "[b]ID: %s[/b]" % (ID)
+        self.ID_klant = ID
+        #self.ID_label.text = "[b]ID: %s[/b]" % (ID)
     
     #bestellabelfuncties    
     #vult het label
@@ -1186,6 +1273,54 @@ class BestelBar(GridLayout):
             self.bewerk_knop.text = "BEWERK"
             self.bewerk_knop.background_color = (1,1,1,1)
             
+        elif knop == "VERWIJDER":
+            self.vpopup = Popup(title="Verwijderen", size=(400,400), size_hint=(None,None))
+            layout = GridLayout(cols=1)
+                    
+            label = Label(text=global_vars.knop_verwijder, font_size=20)                      
+            label.bind(width=self.update_text_width)
+            layout.add_widget(label)   
+            
+            knoplayout = BoxLayout(orientation="horizontal")
+        
+            knop = Button(text="annuleer", size_hint_y=None, height=40)
+            knop.bind(on_press=self.vpopup.dismiss)
+            knoplayout.add_widget(knop)
+            
+            knop = Button(text="verwijder", size_hint_y=None, height=40)
+            knop.bind(on_press=self.verwijder_bevestigd)
+            knoplayout.add_widget(knop)
+            
+            layout.add_widget(knoplayout)
+            
+            self.vpopup.add_widget(layout)                        
+            self.vpopup.open()
+            
+    
+    def afronden(self, *_):
+        #bereken de prijs, en na betaling zet open of false en vul prijs veld in
+        
+        pass
+    
+    
+    def verwijder_bevestigd(self, *_):
+        db_io = database.OpenIO(global_vars.db)
+        database.delByID(db_io, self.ID_klant)
+        
+        
+        #ga terug naar het hoofdscherm en update het scherm
+        gui.hoofdscherm.hoofdbar.update_rekeningen(db_io)
+        gui.screen_manager.current = "HOME"
+        database.CloseIO(db_io)
+        
+        self.vpopup.dismiss()
+        
+        
+    
+    #knoppen
+    def _update_text_width(self, instance, _):
+        instance.text_size = (instance.width * .9, None)
+            
         
     #POPUP
     def makePopup(self, text):
@@ -1209,6 +1344,31 @@ class BestelBar(GridLayout):
             Dit is noodzakelijk voor automatische multiline
         '''
         obj.text_size = (obj.width * .9, None)
+    
+    
+    def show_info(self, *_):
+        popup = Popup(title="Klantinfo", size=(400,400), size_hint=(None, None))
+        layout = GridLayout(cols=1)
+    
+        
+        db_io = database.OpenIO(global_vars.db)
+        naam = database.getNaamByID(db_io, self.ID_klant)
+        database.CloseIO(db_io)
+        
+        layout.add_widget(Label(text="ID:  {}".format(self.ID_klant), font_size=20))
+        layout.add_widget(Label(text="Naam:  {}".format(naam), font_size=20))
+
+        
+        layout.add_widget(Label(size_hint_y=2.5))
+                
+        knop = Button(text="sluit", size_hint_y=None, height=40)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
+        
+        
         
         
         
@@ -1397,18 +1557,6 @@ class ProductLijstLabel(ScrollView):
         Clock.schedule_once(partial(self.verklein_update_list,-1), 0.5) #all
         Clock.schedule_once(self.update_from_db, 1)
         
-
-   
-#random - testing
-class scherm1(GridLayout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.cols=1
-        
-        self.navbar = NavigatieBar(huidig="setting")
-        self.add_widget(self.navbar)
-        self.add_widget(Label(text="scherm1"))
-        
     
 #gui
 class ServerGui(App):
@@ -1430,7 +1578,7 @@ class ServerGui(App):
         scherm.add_widget(self.connectscherm)
         self.screen_manager.add_widget(scherm)
 
-        self.test = scherm1()
+        self.test = OptieScherm()
         scherm = Screen(name="SETTINGS")
         scherm.add_widget(self.test)
         self.screen_manager.add_widget(scherm)

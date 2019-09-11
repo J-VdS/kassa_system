@@ -136,35 +136,39 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
         
                 # If notified socket is a server socket - new connection, accept it
                 if notified_socket == server_socket:
-        
-                    # Accept new connection
-                    # That gives us new socket - client socket, connected to this given client only, it's unique for that client
-                    # The other returned object is ip/port set
-                    client_socket, client_address = server_socket.accept()
-        
-                    #ontvang
-                    lengte = int(client_socket.recv(HEADERLENGTH).decode("utf-8"))
-                    print("lengte:",lengte)
-                    if not lengte:
-                        client_socket.close()
-                        continue
-                    data = pickle.loads(client_socket.recv(lengte))
-                    print(data)
-                    '''
-                    if password:
-                        if data["pwd"] != password:
-                            #laat weten dat het een verkeerd passwoord is
+                    try:
+                        # Accept new connection
+                        # That gives us new socket - client socket, connected to this given client only, it's unique for that client
+                        # The other returned object is ip/port set
+                        client_socket, client_address = server_socket.accept()
+            
+                        #ontvang
+                        lengte = int(client_socket.recv(HEADERLENGTH).decode("utf-8"))
+                        print("lengte:",lengte)
+                        if not lengte:
                             client_socket.close()
-                            continue #skipt de rest 
-                    '''
-                    # Add accepted socket to select.select() list
-                    sockets_list.append(client_socket)
-                            
-                    # Also save username and username header
-                    connecties[client_socket] = data['naam']
-                    
-                    #print mss ook de naam
-                    print('Accepted new connection from {}:{}'.format(client_address, data['naam']))
+                            continue
+                        data = pickle.loads(client_socket.recv(lengte))
+                        print(data)
+                        '''
+                        if password:
+                            if data["pwd"] != password:
+                                #laat weten dat het een verkeerd passwoord is
+                                client_socket.close()
+                                continue #skipt de rest 
+                        '''
+                        # Add accepted socket to select.select() list
+                        sockets_list.append(client_socket)
+                                
+                        # Also save username and username header
+                        connecties[client_socket] = data['naam']
+                        
+                        #print mss ook de naam
+                        print('Accepted new connection from {}:{}'.format(client_address, data['naam']))
+                    #vermijd random bytes naar de kassa
+                    except Exception as e:
+                        print("NetwerkError: ", e)
+                        client_socket.close()
         
                 # Else existing socket is sending a message
                 else:                    

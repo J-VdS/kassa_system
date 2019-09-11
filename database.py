@@ -146,6 +146,19 @@ def addBestelling(db_io, info, bestelling):
         c.execute("UPDATE bestellingen SET bestelling = ? WHERE id = ?", (bst, info["id"]))
         conn.commit()
         return 0
+
+
+def addBestellingID(db_io, ID, naam):
+    conn, c = db_io
+    c.execute("SELECT bestelling FROM bestellingen WHERE id = ?", (ID,))
+    data = c.fetchone()
+    if not data:
+        c.execute("INSERT INTO bestellingen (id, naam, bestelling, open) VALUES (?,?,?,?)", (ID, naam, pickle.dumps({}), 1))
+        conn.commit()
+        return 1
+    else:
+        #err ID was al in de DB
+        return -1
       
 
 def getBestelling(db_io, ID):
@@ -165,6 +178,22 @@ def getIDs(db_io):
     data = c.fetchall()
     return data  
 
+
+def getNaamByID(db_io, ID):
+    conn, c = db_io
+    c.execute("SELECT naam FROM bestellingen WHERE id = ?", (ID,))
+    data = c.fetchone()
+    if not data:
+        return "ERROR"
+    else:
+        return data[0]
+    
+
+def delByID(db_io, ID):
+    conn, c = db_io
+    c.execute("DELETE FROM bestellingen WHERE id = ?", (ID,))
+    conn.commit()
+    
         
 #old
 """
