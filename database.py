@@ -193,6 +193,12 @@ def delByID(db_io, ID):
     conn, c = db_io
     c.execute("DELETE FROM bestellingen WHERE id = ?", (ID,))
     conn.commit()
+
+
+def sluitById(db_io, ID, prijs):
+    conn, c = db_io
+    c.execute("UPDATE bestellingen SET open = 0, prijs = ? WHERE id = ?", (prijs, ID))
+    conn.commit()
     
         
 #old

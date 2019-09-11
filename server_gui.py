@@ -1126,8 +1126,8 @@ class BestelBar(GridLayout):
         knop.bind(on_press=self.actie)
         self.actie_grid.add_widget(knop)
         
-        knop = Button(text="AFRONDEN", size_hint_y=0.5, font_size=22, background_color=(1,1,0,1))
-        knop.bind(on_press=self.afronden)
+        knop = Button(text="AFREKENEN", size_hint_y=0.5, font_size=22, background_color=(1,1,0,1))
+        knop.bind(on_press=self.afrekenen)
         self.actie_grid.add_widget(knop)
             
         knop = Button(text="HERLAAD", size_hint_y=0.5, font_size=22, background_color=(0,0.2,0.9,1))
@@ -1297,10 +1297,47 @@ class BestelBar(GridLayout):
             self.vpopup.open()
             
     
-    def afronden(self, *_):
+    def afrekenen(self, *_):
         #bereken de prijs, en na betaling zet open of false en vul prijs veld in
+        totaal = gui.DATA.bereken_prijs()
+        print("TOT: ", totaal)
         
-        pass
+        self.afpopup = Popup(title="Afrekenen", size=(800,600), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+        
+        toplayout = GridLayout(cols=2)
+        toplayout.add_widget(Label(text="Te betalen:", font_size=20))
+        
+        toplayout.add_widget(Label(text="€ {}".format(totaal), font_size=20))
+                
+        toplayout.add_widget(Label(text="Onvangen: ", font_size=20))
+        self.tonvangen = TextInput(text="0", multiline=False, font_size=20)
+        toplayout.add_widget(self.tonvangen)
+        
+        knop = Button(text="Wisselgeld: ", font_size=20)
+        knop.bind(on_press=self.bereken_wisselgeld)
+        toplayout.add_widget(knop)
+        
+        self.twisselgeld = Label(text="---", font_size=20)
+        toplayout.add_widget(self.twisselgeld)
+        
+        layout.add_widget(toplayout)        
+        
+
+        knoplayout = BoxLayout(orientation="horizontal")
+    
+        knop = Button(text="annuleer", size_hint_y=None, height=60)
+        knop.bind(on_press=self.afpopup.dismiss)
+        knoplayout.add_widget(knop)
+        
+        knop = Button(text="ontvangen", size_hint_y=None, height=60)
+        knop.bind(on_press=self.afronden_bevestigd)
+        knoplayout.add_widget(knop)
+        
+        layout.add_widget(knoplayout)
+        
+        self.afpopup.add_widget(layout)                        
+        self.afpopup.open()
     
     
     def verwijder_bevestigd(self, *_):
@@ -1315,7 +1352,30 @@ class BestelBar(GridLayout):
         
         self.vpopup.dismiss()
         
+    
+    def bereken_wisselgeld(self, *_):
+        totaal = gui.DATA.bereken_prijs()
+        ontvangen = self.tonvangen.text.strip()
+        if not(isinstance(totaal, float)) or not(func.is_number(ontvangen)):
+            self.twisselgeld.text = "ERROR"
+        else:
+            self.twisselgeld.text = str(round(float(ontvangen)-totaal,3))
         
+
+    def afronden_bevestigd(self, *_):
+        db_io = database.OpenIO(global_vars.db)
+        totaal = gui.DATA.bereken_prijs()
+        #TODO: afronden onmogelijk als totaal = ERROR
+        database.sluitById(db_io, self.ID_klant, totaal)        
+        
+        #ga terug naar het hoofdscherm en update het scherm
+        gui.hoofdscherm.hoofdbar.update_rekeningen(db_io)
+        gui.screen_manager.current = "HOME"
+        database.CloseIO(db_io)
+        self.afpopup.dismiss()
+        
+    
+    
     
     #knoppen
     def _update_text_width(self, instance, _):
