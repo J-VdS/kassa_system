@@ -367,10 +367,15 @@ class HoofdBar(GridLayout):
         db_io = database.OpenIO(global_vars.db)
         
         ret = database.addBestellingID(db_io, ID, naam)
-        self.update_rekeningen(db_io)
-        database.CloseIO(db_io)
-        print("RET: ", ret)
-        self.popup.dismiss()
+        
+        if ret == -1:
+            self.perror.text = "[color=#ff0000]ID is al in gebruik![/color]"
+            database.CloseIO(db_io)
+        else:
+            self.update_rekeningen(db_io)
+            database.CloseIO(db_io)
+            
+            self.popup.dismiss()
         
 
 class ProductBar(BoxLayout):
