@@ -179,14 +179,14 @@ def getIDs(db_io):
     return data  
 
 
-def getNaamByID(db_io, ID):
+def getInfoByID(db_io, ID):
     conn, c = db_io
-    c.execute("SELECT naam FROM bestellingen WHERE id = ?", (ID,))
+    c.execute("SELECT naam, open FROM bestellingen WHERE id = ?", (ID,))
     data = c.fetchone()
     if not data:
-        return "ERROR"
+        return ("ERROR", "---")
     else:
-        return data[0]
+        return data
     
 
 def delByID(db_io, ID):

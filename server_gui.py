@@ -1063,9 +1063,7 @@ class BestelBar(GridLayout):
         self.cols = 3
         self.rows = 2
         self.spacing = [10,5]
-        
-        self._bewerk = False
-        
+       
         #huidige pagina
         self.paginaNr = 0
         self.ID_info = Button(
@@ -1101,12 +1099,17 @@ class BestelBar(GridLayout):
                 height=35)
         leftLayout.add_widget(self.totaal_label)
         
-        knopLayout = GridLayout(cols=5, rows=1, size_hint_y=None, height=50)
+        knopLayout = GridLayout(cols=3, rows=1, size_hint_y=None, height=50)
         
-        for text in ["UP", "DOWN", "[b]+[/b]", "[b]-[/b]", "DEL"]:
-            knop = Button(text=text, font_size=20, markup=True)
-            knop.bind(on_press=self.edit_knop)
-            knopLayout.add_widget(knop)
+        self.edit_mode = 0 #{1:DEL, 2:+, 3:-}
+        self.edit_knoppen = []
+        for naam in ["DEL", "[b]+[/b]", "[b]-[/b]"]:
+            self.edit_knoppen.append(Button(text=naam, font_size=20, markup=True))
+            self.edit_knoppen[-1].bind(on_press=self.edit)
+            knopLayout.add_widget(self.edit_knoppen[-1])
+        
+        
+        
         leftLayout.add_widget(knopLayout)
         self.add_widget(leftLayout)
         
@@ -1159,8 +1162,8 @@ class BestelBar(GridLayout):
     def klikProduct(self, instance):
         #TODO voeg toe aan een lokale bestelling, indien we het ook naar de printer willen sturen!
         #en de db aan moeten passen
-        #doe enkel iets als self._bewerk aanstaat!
-        if not(self._bewerk):
+        #doe enkel iets als self.edit_mode != 0 aanstaat!
+        if self.edit_mode == 0:
             self.makePopup(global_vars.bewerk_NT)
             return
         if instance.text.strip() == "":
@@ -1174,9 +1177,12 @@ class BestelBar(GridLayout):
     def reset(self):
         self.paginaNr = 0
         self.pagina_label.text = "Pagina 1"
-        self._bewerk = False
+        self.edit_mode = 0
         self.bewerk_knop.text = "BEWERK"
         self.bewerk_knop.background_color = (1,1,1,1)
+        for knop in self.edit_mode:
+            knop.background_color = (1,1,1,1)
+        
         
         self.vul_in()
         #maak het label leeg of populate het
@@ -1229,22 +1235,29 @@ class BestelBar(GridLayout):
             Clock.schedule_once(self.refill,0.01)
             
             
-    def edit_knop(self, instance):
-        if not(self._bewerk):
+    def edit(self, instance):
+        if self.edit_mode  == 0:
             self.makePopup(global_vars.bewerk_NT)
             return 
+        
         cmd = instance.text
-        if cmd == "[b]-[/b]":
-            pass
+        if cmd == "DEL":
+            self.edit_mode = 1
+            self.edit_knoppen[0].background_color = (0,1,0,1)
+            self.edit_knoppen[1].background_color = (1,1,1,1)
+            self.edit_knoppen[2].background_color = (1,1,1,1)
         elif cmd == "[b]+[/b]":
-            pass
-        elif cmd == "DEL":
-            pass
-        elif cmd == "UP":
-            pass
-        else:
-            #cmd == "DOWN":
-            pass
+            self.edit_mode = 2
+            self.edit_knoppen[0].background_color = (1,1,1,1)
+            self.edit_knoppen[1].background_color = (0,1,0,1)
+            self.edit_knoppen[2].background_color = (1,1,1,1)
+        elif cmd == "[b]-[/b]":
+            self.edit_mode = 3
+            self.edit_knoppen[0].background_color = (1,1,1,1)
+            self.edit_knoppen[1].background_color = (1,1,1,1)
+            self.edit_knoppen[2].background_color = (0,1,0,1)
+       
+        
     
     
     def actie(self, instance):
@@ -1265,18 +1278,26 @@ class BestelBar(GridLayout):
 
         elif knop == "BEWERK":
             #zet een variabele dat toelaat om te bewerken op True
-            self._bewerk = True
+            self.edit_mode = 2
             self.makePopup(global_vars.bewerk_start)
             self.bewerk_knop.text = "OPSLAAN"
             self.bewerk_knop.background_color = (0.96,0.25,0.25,1)
             
+            #zet add mode aan
+            self.edit_knoppen[1].background_color = (0,1,0,1)
+            
             
         elif knop == "OPSLAAN":
             #zet een variabele dat toelaat om te bewerken weer op False en pas de bestelling in de db aan
-            self._bewerk = False
+            #TODO geef popup en laat de persoon akkoord gaan!
+        
             self.makePopup(global_vars.bewerk_opslaan)
             self.bewerk_knop.text = "BEWERK"
             self.bewerk_knop.background_color = (1,1,1,1)
+            
+            self.edit_mode = 0
+            for knop in self.edit_knoppen:
+                knop.background_color = (1,1,1,1)
             
         elif knop == "VERWIJDER":
             self.vpopup = Popup(title="Verwijderen", size=(400,400), size_hint=(None,None))
@@ -1328,6 +1349,11 @@ class BestelBar(GridLayout):
         
         layout.add_widget(toplayout)        
         
+        #TODO: naar printer sturen
+        layout.add_widget(Label(size_hint_y=0.2))
+        knop = Button(text="Ticket afdrukken", size_hint_y=0.5, font_size=20)
+        #knop.bind(on_press=)
+        layout.add_widget(knop)
 
         knoplayout = BoxLayout(orientation="horizontal")
     
@@ -1348,7 +1374,6 @@ class BestelBar(GridLayout):
     def verwijder_bevestigd(self, *_):
         db_io = database.OpenIO(global_vars.db)
         database.delByID(db_io, self.ID_klant)
-        
         
         #ga terug naar het hoofdscherm en update het scherm
         gui.hoofdscherm.hoofdbar.update_rekeningen(db_io)
@@ -1417,11 +1442,12 @@ class BestelBar(GridLayout):
     
         
         db_io = database.OpenIO(global_vars.db)
-        naam = database.getNaamByID(db_io, self.ID_klant)
+        naam, betaald = database.getInfoByID(db_io, self.ID_klant)
         database.CloseIO(db_io)
         
         layout.add_widget(Label(text="ID:  {}".format(self.ID_klant), font_size=20))
         layout.add_widget(Label(text="Naam:  {}".format(naam), font_size=20))
+        layout.add_widget(Label(text="Betaald: {}".format("Nee" if (betaald) else "JA"), font_size=20))
 
         
         layout.add_widget(Label(size_hint_y=2.5))
