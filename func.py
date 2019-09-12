@@ -110,7 +110,11 @@ class Client_storage():
         
         
     def bestelling_del_prod(self, prod):
-        pass
+        if prod in self.bestelling:
+            self.edit[prod] = - self.bestelling[prod]
+            return 0
+        else:
+            return -1
     
     
     def bestelling_list(self):

@@ -1079,7 +1079,7 @@ class BestelBar(GridLayout):
                 text="Pagina 1",
                 size_hint_y = None,
                 height = 35,
-                font_size = 16)
+                font_size = 18)
         self.add_widget(self.pagina_label)
 
         self.add_widget(Label(
@@ -1169,11 +1169,13 @@ class BestelBar(GridLayout):
         if instance.text.strip() == "":
             return
         if self.edit_mode == 1:
-            gui.DATA.bestelling_del_prod(instance.text)
+            print("DEL mode")
+            if gui.DATA.bestelling_del_prod(instance.text) == -1:
+                self.makePopup(global_vars.product_del)
         else:
             div = -1 if (self.edit_mode == 3) else 1
-        if gui.DATA.bestelling_add_prod(instance.text, div) == -1:
-            self.makePopup(global_vars.product_min)
+            if gui.DATA.bestelling_add_prod(instance.text, div) == -1:
+                self.makePopup(global_vars.product_min)
         
         self.bestel_label.verklein_bestelling() #volledig weg
         self.update_list = gui.DATA.bestelling_list()

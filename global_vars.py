@@ -12,7 +12,7 @@ COLOURS = {}
 
 bewerk_NT = "Bewerken is niet toegelaten.\nJe moet eerst bewerken activeren!"
 bewerk_opslaan = "De bewerkte bestelling wordt overschreven!\n\nNaargelang de instelling worden de toegevoegde artikelen naar de printer(s) gestuurd.\nDit kan niet ongedaan worden gemaakt!"
-bewerk_start = "Opgepast dit is een gevaarlijke actie en kan niet ongedaan worden gemaakt.\nDit zal de huidige bestelling in het systeem overschrijven.\nIndien je klaar ben met bewerken moet je op opslaan klikken."
+bewerk_start = "Opgepast dit is een gevaarlijke actie en kan niet ongedaan worden gemaakt (nadat je je veranderingen hebt opgeslagen). Druk op opslaan om te bevestigen.\n\n'+' =  item toevoegen, '-' = item verminderen, 'DEL' = verwijder het product van de rekening."
 
 help_connect = "Om een printer toe te voegen moet je het IP adres en de poort van je printer invullen in de daarvoor voorziene tekstvakken. Je moet ook de types selecteren. Zo zal een 'gerecht' worden doorgestuurd naar de keuken, 'drank' naar de bar, ... Om de printer toe te voegen moet je op '+' drukken.\n\n Je kan je printer ook verwijderen via 'X'."
 connect_info_type = "help"
@@ -23,3 +23,4 @@ knop_verwijder = "U staat op het punt om een rekening te verwijderen. Dit kan ni
 knop_afrekenen = "U ben nog aan het bewerken! Druk op herladen om je wijzigingen ongedaan te maken of op opslaan om je wijzigingen te bewaren."
 
 product_min = "Een negatief aantal van een product is niet toegelaten!"
+product_del = "Dit product staat niet op de rekening!\n Er is niets verandert."
