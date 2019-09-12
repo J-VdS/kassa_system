@@ -30,6 +30,7 @@ class Client_storage():
         
         #bevat alle info voor de server en de kassa
         self.bestelling = {} #{prod:aantal}
+        self.edit = {}
         self.info = {}#ID, prijs, 
         
 
@@ -54,6 +55,7 @@ class Client_storage():
     
     def set_info(self, info):
         self.info = info
+        self.edit_reset()
         
     #getters
     def get_bestelling(self):
@@ -62,6 +64,10 @@ class Client_storage():
     
     def get_prod(self):
         return self._prod_list
+    
+    
+    def get_edit(self):
+        return self.edit
     
     
     #def get_sort_prod(self):
@@ -80,20 +86,39 @@ class Client_storage():
         return self.info
     
     #bestelling
+    def edit_reset(self):
+        self.edit = {}
+    
+    
     def bestelling_add_prod(self, prod, aantal, opm=None):
         '''
             voegt een product toe aan de bestelling        
         '''
-        if prod in self.bestelling:
-            self.bestelling[prod] += aantal
+        if (aantal < 0) and not(prod in self.bestelling):
+            print("not in bestelling")
+            return -1        
+        elif prod in self.edit:
+            print(self.bestelling.get(prod, 0) + self.edit[prod] + aantal)
+            if self.bestelling.get(prod, 0) + self.edit[prod] + aantal < 0: #plus aantal want aantal zal in dit geval negatief zijn
+                return -1
+            else:
+                self.edit[prod] += aantal
+                return 0
         else:
-            self.bestelling[prod] = aantal
-            
+            self.edit[prod] = aantal
+            return 0
+        
+        
+    def bestelling_del_prod(self, prod):
+        pass
+    
     
     def bestelling_list(self):
         msg = ["{:^28}{}".format("Product", "#"), "-"*29]
         for key in self.bestelling:
             msg.append("{:<28}{}".format(key, self.bestelling[key]))
+        for key in self.edit:
+            msg.append("[color=#ff0000]{:<28}{}[/color]".format(key, self.edit[key]))
         return msg
 
 
@@ -106,6 +131,8 @@ class Client_storage():
             if prod_prijs == "ERROR":
                 return prod_prijs
             totaal += prod_prijs * self.bestelling[product]
+        #TODO: live prijs update
+        
         return totaal
 
             

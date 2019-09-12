@@ -1168,10 +1168,16 @@ class BestelBar(GridLayout):
             return
         if instance.text.strip() == "":
             return
-        gui.DATA.bestelling_add_prod(instance.text, 1)
+        if self.edit_mode == 1:
+            gui.DATA.bestelling_del_prod(instance.text)
+        else:
+            div = -1 if (self.edit_mode == 3) else 1
+        if gui.DATA.bestelling_add_prod(instance.text, div) == -1:
+            self.makePopup(global_vars.product_min)
+        
         self.bestel_label.verklein_bestelling() #volledig weg
         self.update_list = gui.DATA.bestelling_list()
-        Clock.schedule_once(self.refill, 0.5)
+        Clock.schedule_once(self.refill, 0.001)
     
     
     def reset(self):
@@ -1180,9 +1186,11 @@ class BestelBar(GridLayout):
         self.edit_mode = 0
         self.bewerk_knop.text = "BEWERK"
         self.bewerk_knop.background_color = (1,1,1,1)
-        for knop in self.edit_mode:
+        for knop in self.edit_knoppen:
             knop.background_color = (1,1,1,1)
         
+        #verwijder de edit bestelling
+        gui.DATA.edit_reset()
         
         self.vul_in()
         #maak het label leeg of populate het
@@ -1232,7 +1240,7 @@ class BestelBar(GridLayout):
     def refill(self, *_):
         if len(self.update_list):
             self.bestel_label.update_bestelling(self.update_list.pop(0))
-            Clock.schedule_once(self.refill,0.01)
+            Clock.schedule_once(self.refill,0.001)
             
             
     def edit(self, instance):
@@ -1292,6 +1300,15 @@ class BestelBar(GridLayout):
             #TODO geef popup en laat de persoon akkoord gaan!
         
             self.makePopup(global_vars.bewerk_opslaan)
+            #pas db aan
+            db_io = database.OpenIO(global_vars.db)
+            database.addBestelling(db_io, {"id":gui.DATA.get_info()["ID"]}, gui.DATA.get_edit())
+            gui.DATA.set_bestelling(database.getBestelling(db_io, gui.DATA.get_info()["ID"]))      
+            database.CloseIO(db_io)
+            
+            #reset textvak
+            self.reset()
+            
             self.bewerk_knop.text = "BEWERK"
             self.bewerk_knop.background_color = (1,1,1,1)
             
@@ -1324,6 +1341,9 @@ class BestelBar(GridLayout):
             
     
     def afrekenen(self, *_):
+        if self.edit_mode != 0:
+            self.makePopup(global_vars.knop_afrekenen)
+            return 
         #bereken de prijs, en na betaling zet open of false en vul prijs veld in
         totaal = gui.DATA.bereken_prijs()
         print("TOT: ", totaal)
