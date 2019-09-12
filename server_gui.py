@@ -1304,7 +1304,13 @@ class BestelBar(GridLayout):
             self.makePopup(global_vars.bewerk_opslaan)
             #pas db aan
             db_io = database.OpenIO(global_vars.db)
+            #volgende stap zou kunnen mislopen indien er juist een bestelling toekomt
+            while socket_server.EDIT_ID == gui.DATA.get_info()["ID"]:
+                #loop totdat het aan ons is
+                pass
+            socket_server.EDIT_ID = gui.DATA.get_info()["ID"]
             database.addBestelling(db_io, {"id":gui.DATA.get_info()["ID"]}, gui.DATA.get_edit())
+            socket_server.EDIT_ID = None
             gui.DATA.set_bestelling(database.getBestelling(db_io, gui.DATA.get_info()["ID"]))      
             database.CloseIO(db_io)
             

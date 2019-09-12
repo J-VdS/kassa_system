@@ -18,6 +18,8 @@ RUN = True
 ACCEPT = True
 PRINTERS = [] #(ip, poort, [type,])
 
+EDIT_ID = None
+
 #verwerkt de data
 def handles_message(client_socket):
     try:
@@ -202,10 +204,15 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         best = {}
                         for d in message['bestelling']['BST'].values():
                             best.update(d)
+                        global EDIT_ID
+                        while EDIT_ID == message['bestelling']['info']['id']:
+                            pass
+                        EDIT_ID = message['bestelling']['info']['id']
                         ret = database.addBestelling(db_io, message['bestelling']['info'], best)
                         if ret == 1:
                             #herlaad de rekeningen
                             update_func(db_io)
+                        EDIT_ID = None
                         #stuur succes, gelukt
                     elif message['req'] == "MSG":
                         pass
