@@ -103,8 +103,12 @@ class Client_storage():
                 self.edit[prod] += aantal
                 return 0
         else:
-            self.edit[prod] = aantal
-            return 0
+            if self.bestelling.get(prod, 0) + aantal < 0:
+                return -1
+                
+            else:
+                self.edit[prod] = aantal
+                return 0
         
         
     def bestelling_del_prod(self, prod):
