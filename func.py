@@ -94,7 +94,7 @@ class Client_storage():
         '''
             voegt een product toe aan de bestelling        
         '''
-        if (aantal < 0) and not(prod in self.bestelling):
+        if (aantal < 0) and not(prod in self.bestelling) and (self.edit.get(prod, 0) == 0):
             return -1        
         elif prod in self.edit:
             if self.bestelling.get(prod, 0) + self.edit[prod] + aantal < 0: #plus aantal want aantal zal in dit geval negatief zijn
