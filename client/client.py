@@ -390,31 +390,32 @@ class ProductScreen(GridLayout):
         #knopjes
         self.knopLayout = GridLayout(cols=COLS)
         for _ in range(COLS*ROWS):
-            self.prods_knoppen.append(Button(text="", halign="center", font_size=18))
+            self.prods_knoppen.append(Button(text="", halign="center", font_size=20))
             self.prods_knoppen[-1].bind(on_press=self.klik, width=self._update_text_width)
             self.knopLayout.add_widget(self.prods_knoppen[-1])
         
-        knop = Button(text="<-", size_hint_y=0.5)
-        knop.bind(on_press=self.switch_page)
-        self.knopLayout.add_widget(knop)
-        
-        knop = Button(text="->", size_hint_y=0.5)
-        knop.bind(on_press=self.switch_page)
-        self.knopLayout.add_widget(knop)
-        
         self.add_widget(self.knopLayout)
         
-        laatste_klik_lay = GridLayout(cols=1, rows=1, size_hint_y=0.18)
-        self.laatste_klik = Label(text="", font_size=22, color=(0,0,0,1))
-        with laatste_klik_lay.canvas.before:
-            #rgba
-            Color(1, 1, 1, 1)  # green; colors range from 0-1 instead of 0-255
-            self._rect = Rectangle(size=laatste_klik_lay.size, pos=laatste_klik_lay.pos)
-
-        laatste_klik_lay.bind(size=self._update_rect, pos=self._update_rect)
-
-        laatste_klik_lay.add_widget(self.laatste_klik)
-        self.add_widget(laatste_klik_lay)
+        navlayout = GridLayout(cols=4, rows=1, size_hint_y=0.25)
+        
+        
+        knop = Button(text="[b]<-[/b]", font_size=22, markup=True)#, size_hint_y=0.5)
+        knop.bind(on_press=self.switch_page)
+        navlayout.add_widget(knop)
+        
+        self.min_knop = Button(text="[b]-[/b]", font_size=22, markup=True)
+        self.min_knop.bind(on_press=self.switch_mode)
+        navlayout.add_widget(self.min_knop)
+        
+        self.plus_knop = Button(text="[b]+[/b]", font_size=22, markup=True, background_color=(1,1,0,1))
+        self.plus_knop.bind(on_press=self.switch_mode)
+        navlayout.add_widget(self.plus_knop)
+        
+        knop = Button(text="[b]->[/b]", font_size=22, markup=True)#, size_hint_y=0.5)
+        knop.bind(on_press=self.switch_page)
+        navlayout.add_widget(knop)
+        
+        self.add_widget(navlayout)
         
         knop = Button(
                 text="Huidige bestelling...",
@@ -434,21 +435,31 @@ class ProductScreen(GridLayout):
         self.paginaNr = 0
         self.vul_in()
         self.paginaNr_label.text = "Pagina {}".format(self.paginaNr+1)
-        self.laatste_klik.text = ""
-            
+        self.mode = 1 #{-1:-, 1:+}
         
+                
     def klik(self, instance):
         if instance.text != "":
-            laatste_kliks = DATA.bestelling_add_prod(instance.text, instance.id, 1)
+            DATA.bestelling_add_prod(instance.text, instance.id, self.mode)
             #temp
             m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
             self.update_list = DATA.bestelling_list()
             Clock.schedule_once(self.refill, 0.5)
-            #message = "{:<28}1".format(instance.text.strip())
-            self.laatste_klik.text = "{} (x{})".format(*laatste_kliks)
-                
+            #message = "{:<28}1".format(instance.text.strip())                
             self.vul_in()
 
+    
+    def switch_mode(self, instance):
+        if instance.text == "[b]+[/b]":
+            self.mode = 1
+            self.plus_knop.background_color = (1,1,0,1)
+            self.min_knop.background_color = (1,1,1,1)
+        else:
+            self.mode = -1
+            self.plus_knop.background_color = (1,1,1,1)
+            self.min_knop.background_color = (1,1,0,1)
+        
+    
     def switch_page(self, instance):
         vorig = self.paginaNr
         if instance.text == "->":
@@ -462,8 +473,8 @@ class ProductScreen(GridLayout):
             #pas de producten aan
             self.vul_in()
             #pas paginaNrlabel aan
-            self.paginaNr_label.text = f"Pagina {self.paginaNr+1}"
-        
+            self.paginaNr_label.text = f"Pagina {self.paginaNr+1}"    
+    
         
     def vul_in(self):
         data = DATA.get_sort_prod_aantal()
@@ -487,11 +498,7 @@ class ProductScreen(GridLayout):
             m_app.bestelling_pagina.bestelling.update_bestelling(self.update_list.pop(0))
             Clock.schedule_once(self.refill,0.01)
     
-    #witte achtergrond
-    def _update_rect(self, instance, _):
-        self._rect.pos = instance.pos
-        self._rect.size = instance.size
-    
+
     #knoppen
     def _update_text_width(self, instance, _):
         instance.text_size = (instance.width * .9, None)
@@ -560,8 +567,6 @@ class Client_storage():
         #bevat alle info voor de server en de kassa
         self.bestelling = {} 
         
-        #laatste kliks + counter
-        self.laatste_kliks = [None, 0] #[naam prod, aantal]
     
     #setters
     def set_prod(self, prod):
@@ -570,8 +575,6 @@ class Client_storage():
             for prod in self._prod[type]:
                 self._prod_list.append([type, prod])
                 self._prod_list_aantal.append([type, prod])
-        
-        
         
     
     def set_verkoper(self, verkoper):
@@ -586,7 +589,6 @@ class Client_storage():
         self.bestelling["opm"] = ""
         self.bestelling["BST"] = {}
         
-        self.laatste_kliks = [None, 0]
         self._prod_list_aantal = self._prod_list[:]
 
     def set_opm(self, opm):
@@ -634,24 +636,24 @@ class Client_storage():
         '''
         if ":" in prod:
             prod = prod.split(":")[0]
+        
         if not(type in self.bestelling['BST']):
+            if aantal < 0 :
+                return
             self.bestelling['BST'][type] = {}
             self.bestelling['BST'][type][prod] = aantal  
-        elif prod in self.bestelling['BST'][type]:
-            self.bestelling['BST'][type][prod] += aantal
-        else:
-            self.bestelling['BST'][type][prod] = aantal
         
-        self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
-        
-        if prod == self.laatste_kliks[0]:
-            self.laatste_kliks[1] += 1
+        elif self.bestelling['BST'][type].get(prod, 0) + aantal >= 0:
+            self.bestelling['BST'][type][prod] = self.bestelling['BST'][type].get(prod, 0) + aantal
         else:
-            self.laatste_kliks = [prod, 1]
-        return self.laatste_kliks
-    
-    
-    
+            return
+        
+        if self.bestelling['BST'][type][prod]:
+            self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
+        else:
+            #aantal is nul dan laten we ':' weg
+            self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, prod]
+
     def bestelling_list(self):
         #info over de klant en de verkoper
         msg = ["ID:{:<13}T:{}".format(self.bestelling['info']['id'], self.bestelling['info']['tafel']),
