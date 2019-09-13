@@ -93,7 +93,7 @@ class Client_storage():
     def bestelling_add_prod(self, prod, aantal, opm=None):
         '''
             voegt een product toe aan de bestelling        
-        '''
+        
         if (aantal < 0) and not(prod in self.bestelling) and (self.edit.get(prod, 0) == 0):
             return -1        
         elif prod in self.edit:
@@ -109,7 +109,16 @@ class Client_storage():
             else:
                 self.edit[prod] = aantal
                 return 0
-        
+        '''
+        if (aantal < 0):
+            if self.edit.get(prod, 0) + self.bestelling.get(prod, 0) + aantal < 0:
+                return -1
+            else:
+                self.edit[prod] = self.edit.get(prod, 0) + aantal
+                return 0
+        else:
+            self.edit[prod] = self.edit.get(prod, 0) + aantal
+            return 0
         
     def bestelling_del_prod(self, prod):
         if prod in self.bestelling:
