@@ -396,7 +396,7 @@ class ProductScreen(GridLayout):
         
         self.add_widget(self.knopLayout)
         
-        navlayout = GridLayout(cols=4, rows=1, size_hint_y=0.25)
+        navlayout = GridLayout(cols=4, rows=1, size_hint_y=0.2)
         
         
         knop = Button(text="[b]<-[/b]", font_size=22, markup=True)#, size_hint_y=0.5)
