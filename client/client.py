@@ -51,25 +51,25 @@ class LoginScreen(GridLayout):
             naam = ""
         
         lay_top = GridLayout(cols=2, rows=4)
-        lay_top.add_widget(Label(text="ip:", size_hint_y = 20))
-        self.ip_veld = TextInput(text=ip, multiline=False, size_hint_y = 20)
+        lay_top.add_widget(Label(text="ip:", size_hint_y = 22))
+        self.ip_veld = TextInput(text=ip, multiline=False, size_hint_y = 22)
         lay_top.add_widget(self.ip_veld)
         
-        lay_top.add_widget(Label(text="Poort:", size_hint_y = 20))
-        self.poort = TextInput(text=poort, multiline=False, size_hint_y = 20)
+        lay_top.add_widget(Label(text="Poort:", size_hint_y = 22))
+        self.poort = TextInput(text=poort, multiline=False, size_hint_y = 22)
         lay_top.add_widget(self.poort)
         
-        lay_top.add_widget(Label(text="Naam:", size_hint_y = 20))
-        self.naam = TextInput(text=naam, multiline=False, size_hint_y = 20)
+        lay_top.add_widget(Label(text="Naam:", size_hint_y = 22))
+        self.naam = TextInput(text=naam, multiline=False, size_hint_y = 22)
         lay_top.add_widget(self.naam)
         
-        lay_top.add_widget(Label(text="Wachtwoord:", size_hint_y = 20))
-        self.password = TextInput(multiline=False, password=True, size_hint_y = 20)
+        lay_top.add_widget(Label(text="Wachtwoord:", size_hint_y = 22))
+        self.password = TextInput(multiline=False, password=True, size_hint_y = 22)
         lay_top.add_widget(self.password)
         
         self.add_widget(lay_top)
         
-        self.knop = Button(text="verbinden", font_size=25)
+        self.knop = Button(text="verbinden", font_size=28)
         self.knop.bind(on_press=self.gedrukt)
         self.add_widget(self.knop)
         
@@ -169,25 +169,25 @@ class KlantInfoScreen(GridLayout):
         
         self.add_widget(Label(text="Info van de klant.", size_hint_y=0.25))
         
-        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=20))
-        self.naam = TextInput(multiline=False, font_size=20)
+        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=22))
+        self.naam = TextInput(multiline=False, font_size=22)
         lay_top.add_widget(self.naam)
         
-        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=20))
-        self.ID = TextInput(input_type='number', multiline=False, font_size=20)
+        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=22))
+        self.ID = TextInput(input_type='number', multiline=False, font_size=22)
         lay_top.add_widget(self.ID)
         
-        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=20))
-        self.tafel = TextInput(input_type='number', multiline=False, font_size=20) 
+        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=22))
+        self.tafel = TextInput(input_type='number', multiline=False, font_size=22) 
         lay_top.add_widget(self.tafel)
         
-        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=20))
-        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=20)
+        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=22))
+        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=22)
         lay_top.add_widget(self.verkoper)
         
         self.add_widget(lay_top)
         
-        knop = Button(text="Ga verder")
+        knop = Button(text="Ga verder", font_size=28)
         knop.bind(on_press=self.start_bestelling)
         self.add_widget(knop)
         
@@ -462,7 +462,7 @@ class ProductScreen(GridLayout):
     
     def switch_page(self, instance):
         vorig = self.paginaNr
-        if instance.text == "->":
+        if instance.text == "[b]->[/b]":
             self.paginaNr += 1 if (self.paginaNr+1<DATA.get_num_pages()) else 0
         else:
             self.paginaNr -= 1 if (self.paginaNr>0) else 0
