@@ -50,28 +50,57 @@ class LoginScreen(GridLayout):
             poort = ""
             naam = ""
         
-        lay_top = GridLayout(cols=2, rows=4)
-        lay_top.add_widget(Label(text="ip:", size_hint_y = 22))
-        self.ip_veld = TextInput(text=ip, multiline=False, size_hint_y = 22)
+        lay_top = GridLayout(
+                cols=2, rows=4,
+                size_hint_y = None, 
+                height=0.45*Window.size[1])
+        lay_top.add_widget(Label(
+                text="ip:", 
+                font_size = 22))
+        self.ip_veld = TextInput(
+                text=ip,
+                multiline=False,
+                font_size = 22)
         lay_top.add_widget(self.ip_veld)
         
-        lay_top.add_widget(Label(text="Poort:", size_hint_y = 22))
-        self.poort = TextInput(text=poort, multiline=False, size_hint_y = 22)
+        lay_top.add_widget(Label(
+                text="Poort:", 
+                font_size = 22))
+        self.poort = TextInput(
+                text=poort,
+                multiline=False,
+                font_size = 22)
         lay_top.add_widget(self.poort)
         
-        lay_top.add_widget(Label(text="Naam:", size_hint_y = 22))
-        self.naam = TextInput(text=naam, multiline=False, size_hint_y = 22)
+        lay_top.add_widget(Label(
+                text="Naam:", 
+                font_size = 22))
+        self.naam = TextInput(
+                text=naam, 
+                multiline=False, 
+                font_size = 22)
         lay_top.add_widget(self.naam)
         
-        lay_top.add_widget(Label(text="Wachtwoord:", size_hint_y = 22))
-        self.password = TextInput(multiline=False, password=True, size_hint_y = 22)
+        lay_top.add_widget(Label(
+                text="Wachtwoord:", 
+                font_size = 22))
+        self.password = TextInput(
+                multiline=False, 
+                password=True, 
+                font_size = 22)
         lay_top.add_widget(self.password)
         
         self.add_widget(lay_top)
         
-        self.knop = Button(text="verbinden", font_size=28)
+        self.knop = Button(
+                text="verbinden", 
+                font_size=28,
+                size_hint_y = None, 
+                height=0.1*Window.size[1])
         self.knop.bind(on_press=self.gedrukt)
         self.add_widget(self.knop)
+        
+        self.add_widget(Label(text=""))
         
     
     def gedrukt(self, instance):
@@ -165,9 +194,11 @@ class KlantInfoScreen(GridLayout):
         
         self.cols = 1
         
-        lay_top = GridLayout(cols=2, rows=4)
+        self.add_widget(Label(text="Info over de klant:", size_hint_y=0.13, font_size=20))
         
-        self.add_widget(Label(text="Info van de klant.", size_hint_y=0.25))
+        lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85 )
+        
+        
         
         lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=22))
         self.naam = TextInput(multiline=False, font_size=22)
@@ -187,9 +218,11 @@ class KlantInfoScreen(GridLayout):
         
         self.add_widget(lay_top)
         
-        knop = Button(text="Ga verder", font_size=28)
+        knop = Button(text="Ga verder", font_size=28, size_hint_y=0.3)
         knop.bind(on_press=self.start_bestelling)
         self.add_widget(knop)
+        
+        self.add_widget(Label(text="", size_hint_y=None, height=Window.size[1]*0.45))
         
     
     def start_bestelling(self, _):
@@ -374,7 +407,7 @@ class ProductScreen(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
-        self.rows = 4
+        self.rows = 3
         
         self.paginaNr = 0
         self.prods = []
@@ -383,44 +416,61 @@ class ProductScreen(GridLayout):
         #paginaNr:
         self.paginaNr_label = Label(
                 text=f"Pagina {self.paginaNr+1}",
-                size_hint_y=None,
-                height=50)
+                size_hint_y=0.1,
+                font_size=20)
         self.add_widget(self.paginaNr_label)
         
         #knopjes
-        self.knopLayout = GridLayout(cols=COLS)
+        self.knopLayout = GridLayout(cols=COLS, padding=[10, 5], spacing=[15, 10])
         for _ in range(COLS*ROWS):
-            self.prods_knoppen.append(Button(text="", halign="center", font_size=20))
+            self.prods_knoppen.append(Button(
+                    text="", halign="center",
+                    font_size=22, markup=True,
+                    background_normal = ''))
             self.prods_knoppen[-1].bind(on_press=self.klik, width=self._update_text_width)
             self.knopLayout.add_widget(self.prods_knoppen[-1])
+            
+        
+        self.min_knop = Button(text="[b]-[/b]",
+                               font_size=24, 
+                               markup=True,
+                               background_color = (0.5, 0.5, 0.5,1),
+                               background_normal='',
+                               size_hint_y=0.5)
+        self.min_knop.bind(on_press=self.switch_mode)
+        self.knopLayout.add_widget(self.min_knop)
+        
+        self.plus_knop = Button(text="[b]+[/b]",
+                                font_size=24,
+                                markup=True,
+                                background_color=(0.8,0.8,0,1),
+                                background_normal='',
+                                size_hint_y=0.5)
+        self.plus_knop.bind(on_press=self.switch_mode)
+        self.knopLayout.add_widget(self.plus_knop)
+        
+        knop = Button(text="[b]<-[/b]",
+                      font_size=24,
+                      markup=True,
+                      size_hint_y=0.5)
+        knop.bind(on_press=self.switch_page)
+        self.knopLayout.add_widget(knop)
+        
+        knop = Button(text="[b]->[/b]",
+                      font_size=24,
+                      markup=True,
+                      size_hint_y=0.5)
+        knop.bind(on_press=self.switch_page)
+        self.knopLayout.add_widget(knop)
         
         self.add_widget(self.knopLayout)
         
-        navlayout = GridLayout(cols=4, rows=1, size_hint_y=0.2)
-        
-        
-        knop = Button(text="[b]<-[/b]", font_size=22, markup=True)#, size_hint_y=0.5)
-        knop.bind(on_press=self.switch_page)
-        navlayout.add_widget(knop)
-        
-        self.min_knop = Button(text="[b]-[/b]", font_size=22, markup=True)
-        self.min_knop.bind(on_press=self.switch_mode)
-        navlayout.add_widget(self.min_knop)
-        
-        self.plus_knop = Button(text="[b]+[/b]", font_size=22, markup=True, background_color=(1,1,0,1))
-        self.plus_knop.bind(on_press=self.switch_mode)
-        navlayout.add_widget(self.plus_knop)
-        
-        knop = Button(text="[b]->[/b]", font_size=22, markup=True)#, size_hint_y=0.5)
-        knop.bind(on_press=self.switch_page)
-        navlayout.add_widget(knop)
-        
-        self.add_widget(navlayout)
-        
         knop = Button(
                 text="Huidige bestelling...",
-                background_color=(0,1,0,1),
-                size_hint_y=0.15)
+                background_color=(0.1,0.7,0.3,1),
+                background_normal='', #om donkere tint te vermijden
+                size_hint_y=0.15,
+                font_size=22)
         knop.bind(on_press=self.zie_huidig)
         self.add_widget(knop)
             
@@ -452,12 +502,12 @@ class ProductScreen(GridLayout):
     def switch_mode(self, instance):
         if instance.text == "[b]+[/b]":
             self.mode = 1
-            self.plus_knop.background_color = (1,1,0,1)
-            self.min_knop.background_color = (1,1,1,1)
+            self.plus_knop.background_color = (0.8,0.8,0,1)
+            self.min_knop.background_color = (0.5, 0.5, 0.5,1)
         else:
             self.mode = -1
-            self.plus_knop.background_color = (1,1,1,1)
-            self.min_knop.background_color = (1,1,0,1)
+            self.plus_knop.background_color = (0.5, 0.5, 0.5,1)
+            self.min_knop.background_color = (0.8,0.8,0,1)
         
     
     def switch_page(self, instance):
@@ -485,12 +535,12 @@ class ProductScreen(GridLayout):
         data = data[COLS*ROWS*self.paginaNr:end]
         for i, knop in enumerate(self.prods_knoppen):
             try:
-                knop.text = data[i][1]
+                knop.text = "[b]{}[/b]".format(data[i][1])
                 knop.id = data[i][0]
-                knop.background_color = COLOURS.get(data[i][0], (1,1,1,1))
+                knop.background_color = COLOURS.get(data[i][0], (0.5, 0.5, 0.5,1))
             except:
                 knop.text = ""
-                knop.background_color = (1,1,1,1)
+                knop.background_color = (0.5, 0.5, 0.5,1)
     
     
     def refill(self, *_):
@@ -635,7 +685,9 @@ class Client_storage():
             voegt een product toe aan de bestelling        
         '''
         if ":" in prod:
-            prod = prod.split(":")[0]
+            prod = prod.split(":")[0][3:] #strip [b]
+        else:
+            prod = prod[3:-4] #strip [b] en [/b]
         
         if not(type in self.bestelling['BST']):
             if aantal < 0 :
@@ -653,6 +705,8 @@ class Client_storage():
         else:
             #aantal is nul dan laten we ':' weg
             self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, prod]
+            #delete indien het aantal gelijk is aan 0
+            del self.bestelling['BST'][type][prod]
 
     def bestelling_list(self):
         #info over de klant en de verkoper
