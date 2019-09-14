@@ -17,6 +17,7 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
+from kivy.uix.checkbox import CheckBox
 from kivy.uix.scrollview import ScrollView
 
 #networking
@@ -412,13 +413,21 @@ class ProductScreen(GridLayout):
         self.paginaNr = 0
         self.prods = []
         self.prods_knoppen = []
+        self.mode = 1
+        self.mode_type = -1 #{-1: alles, 0: is eerste type in DATA.get_types()}
         
+        topgrid = GridLayout(size_hint_y=0.1, cols=2, rows=1)
         #paginaNr:
         self.paginaNr_label = Label(
                 text=f"Pagina {self.paginaNr+1}",
                 size_hint_y=0.1,
-                font_size=20)
-        self.add_widget(self.paginaNr_label)
+                font_size=22)
+        topgrid.add_widget(self.paginaNr_label)
+        
+        knop = Button(text="SORT", size_hint_x=0.25, font_size=22)
+        knop.bind(on_press=self.type_sort)
+        topgrid.add_widget(knop)
+        self.add_widget(topgrid)
         
         #knopjes
         self.knopLayout = GridLayout(cols=COLS, padding=[10, 5], spacing=[15, 10])
@@ -552,7 +561,47 @@ class ProductScreen(GridLayout):
     #knoppen
     def _update_text_width(self, instance, _):
         instance.text_size = (instance.width * .9, None)
+        
+        
+    #sorteren
+    def type_sort(self, *_):
+        self.tpopup = Popup(title="sorteren", width=Window.size[0]*0.4, size_hint_x=None)
+        layout = GridLayout(cols=1)
+        
+        select_layout = GridLayout(cols=2)
+        
+        select_layout.add_widget(Label(text="alles", font_size=22))
+        self._type_checkboxes = [CheckBox(group="select_type", size_hint_x=0.4)]
+        select_layout.add_widget(self._type_checkboxes[-1])
+        
+        for type in DATA.get_types():
+            select_layout.add_widget(Label(text=type, font_size=22))
+            self._type_checkboxes.append(CheckBox(group="select_type", size_hint_x=0.4))
+            select_layout.add_widget(self._type_checkboxes[-1])
+        
+        '''
+        select_layout.add_widget(Label(text="a"))
+        select_layout.add_widget(CheckBox(group="abc"))
+        select_layout.add_widget(Label(text="a"))
+        select_layout.add_widget(CheckBox(group="abc"))
+        select_layout.add_widget(Label(text="a"))
+        select_layout.add_widget(CheckBox(group="abc"))
+        '''
+        layout.add_widget(select_layout)
+        
+        
+        knop = Button(text="select",width=Window.size[0]*.75, font_size=22, size_hint_y=0.25)
+        knop.bind(on_press=self.type_selected)
+        layout.add_widget(knop)
+        
+        self.tpopup.add_widget(layout)                        
+        self.tpopup.open()
                 
+    
+    def type_selected(self, *_):
+        self.tpopup.dismiss()
+        del self.tpopup
+        
 
 class KassaClientApp(App):
     def __init__(self, **kwargs):
@@ -614,6 +663,9 @@ class Client_storage():
         self._prod_list_aantal = []
         self.verkoper = ""
         
+        self._prod_typelist = {}
+        self.types = []
+        
         #bevat alle info voor de server en de kassa
         self.bestelling = {} 
         
@@ -622,7 +674,10 @@ class Client_storage():
     def set_prod(self, prod):
         self._prod = prod
         for type in self._prod:
+            self.types.append(type)
+            self._prod_typelist[type] = []    
             for prod in self._prod[type]:
+                self._prod_typelist[type].append([type, prod])
                 self._prod_list.append([type, prod])
                 self._prod_list_aantal.append([type, prod])
         
@@ -654,6 +709,13 @@ class Client_storage():
         return self._prod_list
     
     
+    def get_prod_by_type(self, type):
+        l = []
+        for prod in self._prod[type]:
+            l.append([type, prod])
+        return l
+    
+    
     def get_sort_prod_aantal(self):
         return sorted(self._prod_list_aantal, key=lambda el: el[1])
     
@@ -661,6 +723,10 @@ class Client_storage():
     def get_sort_prod(self):
         return sorted(self._prod_list, key=lambda el: el[1])
         
+    
+    def get_types(self):
+        return self.types
+    
     
     def get_verkoper(self):
         return self.verkoper
@@ -674,8 +740,11 @@ class Client_storage():
         return prod == self._prod
  
     
-    def get_num_pages(self):
-        geh, rest = divmod(len(self._prod_list), COLS*ROWS)
+    def get_num_pages(self, type=None):
+        if type == None:
+            geh, rest = divmod(len(self._prod_list), COLS*ROWS)
+        else:
+            geh, rest = divmod(len(self.get_prod_by_type(type)), COLS*ROWS)
         return geh if (rest==0) else (geh + 1)
     
     
