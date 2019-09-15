@@ -1,6 +1,8 @@
 import os
 import sys
 
+import copy
+
 #algemeen
 import kivy
 from kivy.app import App
@@ -32,7 +34,7 @@ COLOURS = {"drank":(0.8,0.2,0,1),
 
 #debug
 from kivy.logger import LoggerHistory
-DEBUG = False
+DEBUG = True #False
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
 ROWS = 4
@@ -495,6 +497,7 @@ class ProductScreen(GridLayout):
         self.vul_in()
         self.paginaNr_label.text = "Pagina {}".format(self.paginaNr+1)
         self.mode = 1 #{-1:-, 1:+}
+        self.mode_type = -1
         
                 
     def klik(self, instance):
@@ -522,7 +525,7 @@ class ProductScreen(GridLayout):
     def switch_page(self, instance):
         vorig = self.paginaNr
         if instance.text == "[b]->[/b]":
-            self.paginaNr += 1 if (self.paginaNr+1<DATA.get_num_pages()) else 0
+            self.paginaNr += 1 if (self.paginaNr+1<DATA.get_num_pages(self.mode_type)) else 0
         else:
             self.paginaNr -= 1 if (self.paginaNr>0) else 0
         
@@ -536,7 +539,11 @@ class ProductScreen(GridLayout):
     
         
     def vul_in(self):
-        data = DATA.get_sort_prod_aantal()
+        if self.mode_type == -1:
+            data = DATA.get_sort_prod_aantal()
+        else:
+            data = DATA.get_prod_by_type(self.mode_type)
+            print(data)
         if len(data)<self.paginaNr*COLS*ROWS:
             end = len(data)
         else:
@@ -571,7 +578,7 @@ class ProductScreen(GridLayout):
         select_layout = GridLayout(cols=2)
         
         select_layout.add_widget(Label(text="alles", font_size=22))
-        self._type_checkboxes = [CheckBox(group="select_type", size_hint_x=0.4)]
+        self._type_checkboxes = [CheckBox(group="select_type", size_hint_x=0.4, active=True)]
         select_layout.add_widget(self._type_checkboxes[-1])
         
         for type in DATA.get_types():
@@ -579,14 +586,6 @@ class ProductScreen(GridLayout):
             self._type_checkboxes.append(CheckBox(group="select_type", size_hint_x=0.4))
             select_layout.add_widget(self._type_checkboxes[-1])
         
-        '''
-        select_layout.add_widget(Label(text="a"))
-        select_layout.add_widget(CheckBox(group="abc"))
-        select_layout.add_widget(Label(text="a"))
-        select_layout.add_widget(CheckBox(group="abc"))
-        select_layout.add_widget(Label(text="a"))
-        select_layout.add_widget(CheckBox(group="abc"))
-        '''
         layout.add_widget(select_layout)
         
         
@@ -599,6 +598,18 @@ class ProductScreen(GridLayout):
                 
     
     def type_selected(self, *_):
+        #get type
+        for num, box in enumerate(self._type_checkboxes):
+            if box.active:
+                #de index verwijst naar het type
+                self.mode_type = num - 1
+                break
+        #reset paginaNR
+        self.paginaNr = 0
+        self.paginaNr_label.text = "Pagina {}".format(self.paginaNr+1)
+        self.vul_in()
+        
+        #close popup
         self.tpopup.dismiss()
         del self.tpopup
         
@@ -664,6 +675,7 @@ class Client_storage():
         self.verkoper = ""
         
         self._prod_typelist = {}
+        self._prod_typelist_aantal = {}
         self.types = []
         
         #bevat alle info voor de server en de kassa
@@ -675,9 +687,11 @@ class Client_storage():
         self._prod = prod
         for type in self._prod:
             self.types.append(type)
-            self._prod_typelist[type] = []    
+            self._prod_typelist[type] = []
+            self._prod_typelist_aantal[type] = []
             for prod in self._prod[type]:
                 self._prod_typelist[type].append([type, prod])
+                self._prod_typelist_aantal[type].append([type, prod])
                 self._prod_list.append([type, prod])
                 self._prod_list_aantal.append([type, prod])
         
@@ -694,7 +708,12 @@ class Client_storage():
         self.bestelling["opm"] = ""
         self.bestelling["BST"] = {}
         
+        #reset aantal
         self._prod_list_aantal = self._prod_list[:]
+        for key in self._prod_typelist:
+            self._prod_typelist_aantal[key] = self._prod_typelist[key][:]
+        #self._prod_typelist_aantal = copy.deepcopy(self._prod_typelist)
+
 
     def set_opm(self, opm):
         self.bestelling["opm"] = opm        
@@ -709,11 +728,17 @@ class Client_storage():
         return self._prod_list
     
     
-    def get_prod_by_type(self, type):
+    def get_prod_by_type(self, type_index):
         l = []
-        for prod in self._prod[type]:
-            l.append([type, prod])
+        _type = self.types[type_index]
+        for prod in self._prod[_type]:
+            l.append([_type, prod])
         return l
+    
+    
+    def get_prod_by_type_aantal(self, type_index):
+        _type = self.types[type_index]
+        return sorted(self._prod_typelist_aantal[_type], key=lambda el: el[1])
     
     
     def get_sort_prod_aantal(self):
@@ -740,11 +765,11 @@ class Client_storage():
         return prod == self._prod
  
     
-    def get_num_pages(self, type=None):
-        if type == None:
+    def get_num_pages(self, type_index=-1):
+        if type_index == -1:
             geh, rest = divmod(len(self._prod_list), COLS*ROWS)
         else:
-            geh, rest = divmod(len(self.get_prod_by_type(type)), COLS*ROWS)
+            geh, rest = divmod(len(self.get_prod_by_type(type_index)), COLS*ROWS)
         return geh if (rest==0) else (geh + 1)
     
     
@@ -769,13 +794,19 @@ class Client_storage():
         else:
             return
         
+        print(self._prod_typelist_aantal)
+        
         if self.bestelling['BST'][type][prod]:
             self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
+            print(self._prod_typelist[type])
+            self._prod_typelist_aantal[type][self._prod_typelist[type].index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
         else:
             #aantal is nul dan laten we ':' weg
             self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, prod]
+            self._prod_typelist_aantal[type][self._prod_typelist[type].index([type, prod])] = [type, prod]
             #delete indien het aantal gelijk is aan 0
             del self.bestelling['BST'][type][prod]
+
 
     def bestelling_list(self):
         #info over de klant en de verkoper
