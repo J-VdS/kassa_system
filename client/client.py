@@ -1,8 +1,6 @@
 import os
 import sys
 
-import copy
-
 #algemeen
 import kivy
 from kivy.app import App
@@ -542,8 +540,7 @@ class ProductScreen(GridLayout):
         if self.mode_type == -1:
             data = DATA.get_sort_prod_aantal()
         else:
-            data = DATA.get_prod_by_type(self.mode_type)
-            print(data)
+            data = DATA.get_prod_by_type_aantal(self.mode_type)
         if len(data)<self.paginaNr*COLS*ROWS:
             end = len(data)
         else:
@@ -794,11 +791,8 @@ class Client_storage():
         else:
             return
         
-        print(self._prod_typelist_aantal)
-        
         if self.bestelling['BST'][type][prod]:
             self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
-            print(self._prod_typelist[type])
             self._prod_typelist_aantal[type][self._prod_typelist[type].index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
         else:
             #aantal is nul dan laten we ':' weg
