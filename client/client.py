@@ -501,6 +501,9 @@ class ProductScreen(GridLayout):
         self.mode = 1 #{-1:-, 1:+}
         self.mode_type = -1
         
+        self.update_list = DATA.bestelling_list()
+        Clock.schedule_once(self.refill, 0.5)
+        
                 
     def klik(self, instance):
         if instance.text != "":
@@ -618,9 +621,7 @@ class ProductScreen(GridLayout):
 class KassaClientApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
-        self.prod_pages = []
-        
+
     
     def build(self):
         self.screen_manager = ScreenManager(transition=FadeTransition())
@@ -634,7 +635,6 @@ class KassaClientApp(App):
         scherm = Screen(name='info')
         scherm.add_widget(self.info_pagina)
         self.screen_manager.add_widget(scherm)
-        
         return self.screen_manager
 
     
@@ -730,11 +730,8 @@ class Client_storage():
     
     
     def get_prod_by_type(self, type_index):
-        l = []
         _type = self.types[type_index]
-        for prod in self._prod[_type]:
-            l.append([_type, prod])
-        return l
+        return self._prod_typelist[_type]
     
     
     def get_prod_by_type_aantal(self, type_index):
