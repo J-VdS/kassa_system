@@ -155,8 +155,12 @@ class StatsScherm(GridLayout):
         self.navbar = NavigatieBar(huidig="stats")
         self.add_widget(self.navbar)
         
+        #statistieken
+        self.statbar = StatistiekBar()
+        self.add_widget(self.statbar)
+        
         #leeglabel
-        self.add_widget(Label(text=""))
+        #self.add_widget(Label(text=""))
         
 
 class OptieScherm(GridLayout):
@@ -1536,6 +1540,31 @@ class BestelBar(GridLayout):
         
         popup.add_widget(layout)                        
         popup.open()
+        
+        
+class StatistiekBar(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 3
+        self.rows = 1
+        self.spacing = [15, 0]
+        
+        links = GridLayout(cols=1, rows=2, spacing=[0, 10])
+        links.add_widget(Button(text="", size_hint_y=0.25))
+        links.add_widget(LijstLabel())
+        self.add_widget(links)
+        
+        midden = GridLayout(cols=1, rows=2, spacing=[0, 10])
+        midden.add_widget(Button(text="", size_hint_y=0.25))
+        midden.add_widget(LijstLabel())
+        self.add_widget(midden)
+        
+        rechts = GridLayout(cols=1, rows=3)
+        rechts.add_widget(Button(text=""))
+        rechts.add_widget(Button(text=""))
+        rechts.add_widget(Button(text=""))
+        self.add_widget(rechts)
+        
         
         
 #scrolllabel -> gekopieerd van client.py
