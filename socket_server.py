@@ -28,11 +28,8 @@ def handles_message(client_socket):
         #connection closed
         if not len(message_header):
             return 0
-        
         lengte = int(message_header.decode("utf-8"))
-        print("lengte:", lengte)
         data = client_socket.recv(lengte) #pickled-data
-        print("unpickled:", pickle.loads(data))
         return pickle.loads(data) #dict bevat request en eventuele data
     except:
         return 0
@@ -63,22 +60,17 @@ def makeMsg(msg):
 
 def printer_bestelling(bestelling):
     producten = bestelling['BST']
-    print(producten)
     info = bestelling['info']
     opm = bestelling['opm']
     for ip, poort, types in PRINTERS:
-        print(types)
         b = {}
         for t in types:
             b.update(producten.get(t, {}))
-        print(b)
         msg = makeMsg({'info':info, 'opm':opm, 'BST':b})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((ip, poort))
-            print("verzenden...")
             s.send(msg)
-            print("verzonden...")
         except Exception as e:
             #verwijder de printer uit de lijst van connecties, en geef popup
             print("Error:", e)
@@ -92,9 +84,7 @@ def sluit_printers():
     for ip, poort, _ in PRINTERS:
         try:
             s.connect((ip, poort))
-            print("verzenden...")
             s.send(msg)
-            print("verzonden...")
         except Exception as e:
             #verwijder de printer uit de lijst van connecties, en geef popup
             print("Error:", e)
@@ -119,7 +109,7 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
     db_io = database.OpenIO(db)
     
     try:
-        print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
+        #print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
         while RUN:
             # Calls Unix select() system call or Windows select() WinSock call with three parameters:
             #   - rlist - sockets to be monitored for incoming data
@@ -133,7 +123,6 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
             read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
             
             # Iterate over notified sockets
-            print("num: ", len(sockets_list))
             for notified_socket in read_sockets:
         
                 # If notified socket is a server socket - new connection, accept it
@@ -146,12 +135,10 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
             
                         #ontvang
                         lengte = int(client_socket.recv(HEADERLENGTH).decode("utf-8"))
-                        print("lengte:",lengte)
                         if not lengte:
                             client_socket.close()
                             continue
                         data = pickle.loads(client_socket.recv(lengte))
-                        print(data)
                         '''
                         if password:
                             if data["pwd"] != password:
@@ -195,7 +182,7 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
 
                     if message['req'] == "GET":
                         notified_socket.send(get_products(db_io))
-                        print(f"{user} vroeg alle producten op")
+                        print(f"[SERVER][GET]{user} vroeg alle producten op")
                     elif message['req'] == "BST":
                         #stuur naar printer
                         printer_bestelling(message['bestelling'])
@@ -216,7 +203,6 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         #stuur succes, gelukt
                     elif message['req'] == "MSG":
                         pass
-                    #print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')
         
             # It's not really necessary to have this, but will handle some socket exceptions just in case
             for notified_socket in exception_sockets:

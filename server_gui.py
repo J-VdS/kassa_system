@@ -286,7 +286,6 @@ class HoofdBar(GridLayout):
         geh, rest = divmod(len(data), aantal_knoppen)
         paginas = geh if (rest == 0) else (geh+1)
         #verander van pagina
-        print(self.paginaNr)
         if instance.text == "->":
             self.paginaNr += (self.paginaNr+1 < paginas)
         else:
@@ -1170,7 +1169,6 @@ class BestelBar(GridLayout):
         if instance.text.strip() == "":
             return
         if self.edit_mode == 1:
-            print("DEL mode")
             if gui.DATA.bestelling_del_prod(instance.text) == -1:
                 self.makePopup(global_vars.product_del)
         else:
@@ -1353,7 +1351,6 @@ class BestelBar(GridLayout):
             return 
         #bereken de prijs, en na betaling zet open of false en vul prijs veld in
         totaal = gui.DATA.bereken_prijs()
-        print("TOT: ", totaal)
         
         self.afpopup = Popup(title="Afrekenen", size=(800,600), size_hint=(None,None))
         layout = GridLayout(cols=1)
@@ -1448,7 +1445,7 @@ class BestelBar(GridLayout):
             database.CloseIO(db_io)
             return
         #TODO: afronden onmogelijk als totaal = ERROR
-        database.sluitById(db_io, self.ID_klant, totaal)        
+        database.sluitById(db_io, self.ID_klant, totaal, betaalwijze)        
         
         #ga terug naar het hoofdscherm en update het scherm
         gui.hoofdscherm.hoofdbar.update_rekeningen(db_io)

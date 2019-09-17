@@ -438,7 +438,7 @@ class ProductScreen(GridLayout):
         for _ in range(COLS*ROWS):
             self.prods_knoppen.append(Button(
                     text="", halign="center",
-                    font_size=22, markup=True,
+                    font_size=25, markup=True,
                     background_normal = ''))
             self.prods_knoppen[-1].bind(on_press=self.klik, width=self._update_text_width)
             self.knopLayout.add_widget(self.prods_knoppen[-1])
