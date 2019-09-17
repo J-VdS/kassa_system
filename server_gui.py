@@ -17,6 +17,7 @@ from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 from kivy.uix.checkbox import CheckBox
+from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.screenmanager import Screen, ScreenManager, NoTransition#, FadeTransition
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -1267,8 +1268,6 @@ class BestelBar(GridLayout):
             self.edit_knoppen[1].background_color = (1,1,1,1)
             self.edit_knoppen[2].background_color = (0,1,0,1)
        
-        
-    
     
     def actie(self, instance):
         knop = instance.text.strip()
@@ -1359,7 +1358,7 @@ class BestelBar(GridLayout):
         self.afpopup = Popup(title="Afrekenen", size=(800,600), size_hint=(None,None))
         layout = GridLayout(cols=1)
         
-        toplayout = GridLayout(cols=2)
+        toplayout = GridLayout(cols=2, size_hint_y=None, height=225)
         toplayout.add_widget(Label(text="Te betalen:", font_size=20))
         
         toplayout.add_widget(Label(text="€ {}".format(totaal), font_size=20))
@@ -1375,10 +1374,25 @@ class BestelBar(GridLayout):
         self.twisselgeld = Label(text="---", font_size=20)
         toplayout.add_widget(self.twisselgeld)
         
-        layout.add_widget(toplayout)        
+        layout.add_widget(toplayout)
         
+        betaalwijze = GridLayout(cols=2, rows=1)
+        
+        
+        betaalwijze.add_widget(Label(text="Betaalwijze:", font_size=20))
+        self.betaalwijze_spinner = Spinner(
+                text="---",
+                values=("cash", "bankcontact", "QR-code"),
+                font_size=18)
+        
+        betaalwijze.add_widget(self.betaalwijze_spinner)
+        
+        layout.add_widget(betaalwijze)
+        
+        self.blabel = Label(font_size=22, markup=True, halign="center")
+        self.blabel.bind(width=self._update_text_width)
+        layout.add_widget(self.blabel)
         #TODO: naar printer sturen
-        layout.add_widget(Label(size_hint_y=0.2))
         knop = Button(text="Ticket afdrukken", size_hint_y=0.5, font_size=20)
         #knop.bind(on_press=)
         layout.add_widget(knop)
@@ -1421,8 +1435,18 @@ class BestelBar(GridLayout):
         
 
     def afronden_bevestigd(self, *_):
+        betaalwijze = self.betaalwijze_spinner.text.strip()        
+        if betaalwijze == "---":
+            self.blabel.text="[color=#ff0000]Selecteer een betaal methode![/color]"
+            return
+        
         db_io = database.OpenIO(global_vars.db)
         totaal = gui.DATA.bereken_prijs()
+        
+        if totaal == "ERROR":
+            self.blabel.text="[color=#ff0000]De bestelling bevat een product waarvan we de prijs niet kennen.[/color]"
+            database.CloseIO(db_io)
+            return
         #TODO: afronden onmogelijk als totaal = ERROR
         database.sluitById(db_io, self.ID_klant, totaal)        
         
@@ -1432,9 +1456,7 @@ class BestelBar(GridLayout):
         database.CloseIO(db_io)
         self.afpopup.dismiss()
         
-    
-    
-    
+        
     #knoppen
     def _update_text_width(self, instance, _):
         instance.text_size = (instance.width * .9, None)
@@ -1486,9 +1508,6 @@ class BestelBar(GridLayout):
         
         popup.add_widget(layout)                        
         popup.open()
-        
-        
-        
         
         
 #scrolllabel -> gekopieerd van client.py
