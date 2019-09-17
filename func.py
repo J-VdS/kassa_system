@@ -49,7 +49,7 @@ class Client_storage():
     
     
     def set_bestelling(self, bestelling):
-        print("[BST] nieuwe bestelling:",bestelling)
+        #print("[BST] nieuwe bestelling:",bestelling)
         self.bestelling = bestelling
         
     
@@ -148,7 +148,7 @@ class Client_storage():
             totaal += prod_prijs * self.bestelling[product]
         #TODO: live prijs update
         
-        return totaal
+        return round(totaal, 2)
 
             
 

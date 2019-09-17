@@ -15,9 +15,8 @@ from kivy.uix.label import Label
 from kivy.uix.switch import Switch
 from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
-from kivy.uix.textinput import TextInput
 from kivy.uix.checkbox import CheckBox
-from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import Screen, ScreenManager, NoTransition#, FadeTransition
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -146,6 +145,19 @@ class BestelScherm(GridLayout):
         #lijstlabel links, midden al de knoppen met de producten en rechts speciale actie knoppen
         #interface voor aantal te wijzigen of te verwijderen
         
+        
+class StatsScherm(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        
+        #navigatiescherm
+        self.navbar = NavigatieBar(huidig="stats")
+        self.add_widget(self.navbar)
+        
+        #leeglabel
+        self.add_widget(Label(text=""))
+        
 
 class OptieScherm(GridLayout):
     def __init__(self, **kwargs):
@@ -186,6 +198,14 @@ class NavigatieBar(BoxLayout):
                 text="CONNECTIES",
                 font_size=20,
                 background_color = (1,0,0,1) if (huidig == "connect") else (1,1,1,1)
+               )
+        connect_knop.bind(on_press=self.switch)
+        self.add_widget(connect_knop)
+        
+        connect_knop = Button(
+                text="STATISTIEKEN",
+                font_size=20,
+                background_color = (1,0,0,1) if (huidig == "stats") else (1,1,1,1)
                )
         connect_knop.bind(on_press=self.switch)
         self.add_widget(connect_knop)
@@ -863,7 +883,6 @@ class PrinterBar(GridLayout):
         #variabele dat alle printers opslaat
         self.printers = [] #[ip, poort, (types,)] ID van de knop is de index van deze lijst
         self.print_widgets = []
-        self.checkboxes = {}
         
         if os.path.isfile(global_vars.printer_file):
             self.laad_data(global_vars.printer_file)
@@ -922,6 +941,7 @@ class PrinterBar(GridLayout):
             printers = pickle.load(f)
         for i in printers:
             self.toevoegen(0, *i)
+    
     
     def store_data(self, path):
         with open(path, 'wb') as f:
@@ -1236,6 +1256,7 @@ class BestelBar(GridLayout):
         self.ID_klant = ID
         #self.ID_label.text = "[b]ID: %s[/b]" % (ID)
     
+    
     #bestellabelfuncties    
     #vult het label
     def refill(self, *_):
@@ -1355,7 +1376,7 @@ class BestelBar(GridLayout):
         self.afpopup = Popup(title="Afrekenen", size=(800,600), size_hint=(None,None))
         layout = GridLayout(cols=1)
         
-        toplayout = GridLayout(cols=2, size_hint_y=None, height=225)
+        toplayout = GridLayout(cols=2, size_hint_y=None, height=325)
         toplayout.add_widget(Label(text="Te betalen:", font_size=20))
         
         toplayout.add_widget(Label(text="€ {}".format(totaal), font_size=20))
@@ -1371,26 +1392,26 @@ class BestelBar(GridLayout):
         self.twisselgeld = Label(text="---", font_size=20)
         toplayout.add_widget(self.twisselgeld)
         
-        layout.add_widget(toplayout)
+        toplayout.add_widget(Label(text="Fooi:", font_size=20))
+        self.tfooi = TextInput(text="0", multiline=False, font_size=20)
+        toplayout.add_widget(self.tfooi)
+    
         
-        betaalwijze = GridLayout(cols=2, rows=1)
-        
-        
-        betaalwijze.add_widget(Label(text="Betaalwijze:", font_size=20))
+        toplayout.add_widget(Label(text="Betaalwijze:", font_size=20))
         self.betaalwijze_spinner = Spinner(
                 text="---",
                 values=("cash", "bankcontact", "QR-code"),
                 font_size=18)
         
-        betaalwijze.add_widget(self.betaalwijze_spinner)
+        toplayout.add_widget(self.betaalwijze_spinner)
         
-        layout.add_widget(betaalwijze)
+        layout.add_widget(toplayout)
         
         self.blabel = Label(font_size=22, markup=True, halign="center")
         self.blabel.bind(width=self._update_text_width)
         layout.add_widget(self.blabel)
         #TODO: naar printer sturen
-        knop = Button(text="Ticket afdrukken", size_hint_y=0.5, font_size=20)
+        knop = Button(text="Ticket afdrukken", size_hint_y=0.75, font_size=20)
         #knop.bind(on_press=)
         layout.add_widget(knop)
 
@@ -1436,6 +1457,16 @@ class BestelBar(GridLayout):
         if betaalwijze == "---":
             self.blabel.text="[color=#ff0000]Selecteer een betaal methode![/color]"
             return
+        elif not(func.is_number(self.tfooi.text)):
+            self.blabel.text = "[color=#ff0000]Fooi is geen getal![/color]"
+            return
+        
+        fooi = float(self.tfooi.text)
+        
+        if fooi < 0:
+            self.blabel.text = "[color=#ff0000]Een negatieve fooi kan niet![/color]"
+            return
+        
         
         db_io = database.OpenIO(global_vars.db)
         totaal = gui.DATA.bereken_prijs()
@@ -1445,7 +1476,7 @@ class BestelBar(GridLayout):
             database.CloseIO(db_io)
             return
         #TODO: afronden onmogelijk als totaal = ERROR
-        database.sluitById(db_io, self.ID_klant, totaal, betaalwijze)        
+        database.sluitById(db_io, self.ID_klant, totaal + fooi, betaalwijze)        
         
         #ga terug naar het hoofdscherm en update het scherm
         gui.hoofdscherm.hoofdbar.update_rekeningen(db_io)
@@ -1716,6 +1747,11 @@ class ServerGui(App):
         self.test = OptieScherm()
         scherm = Screen(name="SETTINGS")
         scherm.add_widget(self.test)
+        self.screen_manager.add_widget(scherm)
+        
+        self.statsscherm = StatsScherm()
+        scherm = Screen(name="STATISTIEKEN")
+        scherm.add_widget(self.statsscherm)
         self.screen_manager.add_widget(scherm)
         
         self.rekeningscherm = BestelScherm()
