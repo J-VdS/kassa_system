@@ -17,6 +17,7 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
+from kivy.uix.checkbox import CheckBox
 from kivy.uix.scrollview import ScrollView
 
 #networking
@@ -31,7 +32,7 @@ COLOURS = {"drank":(0.8,0.2,0,1),
 
 #debug
 from kivy.logger import LoggerHistory
-DEBUG = False
+DEBUG = True #False
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
 ROWS = 4
@@ -292,24 +293,28 @@ class HuidigeBestellingScreen(GridLayout):
         
         #verzend knop, stuurt je terug naar nieuwe rekening
         knop = Button(text="Send", size_hint_y=0.125,
-                      background_color=(0,1,0,1))
+                      background_color=(0,1,0,1),
+                      font_size=24)
         knop.bind(on_press=self.send_bestelling)
         self.add_widget(knop)
         
         #verwijder bestelling
         knop = Button(text="Verwijder", size_hint_y=0.125,
-                      background_color=(1,1,0,1))
+                      background_color=(1,1,0,1),
+                      font_size=24)
         knop.bind(on_press=self.verwijder)
         self.add_widget(knop)
         
         #voeg opmerking toe
-        knop = Button(text="Opmerkingen", size_hint_y=0.125)
+        knop = Button(text="Opmerkingen", size_hint_y=0.125,
+                      font_size=24)
         knop.bind(on_press=self.opmerkingen)
         self.add_widget(knop)
                 
         #knop terug
         knop = Button(text="ga terug", size_hint_y=0.125,
-                      background_color=(0,0.2,0.8,1))
+                      background_color=(0,0.2,0.8,1),
+                      font_size=24)
         knop.bind(on_press=self.terug)
         self.add_widget(knop)
         
@@ -412,13 +417,21 @@ class ProductScreen(GridLayout):
         self.paginaNr = 0
         self.prods = []
         self.prods_knoppen = []
+        self.mode = 1
+        self.mode_type = -1 #{-1: alles, 0: is eerste type in DATA.get_types()}
         
+        topgrid = GridLayout(size_hint_y=0.1, cols=2, rows=1)
         #paginaNr:
         self.paginaNr_label = Label(
                 text=f"Pagina {self.paginaNr+1}",
                 size_hint_y=0.1,
-                font_size=20)
-        self.add_widget(self.paginaNr_label)
+                font_size=22)
+        topgrid.add_widget(self.paginaNr_label)
+        
+        knop = Button(text="SORT", size_hint_x=0.25, font_size=22)
+        knop.bind(on_press=self.type_sort)
+        topgrid.add_widget(knop)
+        self.add_widget(topgrid)
         
         #knopjes
         self.knopLayout = GridLayout(cols=COLS, padding=[10, 5], spacing=[15, 10])
@@ -486,6 +499,10 @@ class ProductScreen(GridLayout):
         self.vul_in()
         self.paginaNr_label.text = "Pagina {}".format(self.paginaNr+1)
         self.mode = 1 #{-1:-, 1:+}
+        self.mode_type = -1
+        
+        self.update_list = DATA.bestelling_list()
+        Clock.schedule_once(self.refill, 0.5)
         
                 
     def klik(self, instance):
@@ -513,7 +530,7 @@ class ProductScreen(GridLayout):
     def switch_page(self, instance):
         vorig = self.paginaNr
         if instance.text == "[b]->[/b]":
-            self.paginaNr += 1 if (self.paginaNr+1<DATA.get_num_pages()) else 0
+            self.paginaNr += 1 if (self.paginaNr+1<DATA.get_num_pages(self.mode_type)) else 0
         else:
             self.paginaNr -= 1 if (self.paginaNr>0) else 0
         
@@ -527,7 +544,10 @@ class ProductScreen(GridLayout):
     
         
     def vul_in(self):
-        data = DATA.get_sort_prod_aantal()
+        if self.mode_type == -1:
+            data = DATA.get_sort_prod_aantal()
+        else:
+            data = DATA.get_prod_by_type_aantal(self.mode_type)
         if len(data)<self.paginaNr*COLS*ROWS:
             end = len(data)
         else:
@@ -552,14 +572,56 @@ class ProductScreen(GridLayout):
     #knoppen
     def _update_text_width(self, instance, _):
         instance.text_size = (instance.width * .9, None)
+        
+        
+    #sorteren
+    def type_sort(self, *_):
+        self.tpopup = Popup(title="sorteren", width=Window.size[0]*0.4, size_hint_x=None)
+        layout = GridLayout(cols=1)
+        
+        select_layout = GridLayout(cols=2)
+        
+        select_layout.add_widget(Label(text="alles", font_size=22))
+        self._type_checkboxes = [CheckBox(group="select_type", size_hint_x=0.4, active=True)]
+        select_layout.add_widget(self._type_checkboxes[-1])
+        
+        for type in DATA.get_types():
+            select_layout.add_widget(Label(text=type, font_size=22))
+            self._type_checkboxes.append(CheckBox(group="select_type", size_hint_x=0.4))
+            select_layout.add_widget(self._type_checkboxes[-1])
+        
+        layout.add_widget(select_layout)
+        
+        
+        knop = Button(text="select",width=Window.size[0]*.75, font_size=22, size_hint_y=0.25)
+        knop.bind(on_press=self.type_selected)
+        layout.add_widget(knop)
+        
+        self.tpopup.add_widget(layout)                        
+        self.tpopup.open()
                 
+    
+    def type_selected(self, *_):
+        #get type
+        for num, box in enumerate(self._type_checkboxes):
+            if box.active:
+                #de index verwijst naar het type
+                self.mode_type = num - 1
+                break
+        #reset paginaNR
+        self.paginaNr = 0
+        self.paginaNr_label.text = "Pagina {}".format(self.paginaNr+1)
+        self.vul_in()
+        
+        #close popup
+        self.tpopup.dismiss()
+        del self.tpopup
+        
 
 class KassaClientApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
-        self.prod_pages = []
-        
+
     
     def build(self):
         self.screen_manager = ScreenManager(transition=FadeTransition())
@@ -573,7 +635,6 @@ class KassaClientApp(App):
         scherm = Screen(name='info')
         scherm.add_widget(self.info_pagina)
         self.screen_manager.add_widget(scherm)
-        
         return self.screen_manager
 
     
@@ -614,6 +675,10 @@ class Client_storage():
         self._prod_list_aantal = []
         self.verkoper = ""
         
+        self._prod_typelist = {}
+        self._prod_typelist_aantal = {}
+        self.types = []
+        
         #bevat alle info voor de server en de kassa
         self.bestelling = {} 
         
@@ -622,7 +687,12 @@ class Client_storage():
     def set_prod(self, prod):
         self._prod = prod
         for type in self._prod:
+            self.types.append(type)
+            self._prod_typelist[type] = []
+            self._prod_typelist_aantal[type] = []
             for prod in self._prod[type]:
+                self._prod_typelist[type].append([type, prod])
+                self._prod_typelist_aantal[type].append([type, prod])
                 self._prod_list.append([type, prod])
                 self._prod_list_aantal.append([type, prod])
         
@@ -639,7 +709,12 @@ class Client_storage():
         self.bestelling["opm"] = ""
         self.bestelling["BST"] = {}
         
+        #reset aantal
         self._prod_list_aantal = self._prod_list[:]
+        for key in self._prod_typelist:
+            self._prod_typelist_aantal[key] = self._prod_typelist[key][:]
+        #self._prod_typelist_aantal = copy.deepcopy(self._prod_typelist)
+
 
     def set_opm(self, opm):
         self.bestelling["opm"] = opm        
@@ -654,6 +729,16 @@ class Client_storage():
         return self._prod_list
     
     
+    def get_prod_by_type(self, type_index):
+        _type = self.types[type_index]
+        return self._prod_typelist[_type]
+    
+    
+    def get_prod_by_type_aantal(self, type_index):
+        _type = self.types[type_index]
+        return sorted(self._prod_typelist_aantal[_type], key=lambda el: el[1])
+    
+    
     def get_sort_prod_aantal(self):
         return sorted(self._prod_list_aantal, key=lambda el: el[1])
     
@@ -661,6 +746,10 @@ class Client_storage():
     def get_sort_prod(self):
         return sorted(self._prod_list, key=lambda el: el[1])
         
+    
+    def get_types(self):
+        return self.types
+    
     
     def get_verkoper(self):
         return self.verkoper
@@ -674,8 +763,11 @@ class Client_storage():
         return prod == self._prod
  
     
-    def get_num_pages(self):
-        geh, rest = divmod(len(self._prod_list), COLS*ROWS)
+    def get_num_pages(self, type_index=-1):
+        if type_index == -1:
+            geh, rest = divmod(len(self._prod_list), COLS*ROWS)
+        else:
+            geh, rest = divmod(len(self.get_prod_by_type(type_index)), COLS*ROWS)
         return geh if (rest==0) else (geh + 1)
     
     
@@ -702,11 +794,14 @@ class Client_storage():
         
         if self.bestelling['BST'][type][prod]:
             self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
+            self._prod_typelist_aantal[type][self._prod_typelist[type].index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
         else:
             #aantal is nul dan laten we ':' weg
             self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, prod]
+            self._prod_typelist_aantal[type][self._prod_typelist[type].index([type, prod])] = [type, prod]
             #delete indien het aantal gelijk is aan 0
             del self.bestelling['BST'][type][prod]
+
 
     def bestelling_list(self):
         #info over de klant en de verkoper
