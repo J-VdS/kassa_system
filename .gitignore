@@ -109,8 +109,13 @@ client/credentials.txt
 # sqlite
 *.db
 
+# csv
+*.csv
+
 # testing
 connect_test.py
+csv_test.py
+
 client/output.txt
 
 # networkprot

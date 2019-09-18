@@ -1584,10 +1584,15 @@ class StatistiekBar(GridLayout):
         midden.add_widget(self.mid_scroll)
         self.add_widget(midden)
         
-        rechts = GridLayout(cols=1, rows=3)
+        rechts = GridLayout(cols=1)
         rechts.add_widget(Button(text=""))
         rechts.add_widget(Button(text=""))
-        rechts.add_widget(Button(text=""))
+        rechts.add_widget(Button(text="", size_hint_y=0.5))
+        
+        knop = Button(text="Export .csv", size_hint_y=0.5)
+        knop.bind(on_press=self.export_csv)
+        rechts.add_widget(knop)
+        
         self.add_widget(rechts)
         
         
@@ -1681,8 +1686,18 @@ class StatistiekBar(GridLayout):
         if len(self.update_list_links):
             self.links_scroll.update_bestelling(self.update_list_links.pop(0))
             Clock.schedule_once(self.refill_left,0.001)
-            
+     
     
+    def export_csv(self, _):
+        db_io = database.OpenIO(global_vars.db)
+        try:
+            database.exportCSV(db_io)
+        except Exception as e:
+            print("[CSV]Error: ", e)
+        finally:
+            database.CloseIO(db_io)
+    
+    #resize
     def _update_text_width(self, obj, _):
         obj.text_size = (obj.width * .95, None)
     
