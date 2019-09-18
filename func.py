@@ -21,6 +21,13 @@ def sort_by_type(data):
     return d
 
 
+def print_dict(d):
+    msg = ["{:^28}##".format("Product"), "-"*29]
+    for key in d:
+        msg.append("{:<28}{:>2}".format(key, d[key]))
+    return msg
+
+
 #datastructuur voor alle info
 #gebruikt in client maar aangepast
 class Client_storage():
@@ -129,11 +136,11 @@ class Client_storage():
     
     
     def bestelling_list(self):
-        msg = ["{:^28}{}".format("Product", "#"), "-"*29]
+        msg = ["{:^28}{:>2}".format("Product", "#"), "-"*29]
         for key in self.bestelling:
-            msg.append("{:<28}{}".format(key, self.bestelling[key]))
+            msg.append("{:<28}{:>2}".format(key, self.bestelling[key]))
         for key in self.edit:
-            msg.append("[color=#ff0000]{:<28}{}[/color]".format(key, self.edit[key]))
+            msg.append("[color=#ff0000]{:<28}{:>2}[/color]".format(key, self.edit[key]))
         return msg
 
 

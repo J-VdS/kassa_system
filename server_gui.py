@@ -1549,14 +1549,39 @@ class StatistiekBar(GridLayout):
         self.rows = 1
         self.spacing = [15, 0]
         
+        #modes
+        self.mode_links = [None, None, 0] #start, end, open
+        
+        #linker kolom
         links = GridLayout(cols=1, rows=2, spacing=[0, 10])
-        links.add_widget(Button(text="", size_hint_y=0.25))
-        links.add_widget(LijstLabel())
+        #bevat de mogelijkheden + herlaadknop
+        linkstop = GridLayout(cols=1, size_hint_y=0.25) 
+        knop = Button(text="selectie", font_size=20)
+        knop.bind(on_press=self.lselectie)
+        
+        linkstop.add_widget(knop)
+        knop = Button(text="herlaad", font_size=20)
+        knop.bind(on_press=self.herlaad_links)
+        linkstop.add_widget(knop)        
+        
+        self.lerror = Label(text="", font_size=20, markup=True)
+        self.lerror.bind(width=self._update_text_width)
+        linkstop.add_widget(self.lerror)
+        
+        links.add_widget(linkstop)
+        self.links_scroll = LijstLabel() #momenteel in db
+        links.add_widget(self.links_scroll)
         self.add_widget(links)
         
+        #midden
         midden = GridLayout(cols=1, rows=2, spacing=[0, 10])
-        midden.add_widget(Button(text="", size_hint_y=0.25))
-        midden.add_widget(LijstLabel())
+        #bevat de mogelijkheden + herlaadknop + import knop
+        midtop = GridLayout(cols=2, size_hint_y=0.25)
+        
+        
+        midden.add_widget(midtop)
+        self.mid_scroll = LijstLabel() #import csv
+        midden.add_widget(self.mid_scroll)
         self.add_widget(midden)
         
         rechts = GridLayout(cols=1, rows=3)
@@ -1566,7 +1591,102 @@ class StatistiekBar(GridLayout):
         self.add_widget(rechts)
         
         
+    def lselectie(self, _):
+        self.lpopup = Popup(title="selectie", size=(300, 300), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+                
+        toplayout = GridLayout(cols=2, rows=4)
+        toplayout.add_widget(Label(text="Start ID:", font_size=20))
+        self.lstart = TextInput(multiline=False, font_size=18)
+        toplayout.add_widget(self.lstart)
+        toplayout.add_widget(Label(text="Laatste ID:", font_size=20))
+        self.lend = TextInput(multiline=False, font_size=18)
+        toplayout.add_widget(self.lend)
+        toplayout.add_widget(Label(text="Alle ID's", font_size=20))
+        self.lalles = CheckBox()
+        toplayout.add_widget(self.lalles)
+        toplayout.add_widget(Label(text="status:", font_size=20))
+        self.lstatus = Spinner(
+                text="afgesloten",
+                values=("afgesloten", "open"),
+                font_size=18)
+        toplayout.add_widget(self.lstatus)
+        layout.add_widget(toplayout)
         
+        knop = Button(text="herlaad", size_hint_y=None, height=40)
+        knop.bind(on_press=self.lselectie_herlaad)
+        layout.add_widget(knop)
+        
+        self.lpopup.add_widget(layout)                        
+        self.lpopup.open()
+        
+    
+    def lselectie_herlaad(self, _):
+        self.links_scroll.verklein_bestelling()
+        cb = self.lalles.active
+        start_id = self.lstart.text.strip()
+        end_id = self.lend.text.strip()
+        status = (self.lstatus.text == "open") + 0
+        if cb and (start_id != "" or end_id != ""):
+            self.lerror.text = global_vars.selectie_beide
+            self.lpopup.dismiss()
+            return
+        elif not(cb) and start_id == "" and end_id == "":
+            self.lerror.text = global_vars.selectie_niets
+            self.lpopup.dismiss()
+            return
+        elif not(start_id.isdigit()) and not(end_id.isdigit()) and not(cb):
+            self.lerror.text = global_vars.selectie_nummer
+            self.lpopup.dismiss()
+            return
+       
+        
+        self.lerror.text = ""
+
+        db_io = database.OpenIO(global_vars.db)
+        if cb:
+            self.update_list_links = func.print_dict(database.getTotaal(db_io, status=status))
+        elif start_id.isdigit() and end_id.isdigit():
+            self.update_list_links = func.print_dict(database.getTotaal(db_io, int(start_id), int(end_id), status))
+        elif start_id.isdigit() and end_id == "":
+            self.update_list_links = func.print_dict(database.getTotaal(db_io, int(start_id), None, status))
+        elif start_id ==  "" and end_id.isdigit():
+            self.update_list_links = func.print_dict(database.getTotaal(db_io, None, int(end_id), status))
+        else:
+            self.lerror.text = global_vars.selectie_neg
+        
+        self.lpopup.dismiss()
+        Clock.schedule_once(self.refill_left, 0.5)
+        database.CloseIO(db_io)
+        
+        
+    
+    def herlaad_links(self, instance):
+        db_io = database.OpenIO(global_vars.db)
+        try:
+            ret = func.print_dict(database.getTotaal(db_io, *self.mode_links)) #we krijgen een grote dict terug en veranderen het naar een lijst
+            self.links_scroll.verklein_bestelling() #volledig weg
+            #laadt de bestelgeschiedenis in 
+            self.update_list_links = ret 
+            Clock.schedule_once(self.refill_left, 0.5)
+                
+        except Exception as e:
+            self.lerror.text = "Er liep iets mis..."
+            print("ERR: ", e)
+        finally:
+            database.CloseIO(db_io)
+    
+    def refill_left(self, *_):
+        #vult het linkselabel
+        if len(self.update_list_links):
+            self.links_scroll.update_bestelling(self.update_list_links.pop(0))
+            Clock.schedule_once(self.refill_left,0.001)
+            
+    
+    def _update_text_width(self, obj, _):
+        obj.text_size = (obj.width * .95, None)
+    
+    
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
     def __init__(self, **kwargs):

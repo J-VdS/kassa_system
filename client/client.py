@@ -32,7 +32,7 @@ COLOURS = {"drank":(0.8,0.2,0,1),
 
 #debug
 from kivy.logger import LoggerHistory
-DEBUG = True #False
+DEBUG = False
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
 ROWS = 4

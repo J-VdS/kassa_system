@@ -199,4 +199,20 @@ def sluitById(db_io, ID, prijs, bw):
     c.execute("UPDATE bestellingen SET open = 0, prijs = ? , betaalwijze = ? WHERE id = ?", (prijs, bw, ID))
     conn.commit()
     
-        
+
+def getTotaal(db_io, start=None, end=None, status=0):
+    conn, c = db_io
+    result = {}
+    if start == None and end == None:
+        c.execute("SELECT bestelling FROM bestellingen WHERE open = ?", (status, ))
+    elif start and end:
+        c.execute("SELECT bestelling FROM bestellingen WHERE open = ? AND id>=? AND id<=?", (status, start, end))
+    elif start:
+        c.execute("SELECT bestelling FROM bestellingen WHERE open = ? AND id>=?", (status, start))
+    else:
+        c.execute("SELECT bestelling FROM bestellingen WHERE open = ? AND id<=?", (status, end))
+    data = c.fetchall()
+    for i in data:
+        result = update_dict(result, pickle.loads(i[0])) 
+    return result
+            
