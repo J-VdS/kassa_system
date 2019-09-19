@@ -348,5 +348,7 @@ def exportXLSX(db_io):
         ws4.append((key, data[key]))
     
     #save
+    if not(os.path.isdir("./exports")):
+        os.mkdir("./exports")
     wb.save(filename = "exports/"+datetime.datetime.now().strftime("%d%m%y@%H-%M-%S_")+"export.xlsx")
     

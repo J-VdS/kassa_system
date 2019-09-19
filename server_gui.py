@@ -1627,7 +1627,7 @@ class StatistiekBar(GridLayout):
         
         rechts.add_widget(rechtstop)
         
-        self.rerror = Label(text="", font_size=20, markup=True, hint_size_y=0.5)
+        self.rerror = Label(text="", font_size=20, markup=True, size_hint_y=0.5)
         self.rerror.bind(width=self._update_text_width)
         rechts.add_widget(self.rerror)
         
@@ -1738,7 +1738,7 @@ class StatistiekBar(GridLayout):
             print("ERR: ", e)
         finally:
             database.CloseIO(db_io)
-    
+            self.lerror.text = ""
     
     def refill_left(self, *_):
         #vult het linkselabel
@@ -1754,18 +1754,71 @@ class StatistiekBar(GridLayout):
      
         
     def omzet_selectie(self, _):
-        pass
+        self.rpopup = Popup(title="selectie", size=(300, 300), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+                
+        toplayout = GridLayout(cols=2, rows=3)
+        toplayout.add_widget(Label(text="Start ID:", font_size=20))
+        self.rstart = TextInput(multiline=False, font_size=18)
+        toplayout.add_widget(self.rstart)
+        toplayout.add_widget(Label(text="Laatste ID:", font_size=20))
+        self.rend = TextInput(multiline=False, font_size=18)
+        toplayout.add_widget(self.rend)
+        toplayout.add_widget(Label(text="Alle ID's", font_size=20))
+        self.ralles = CheckBox(active=True)
+        toplayout.add_widget(self.ralles)
+        
+        layout.add_widget(toplayout)
+        knop = Button(text="herlaad", size_hint_y=None, height=40)
+        knop.bind(on_press=self.omzet_selectie_herlaad)
+        layout.add_widget(knop)
+        
+        self.rpopup.add_widget(layout)                        
+        self.rpopup.open()
     
+    
+    def omzet_selectie_herlaad(self, _):
+        cb = self.ralles.active
+        start_id = self.rstart.text.strip()
+        end_id = self.rend.text.strip()
+        if cb and (start_id != "" or end_id != ""):
+            self.rerror.text = global_vars.selectie_beide
+            self.rpopup.dismiss()
+            return
+        elif not(cb) and start_id == "" and end_id == "":
+            self.rerror.text = global_vars.selectie_niets
+            self.rpopup.dismiss()
+            return
+        elif not(start_id.isdigit()) and not(end_id.isdigit()) and not(cb):
+            self.rerror.text = global_vars.selectie_nummer
+            self.rpopup.dismiss()
+            return
+        
+        self.rerror.text = ""
+
+        if cb:
+            self.omzet_mode = [None, None]
+        elif start_id.isdigit() and end_id.isdigit():
+            self.omzet_mode = [int(start_id), int(end_id)]
+        elif start_id.isdigit() and end_id == "":
+            self.omzet_mode = [int(start_id), None]
+        elif start_id ==  "" and end_id.isdigit():
+            self.omzet_mode = [None, int(end_id)]
+        else:
+            self.rerror.text = global_vars.selectie_neg
+            self.rpopup.dismiss()
+            return
+        self.omzet_herlaad(None)        
+        self.rpopup.dismiss()
+        
     
     def omzet_herlaad(self, _):
         db_io = database.OpenIO(global_vars.db)
-        try:
-            ret = database.getOmzet(db_io, *self.omzet_mode)
-            for key in self.rmethodes:
-                self.rmethodes[key].text = "€ {:>9}".format(ret.get(key,0))
-
-        finally:
-            database.CloseIO(db_io)
+        ret = database.getOmzet(db_io, *self.omzet_mode)
+        for key in self.rmethodes:
+            self.rmethodes[key].text = "€ {:>9}".format(round(ret.get(key,0),2))
+        database.CloseIO(db_io)
+        self.rerror.text = ""
             
     
     def export_csv(self, _):
