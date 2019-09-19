@@ -136,7 +136,7 @@ class Client_storage():
     
     
     def bestelling_list(self):
-        msg = ["{:^28}{:>2}".format("Product", "#"), "-"*29]
+        msg = ["{:^28}{:>2}".format("Product", "#"), "-"*32]
         for key in self.bestelling:
             msg.append("{:<28}{:>2}".format(key, self.bestelling[key]))
         for key in self.edit:

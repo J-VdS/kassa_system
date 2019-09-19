@@ -207,7 +207,7 @@ def sluitById(db_io, ID, prijs, bw):
     conn.commit()
     
 
-def getTotaal(db_io, start=None, end=None, status=0):
+def getTotaalProd(db_io, start=None, end=None, status=0):
     conn, c = db_io
     result = {}
     if start == None and end == None:
@@ -221,6 +221,25 @@ def getTotaal(db_io, start=None, end=None, status=0):
     data = c.fetchall()
     for i in data:
         result = update_dict(result, pickle.loads(i[0])) 
+    return result
+
+
+def getOmzet(db_io, start=None, end=None):
+    conn, c = db_io
+    result = {"omzet":0}
+    if start == None and end == None:
+        c.execute("SELECT betaalwijze, prijs FROM bestellingen WHERE open = 0")
+    elif start and end:
+        c.execute("SELECT betaalwijze, prijs FROM bestellingen WHERE open = 0 AND id>=? AND id<=?", (start, end))
+    elif start:
+        c.execute("SELECT betaalwijze, prijs FROM bestellingen WHERE open = 0 AND id>=?", (start,))
+    else:
+        c.execute("SELECT betaalwijze, prijs FROM bestellingen WHERE open = 0 AND id<=?", (end,))
+        
+    data = c.fetchall()
+    for B, P in data:
+        result[B] = result.get(B, 0) + P
+        result["omzet"] += P
     return result
 
 # export csv
@@ -271,7 +290,7 @@ def exportCSV(db_io):#, filename="test.csv"):
             writer.writerow([key, str(bedragen[key]).replace('.',',')])
             
     #resume
-    data = update_dict(dict_prod, getTotaal(db_io)) #alle gesloten 
+    data = update_dict(dict_prod, getTotaalProd(db_io)) #alle gesloten 
     
     with open(PATH+"bestelde_aantallen.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
@@ -322,7 +341,7 @@ def exportXLSX(db_io):
     # #resume
     ws4 = wb.create_sheet(title="verkochte aantallen")
     
-    data = update_dict(dict_prod, getTotaal(db_io)) #alle gesloten 
+    data = update_dict(dict_prod, getTotaalProd(db_io)) #alle gesloten 
     
     ws4.append(("product", "aantal"))
     for key in data:

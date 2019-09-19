@@ -1551,6 +1551,11 @@ class StatistiekBar(GridLayout):
         
         #modes
         self.mode_links = [None, None, 0] #start, end, open
+        self.omzet_mode = [None, None]
+        
+        #update_lists
+        self.update_list_links = []
+        self.update_list_mid = []
         
         #linker kolom
         links = GridLayout(cols=1, rows=2, spacing=[0, 10])
@@ -1570,6 +1575,8 @@ class StatistiekBar(GridLayout):
         
         links.add_widget(linkstop)
         self.links_scroll = LijstLabel() #momenteel in db
+        self.update_list_links = ["{:^28}{:>2}".format("Product", "#"), "-"*32]
+        self.refill_left()
         links.add_widget(self.links_scroll)
         self.add_widget(links)
         
@@ -1581,12 +1588,50 @@ class StatistiekBar(GridLayout):
         
         midden.add_widget(midtop)
         self.mid_scroll = LijstLabel() #import csv
+        self.update_list_mid = ["{:^28}{:>2}".format("Product", "#"), "-"*32]
+        self.refill_mid()
         midden.add_widget(self.mid_scroll)
         self.add_widget(midden)
         
-        rechts = GridLayout(cols=1)
-        rechts.add_widget(Button(text=""))
-        rechts.add_widget(Button(text=""))
+        rechts = GridLayout(cols=1, spacing=[0, 2])
+        rechtstop = GridLayout(cols=2, size_hint_y=1.5, padding=[5, 5])
+        with rechtstop.canvas.before:
+            #rgba
+            Color(0.4, 0.4, 0.4, 1)  # green; colors range from 0-1 instead of 0-255
+            self.rect = Rectangle(size=rechtstop.size, pos=rechtstop.pos)
+
+        rechtstop.bind(size=self._update_rect, pos=self._update_rect)
+        
+        knop = Button(
+                text="selectie", 
+                font_size=20,
+                background_color=(0.05,0,0.80,1))
+        knop.bind(on_press=self.omzet_selectie)
+        rechtstop.add_widget(knop)
+        knop = Button(
+                text="herlaad",
+                font_size=20,
+                background_color=(0.05,0.8,0,1))
+        knop.bind(on_press=self.omzet_herlaad)
+        
+        rechtstop.add_widget(knop)
+        rechtstop.add_widget(Label(text="totale omzet:", font_name="RobotoMono-Regular", font_size=18))
+        self.rmethodes = {"omzet":Label(text="€ {:>9}".format(0), font_name="RobotoMono-Regular", font_size=18)}
+        rechtstop.add_widget(self.rmethodes["omzet"])
+        
+        for methode in global_vars.betaal_methodes:
+            rechtstop.add_widget(Label(text='{}:'.format(methode), font_name="RobotoMono-Regular", font_size=18))
+            self.rmethodes[methode] = Label(text="€ {:>9}".format(0), font_name="RobotoMono-Regular", font_size=18)
+            rechtstop.add_widget(self.rmethodes[methode])
+        
+        
+        rechts.add_widget(rechtstop)
+        
+        self.rerror = Label(text="", font_size=20, markup=True, hint_size_y=0.5)
+        self.rerror.bind(width=self._update_text_width)
+        rechts.add_widget(self.rerror)
+        
+        rechts.add_widget(Label(text=""))
         rechts_export = GridLayout(cols=2, rows=2)
         
         
@@ -1660,13 +1705,17 @@ class StatistiekBar(GridLayout):
 
         db_io = database.OpenIO(global_vars.db)
         if cb:
-            self.update_list_links = func.print_dict(database.getTotaal(db_io, status=status))
+            self.mode_links = [None, None, status]
+            self.update_list_links = func.print_dict(database.getTotaalProd(db_io, status=status))
         elif start_id.isdigit() and end_id.isdigit():
-            self.update_list_links = func.print_dict(database.getTotaal(db_io, int(start_id), int(end_id), status))
+            self.mode_links = [int(start_id), int(end_id), status]
+            self.update_list_links = func.print_dict(database.getTotaalProd(db_io, int(start_id), int(end_id), status))
         elif start_id.isdigit() and end_id == "":
-            self.update_list_links = func.print_dict(database.getTotaal(db_io, int(start_id), None, status))
+            self.mode_links = [int(start_id), None, status]
+            self.update_list_links = func.print_dict(database.getTotaalProd(db_io, int(start_id), None, status))
         elif start_id ==  "" and end_id.isdigit():
-            self.update_list_links = func.print_dict(database.getTotaal(db_io, None, int(end_id), status))
+            self.mode_links = [None, int(end_id), status]
+            self.update_list_links = func.print_dict(database.getTotaalProd(db_io, None, int(end_id), status))
         else:
             self.lerror.text = global_vars.selectie_neg
         
@@ -1675,11 +1724,10 @@ class StatistiekBar(GridLayout):
         database.CloseIO(db_io)
         
         
-    
     def herlaad_links(self, instance):
         db_io = database.OpenIO(global_vars.db)
         try:
-            ret = func.print_dict(database.getTotaal(db_io, *self.mode_links)) #we krijgen een grote dict terug en veranderen het naar een lijst
+            ret = func.print_dict(database.getTotaalProd(db_io, *self.mode_links)) #we krijgen een grote dict terug en veranderen het naar een lijst
             self.links_scroll.verklein_bestelling() #volledig weg
             #laadt de bestelgeschiedenis in 
             self.update_list_links = ret 
@@ -1691,12 +1739,34 @@ class StatistiekBar(GridLayout):
         finally:
             database.CloseIO(db_io)
     
+    
     def refill_left(self, *_):
         #vult het linkselabel
         if len(self.update_list_links):
             self.links_scroll.update_bestelling(self.update_list_links.pop(0))
-            Clock.schedule_once(self.refill_left,0.001)
+            Clock.schedule_once(self.refill_left, 0.001)
+    
+    
+    def refill_mid(self, *_):
+        if len(self.update_list_mid):
+            self.mid_scroll.update_bestelling(self.update_list_mid.pop(0))
+            Clock.schedule_once(self.refill_mid, 0.001)
      
+        
+    def omzet_selectie(self, _):
+        pass
+    
+    
+    def omzet_herlaad(self, _):
+        db_io = database.OpenIO(global_vars.db)
+        try:
+            ret = database.getOmzet(db_io, *self.omzet_mode)
+            for key in self.rmethodes:
+                self.rmethodes[key].text = "€ {:>9}".format(ret.get(key,0))
+
+        finally:
+            database.CloseIO(db_io)
+            
     
     def export_csv(self, _):
         db_io = database.OpenIO(global_vars.db)
@@ -1720,6 +1790,12 @@ class StatistiekBar(GridLayout):
     #resize
     def _update_text_width(self, obj, _):
         obj.text_size = (obj.width * .95, None)
+    
+    
+    def _update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
+
     
     
 #scrolllabel -> gekopieerd van client.py
