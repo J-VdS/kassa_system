@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 import sqlite3
-import csv
 import pickle
+import os
+import datetime
+
+import csv
+import openpyxl
+
+    
 #import time
 #import func
 
@@ -220,46 +226,108 @@ def getTotaal(db_io, start=None, end=None, status=0):
 # export csv
 def exportCSV(db_io):#, filename="test.csv"):
     conn, c = db_io
+    #check folder
+    if not(os.path.isdir("./exports")):
+        os.mkdir("./exports")
+    PATH = "exports/"+datetime.datetime.now().strftime("%d%m%y@%H-%M-%S_")
+    
     c.execute("SELECT type, naam, prijs, active FROM producten ORDER BY naam COLLATE NOCASE ASC")
     
     producten = []
     dict_prod = {}
+    bedragen = {}
     
     for T, N, P, A in list(c.fetchall()):
         producten.append([T, N, str(P).replace(".",","), str(A)])
         dict_prod[N] = 0
 
-    with open("productdump.csv", "w", newline='') as f:
+    with open(PATH+"productdump.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
         #TODO replace . met ,
-        writer.writerow(["type", "naam", "prijs", "active"])
+        writer.writerow(["type", "naam", "prijs", "zichtbaar"])
         for rij in producten:
             writer.writerow(rij)
-            
+    del producten
     
     #bestellingen
     c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling FROM bestellingen ORDER BY id ASC")
     data = c.fetchall()
     
-    with open("bestellingen.csv", "w", newline='') as f:
+    with open(PATH+"bestellingen.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
-        writer.writerow(["ID", "naam", "open", "prijs", "betaalwijze",  "", *dict_prod.keys()])
+        writer.writerow(["ID", "naam", "open", "prijs", "betaalwijze",  "#", *dict_prod.keys()])
         for ID, N, O, P, B, best in data:
             best = update_dict(dict_prod.copy(), pickle.loads(best))
-            #TODO: test volgorde behouden!
             #https://stackoverflow.com/questions/35694303/convert-array-of-int-to-array-of-chars-python
-            writer.writerow([ID, N, str(O), str(P), B, "", *list(map(str, best.values()))])
+            writer.writerow([ID, N, str(O), str(P), B, "#", *list(map(str, best.values()))])
+            if P:
+                bedragen[B] = bedragen.get(B, 0) + P
     
+    #ontvangen bedragen
+    with open(PATH+"bedragen.csv", "w", newline='') as f:
+        writer = csv.writer(f, delimiter=',')
+        writer.writerow(["methode", "bedrag (in €)"])
+        for key in bedragen:
+            writer.writerow([key, str(bedragen[key]).replace('.',',')])
+            
     #resume
     data = update_dict(dict_prod, getTotaal(db_io)) #alle gesloten 
     
-    with open("bestelde_aantallen.csv", "w", newline='') as f:
+    with open(PATH+"bestelde_aantallen.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow(["product", "aantal"])
         for key in data:
             writer.writerow([key, str(data[key])])
             
+    
+#export xlsx
+def exportXLSX(db_io):
+    conn, c = db_io
+    wb = openpyxl.Workbook()
+    
+    #productdump
+    ws = wb.active
+    ws.title = "producten_db"
+    
+    c.execute("SELECT type, naam, prijs, active FROM producten ORDER BY naam COLLATE NOCASE ASC")
+    
+    dict_prod = {}
+    bedragen = {}
+    
+    ws.append(("type", "naam", "prijs", "zichtbaar"))
+    for T, N, P, A in list(c.fetchall()):
+        dict_prod[N] = 0
+        ws.append((T, N, P, A))
+    
+    #bestellingen
+    ws2 = wb.create_sheet(title="bestellingen")
+    
+    c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling FROM bestellingen ORDER BY id ASC")
+    data = c.fetchall()
+    
+    ws2.append(("ID", "naam", "open", "prijs", "betaalwijze",  " ", *dict_prod.keys()))
+    for ID, N, O, P, B, best in data:
+        best = update_dict(dict_prod.copy(), pickle.loads(best))
+        ws2.append((ID, N, O, P, B, " ", *best.values()))
+        if P:
+            bedragen[B] = bedragen.get(B, 0) + P
+    
+    #ontvangen bedragen
+    ws3 = wb.create_sheet(title="bedragen")
+    
+    ws3.append(("methode", "bedrag (in €)"))
+    for key in bedragen:
+        ws3.append((key, bedragen[key]))
         
+    # #resume
+    ws4 = wb.create_sheet(title="verkochte aantallen")
     
+    data = update_dict(dict_prod, getTotaal(db_io)) #alle gesloten 
     
+    ws4.append(("product", "aantal"))
+    for key in data:
+        ws4.append((key, data[key]))
+    
+    #save
+    wb.save(filename = "exports/"+datetime.datetime.now().strftime("%d%m%y@%H-%M-%S_")+"export.xlsx")
     

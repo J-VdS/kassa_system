@@ -29,3 +29,5 @@ selectie_beide = "[color=#ff0000]'Alle ID's' en een waarde in Start ID en/of Ein
 selectie_nummer = "[color=#ff0000]Start ID en Eind ID moeten 2 positieve getallen zijn![/color]"
 selectie_niets = "[color=#ff0000]Vul een start ID en/of Eind ID in. Je kan ook gewoon 'Alle ID's' aanvinken.[/color]"
 selectie_neg = "[color=#ff0000]Enkel positieve getallen (0 inbegrepen), vul je niets in kiest men het grootste/kleinste ID[/color]"   
+
+betaal_methodes = ("cash", "bankcontact", "QR-code")

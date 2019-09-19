@@ -1404,7 +1404,7 @@ class BestelBar(GridLayout):
         toplayout.add_widget(Label(text="Betaalwijze:", font_size=20))
         self.betaalwijze_spinner = Spinner(
                 text="---",
-                values=("cash", "bankcontact", "QR-code"),
+                values=global_vars.betaal_methodes,
                 font_size=18)
         
         toplayout.add_widget(self.betaalwijze_spinner)
@@ -1587,12 +1587,22 @@ class StatistiekBar(GridLayout):
         rechts = GridLayout(cols=1)
         rechts.add_widget(Button(text=""))
         rechts.add_widget(Button(text=""))
-        rechts.add_widget(Button(text="", size_hint_y=0.5))
+        rechts_export = GridLayout(cols=2, rows=2)
         
-        knop = Button(text="Export .csv", size_hint_y=0.5)
+        
+        knop = Button(text="Export .csv", font_size=20)
         knop.bind(on_press=self.export_csv)
-        rechts.add_widget(knop)
+        rechts_export.add_widget(knop)
         
+        knop = Button(text="Export .xlsx", font_size=20)
+        knop.bind(on_press=self.export_xlsx)
+        rechts_export.add_widget(knop)
+        
+        rechts_export.add_widget(Button())
+        rechts_export.add_widget(Button())
+        
+        
+        rechts.add_widget(rechts_export)
         self.add_widget(rechts)
         
         
@@ -1696,7 +1706,17 @@ class StatistiekBar(GridLayout):
             print("[CSV]Error: ", e)
         finally:
             database.CloseIO(db_io)
+            
     
+    def export_xlsx(self, _):
+        db_io = database.OpenIO(global_vars.db)
+        try:
+            database.exportXLSX(db_io)
+        except Exception as e:
+            print("[XLSX]Error: ", e)
+        finally:
+            database.CloseIO(db_io)
+            
     #resize
     def _update_text_width(self, obj, _):
         obj.text_size = (obj.width * .95, None)

@@ -112,6 +112,12 @@ client/credentials.txt
 # csv
 *.csv
 
+# xlsx
+*.xlsx
+
+#export folder
+exports/
+
 # testing
 connect_test.py
 csv_test.py
