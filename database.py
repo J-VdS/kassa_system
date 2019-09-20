@@ -7,7 +7,6 @@ import datetime
 import csv
 import openpyxl
 
-    
 #import time
 #import func
 
