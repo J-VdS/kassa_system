@@ -7,7 +7,7 @@ Om de kassa te gebruiken heb je momenteel python (> 3.6) nodig. En start server_
  - [ ] verwijder printstatements
  ### client:
  - [ ] meerdere gangen implementatie
- - [ ] bestelling aanpassen
+ - [x] bestelling aanpassen
  - [ ] netcode herschrijven
  - [ ] Vermijd versturen bestelling als de server gesloten is
  - [ ] back-ups
@@ -15,23 +15,23 @@ Om de kassa te gebruiken heb je momenteel python (> 3.6) nodig. En start server_
  ### servergui:
  - [ ] settings
  - [ ] ticketprinter bij kassa
- - [ ] statistieken
+ - [x] statistieken
  - [ ] oplossingen meerdere jaren --> database herschrijven
- - [ ] aanpassen rekening
+ - [x] aanpassen rekening
  - [ ] visuele aanpassing
 	 - [ ] kleur in label
-	 - [ ] popups 
+	 - [x] popups 
 - [ ] popups wanneer de server sluit
 - [ ] popups wannneer errors
  ### printserver:
- - [ ] ticket uitprinten en verwerken
+ - [x] ticket uitprinten en verwerken
  - [ ] papier op controle + inwendige printer storage controle
- - [ ] nagaan correct afsluiten!
+ - [x] nagaan correct afsluiten!
  - [ ] herschrijven netcode
  - [ ] ( geluid uit )
  
  ### stress test:
- - [ ] voeg een time.sleep toe aan printserver bij het verwerken van een bericht. Sluit de connectie via de server_gui, normaal zou de printer blijven printen.
+ - [x] voeg een time.sleep toe aan printserver bij het verwerken van een bericht. Sluit de connectie via de server_gui, normaal zou de printer blijven printen.
 
 Indien er problemen of vragen zijn, vermeldt deze dan in de Issues tab van github.com .
  
