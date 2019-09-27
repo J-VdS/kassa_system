@@ -76,6 +76,20 @@ def printer_bestelling(bestelling):
             print("Error:", e)
         finally:
             s.close()
+            
+
+def printer_test(ip, poort):
+    msg = makeMsg({'info':{'id':0, 'tafel':-1, 'naam':'KASSA', 'verkoper':'KASSA'},
+                   'opm':"DIT is een test, geen actie nodig...",
+                   'BST':{}})
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((ip, poort))
+        s.send(msg)
+    except Exception as e:
+        print("Error:", e)
+    finally:
+        s.close()
         
         
 def sluit_printers():
@@ -184,8 +198,6 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         notified_socket.send(get_products(db_io))
                         print(f"[SERVER][GET]{user} vroeg alle producten op")
                     elif message['req'] == "BST":
-                        #stuur naar printer
-                        printer_bestelling(message['bestelling'])
                         #verwerk bestelling
                         #{bestelling:{BST:{type:{}}}
                         best = {}
@@ -196,11 +208,15 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                             pass
                         EDIT_ID = message['bestelling']['info']['id']
                         ret = database.addBestelling(db_io, message['bestelling']['info'], best)
+                        #stuur valid en goed ontvangen naar client
                         if ret == 1:
                             #herlaad de rekeningen
                             update_func(db_io)
                         EDIT_ID = None
-                        #stuur succes, gelukt
+                        
+                        #stuur naar printer
+                        printer_bestelling(message['bestelling'])
+                        #stuur succes, gelukt naar kassa
                     elif message['req'] == "MSG":
                         pass
         

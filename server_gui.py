@@ -839,7 +839,7 @@ class PrinterBar(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
-        top = GridLayout(cols=5, rows=1, height=50, size_hint_y=None)
+        top = GridLayout(cols=6, rows=1, height=50, size_hint_y=None)
         with top.canvas.before:
             #rgba
             Color(1, 0.4, 0, 0.8)  # green; colors range from 0-1 instead of 0-255
@@ -853,6 +853,7 @@ class PrinterBar(GridLayout):
                 size_hint_x=None,
                 width=self.IP_WIDTH))
         top.add_widget(Label(text="poort",font_size=25))
+        top.add_widget(Label(text="", size_hint_x=0.75))
         top.add_widget(Label(text="Print types",font_size=25))
         knop = Button(text="?", width=50, size_hint_x=None, font_size=25)
         knop.bind(on_press=self.help_popup)
@@ -860,7 +861,7 @@ class PrinterBar(GridLayout):
         self.add_widget(top)
         
         #dymisch opgevuld
-        self.onder = GridLayout(cols=4)
+        self.onder = GridLayout(cols=5)
         with self.onder.canvas.before:
             #rgba
             Color(1, 1, 1, 1)  # green; colors range from 0-1 instead of 0-255
@@ -876,6 +877,8 @@ class PrinterBar(GridLayout):
         self.poort_veld = TextInput(size_hint_y=None, height=self.ROW_HEIGHT, multiline=False, font_size=20)
         self.onder.add_widget(self.poort_veld)
         
+        self.onder.add_widget(Label(text="", size_hint_x=0.75, size_hint_y=None, height=self.ROW_HEIGHT))
+        
         knop = Button(text="selecteer types", height = self.ROW_HEIGHT, size_hint_y=None, font_size=20)
         knop.bind(on_press=self.select_type)
         self.onder.add_widget(knop)
@@ -887,9 +890,11 @@ class PrinterBar(GridLayout):
         #variabele dat alle printers opslaat
         self.printers = [] #[ip, poort, (types,)] ID van de knop is de index van deze lijst
         self.print_widgets = []
+        self.checkboxes = []
         
         if os.path.isfile(global_vars.printer_file):
             self.laad_data(global_vars.printer_file)
+        
         
     def _update_rect(self, instance, value):
         self._rect.pos = instance.pos
@@ -970,8 +975,6 @@ class PrinterBar(GridLayout):
             elif types == []:
                 self.error_popup("Selecteer minstens 1 type!")
                 return
-        else:
-            POORT = str(POORT)
         
         ID = len(self.printers)
         self.printers.append((IP, int(POORT), types))
@@ -991,7 +994,18 @@ class PrinterBar(GridLayout):
                     size_hint_y=None,
                     font_size=20,
                     color=(0,0,0,1))]
-        
+        #testknop
+        knop = Button(
+                text="TEST",
+                id=str(ID),
+                height = self.ROW_HEIGHT,
+                size_hint_y=None,
+                size_hint_x=0.75,
+                font_size=20)#,
+                #background_normal='',
+                #background_color=(0.5, 0.5, 0.5,1))
+        knop.bind(on_press=self.test_printer)
+        widget_list.append(knop)
         
         #pasop als er 1 wordt verwijdert moeten alle ID's worden aangepast
         knop = Button(text="bekijk types", id=str(ID), height = self.ROW_HEIGHT, size_hint_y=None, font_size=20)
@@ -1019,7 +1033,8 @@ class PrinterBar(GridLayout):
         if ID != len(self.printers)-1:
             #for lus en ID van de knoppen aanpassen
             for i in self.print_widgets[ID+1:]:
-                _, _, knop1, knop2 = i
+                _, _, test, knop1, knop2 = i
+                test.id = str(int(test.id)-1)
                 knop1.id = str(int(knop1.id)-1)
                 knop2.id = str(int(knop2.id)-1)        
         
@@ -1031,6 +1046,11 @@ class PrinterBar(GridLayout):
         socket_server.PRINTERS = self.printers
         
         self.store_data(global_vars.printer_file)
+    
+    
+    def test_printer(self, instance):
+        ID = int(instance.id)
+        socket_server.printer_test(*self.printers[ID][:2])
     
     
     def select_type(self, _):
