@@ -145,8 +145,9 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         # Accept new connection
                         # That gives us new socket - client socket, connected to this given client only, it's unique for that client
                         # The other returned object is ip/port set
+                        print("gevonden...")
                         client_socket, client_address = server_socket.accept()
-            
+                        print(client_socket, client_address)
                         #ontvang
                         lengte = int(client_socket.recv(HEADERLENGTH).decode("utf-8"))
                         if not lengte:

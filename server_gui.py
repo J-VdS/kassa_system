@@ -989,7 +989,7 @@ class PrinterBar(GridLayout):
                     font_size=20,
                     color=(0,0,0,1)),
             Label(
-                    text=POORT,
+                    text=str(POORT),
                     height = self.ROW_HEIGHT,
                     size_hint_y=None,
                     font_size=20,
