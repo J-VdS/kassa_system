@@ -38,7 +38,8 @@ def InitTabels(db_io):
     #tables_check aanwezig
     #producten tabel
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs REAL, active INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS bestellingen(id INTEGER, bestelling BLOB, open INTEGER, prijs REAL, naam TEXT, betaalwijze TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs REAL, naam TEXT, betaalwijze TEXT)")
+    #c.execute("CREATE TABLE IF NOT EXISTS bestel)
     #print("---Product Table Loaded ---")
     conn.commit()
    
@@ -138,27 +139,27 @@ def addBestelling(db_io, info, bestelling):
             0 - bestelling wordt toegevoegd
     '''
     conn, c = db_io
-    c.execute("SELECT bestelling FROM bestellingen WHERE id = ?", (info["id"],))
+    c.execute("SELECT bestelling FROM totalen WHERE id = ?", (info["id"],))
     data = c.fetchone()
     if not data:
         #maak een nieuw ID aan
         bst = pickle.dumps(bestelling)
-        c.execute("INSERT INTO bestellingen (id, naam, bestelling, open) VALUES (?,?,?,?)", (info["id"], str(info["naam"]), bst, 1))
+        c.execute("INSERT INTO totalen (id, naam, bestelling, open) VALUES (?,?,?,?)", (info["id"], str(info["naam"]), bst, 1))
         conn.commit()
         return 1
     else:
         bst = pickle.dumps(update_dict(pickle.loads(data[0]), bestelling))
-        c.execute("UPDATE bestellingen SET bestelling = ? WHERE id = ?", (bst, info["id"]))
+        c.execute("UPDATE totalen SET bestelling = ? WHERE id = ?", (bst, info["id"]))
         conn.commit()
         return 0
 
 
 def addBestellingID(db_io, ID, naam):
     conn, c = db_io
-    c.execute("SELECT bestelling FROM bestellingen WHERE id = ?", (ID,))
+    c.execute("SELECT bestelling FROM totalen WHERE id = ?", (ID,))
     data = c.fetchone()
     if not data:
-        c.execute("INSERT INTO bestellingen (id, naam, bestelling, open) VALUES (?,?,?,?)", (ID, naam, pickle.dumps({}), 1))
+        c.execute("INSERT INTO totalen (id, naam, bestelling, open) VALUES (?,?,?,?)", (ID, naam, pickle.dumps({}), 1))
         conn.commit()
         return 1
     else:
@@ -168,7 +169,7 @@ def addBestellingID(db_io, ID, naam):
 
 def getBestelling(db_io, ID):
     conn, c = db_io
-    c.execute("SELECT bestelling FROM bestellingen WHERE id = ?", (ID,))
+    c.execute("SELECT bestelling FROM totalen WHERE id = ?", (ID,))
     data = c.fetchone()
     if not data:
         #er was geen bestelling met dit ID!
@@ -179,14 +180,14 @@ def getBestelling(db_io, ID):
 
 def getIDs(db_io):
     conn, c = db_io
-    c.execute("SELECT id FROM bestellingen WHERE open = 1 ORDER BY id COLLATE NOCASE ASC")
+    c.execute("SELECT id FROM totalen WHERE open = 1 ORDER BY id COLLATE NOCASE ASC")
     data = c.fetchall()
     return data  
 
 
 def getInfoByID(db_io, ID):
     conn, c = db_io
-    c.execute("SELECT naam, open FROM bestellingen WHERE id = ?", (ID,))
+    c.execute("SELECT naam, open FROM totalen WHERE id = ?", (ID,))
     data = c.fetchone()
     if not data:
         return ("ERROR", "---")
@@ -196,13 +197,13 @@ def getInfoByID(db_io, ID):
 
 def delByID(db_io, ID):
     conn, c = db_io
-    c.execute("DELETE FROM bestellingen WHERE id = ?", (ID,))
+    c.execute("DELETE FROM totalen WHERE id = ?", (ID,))
     conn.commit()
 
 
 def sluitById(db_io, ID, prijs, bw):
     conn, c = db_io
-    c.execute("UPDATE bestellingen SET open = 0, prijs = ? , betaalwijze = ? WHERE id = ?", (prijs, bw, ID))
+    c.execute("UPDATE totalen SET open = 0, prijs = ? , betaalwijze = ? WHERE id = ?", (prijs, bw, ID))
     conn.commit()
     
 
@@ -210,13 +211,13 @@ def getTotaalProd(db_io, start=None, end=None, status=0):
     conn, c = db_io
     result = {}
     if start == None and end == None:
-        c.execute("SELECT bestelling FROM bestellingen WHERE open = ?", (status, ))
+        c.execute("SELECT bestelling FROM totalen WHERE open = ?", (status, ))
     elif start and end:
-        c.execute("SELECT bestelling FROM bestellingen WHERE open = ? AND id>=? AND id<=?", (status, start, end))
+        c.execute("SELECT bestelling FROM totalen WHERE open = ? AND id>=? AND id<=?", (status, start, end))
     elif start:
-        c.execute("SELECT bestelling FROM bestellingen WHERE open = ? AND id>=?", (status, start))
+        c.execute("SELECT bestelling FROM totalen WHERE open = ? AND id>=?", (status, start))
     else:
-        c.execute("SELECT bestelling FROM bestellingen WHERE open = ? AND id<=?", (status, end))
+        c.execute("SELECT bestelling FROM totalen WHERE open = ? AND id<=?", (status, end))
     data = c.fetchall()
     for i in data:
         result = update_dict(result, pickle.loads(i[0])) 
@@ -227,13 +228,13 @@ def getOmzet(db_io, start=None, end=None):
     conn, c = db_io
     result = {"omzet":0}
     if start == None and end == None:
-        c.execute("SELECT betaalwijze, prijs FROM bestellingen WHERE open = 0")
+        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0")
     elif start and end:
-        c.execute("SELECT betaalwijze, prijs FROM bestellingen WHERE open = 0 AND id>=? AND id<=?", (start, end))
+        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0 AND id>=? AND id<=?", (start, end))
     elif start:
-        c.execute("SELECT betaalwijze, prijs FROM bestellingen WHERE open = 0 AND id>=?", (start,))
+        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0 AND id>=?", (start,))
     else:
-        c.execute("SELECT betaalwijze, prijs FROM bestellingen WHERE open = 0 AND id<=?", (end,))
+        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0 AND id<=?", (end,))
         
     data = c.fetchall()
     for B, P in data:
@@ -268,7 +269,7 @@ def exportCSV(db_io):#, filename="test.csv"):
     del producten
     
     #bestellingen
-    c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling FROM bestellingen ORDER BY id ASC")
+    c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling FROM totalen ORDER BY id ASC")
     data = c.fetchall()
     
     with open(PATH+"bestellingen.csv", "w", newline='') as f:
@@ -320,7 +321,7 @@ def exportXLSX(db_io):
     #bestellingen
     ws2 = wb.create_sheet(title="bestellingen")
     
-    c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling FROM bestellingen ORDER BY id ASC")
+    c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling FROM totalen ORDER BY id ASC")
     data = c.fetchall()
     
     ws2.append(("ID", "naam", "open", "prijs", "betaalwijze",  " ", *dict_prod.keys()))

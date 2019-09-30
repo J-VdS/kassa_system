@@ -73,7 +73,9 @@ def printer_bestelling(bestelling):
             s.send(msg)
         except Exception as e:
             #verwijder de printer uit de lijst van connecties, en geef popup
-            print("Error:", e)
+            trace_back = sys.exc_info()[2]
+            line = trace_back.tb_lineno
+            print(f"[ERR!]Printer line {line}: {str(e)}")
         finally:
             s.close()
             
@@ -87,7 +89,9 @@ def printer_test(ip, poort):
         s.connect((ip, poort))
         s.send(msg)
     except Exception as e:
-        print("Error:", e)
+        trace_back = sys.exc_info()[2]
+        line = trace_back.tb_lineno
+        print(f"[ERR!]Printer line {line}: {str(e)}")
     finally:
         s.close()
         
@@ -145,7 +149,6 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         # Accept new connection
                         # That gives us new socket - client socket, connected to this given client only, it's unique for that client
                         # The other returned object is ip/port set
-                        print("gevonden...")
                         client_socket, client_address = server_socket.accept()
                         print(client_socket, client_address)
                         #ontvang
