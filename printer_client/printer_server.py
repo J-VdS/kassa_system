@@ -163,7 +163,7 @@ def start_listening():
 
 
 def open_printer():
-    test = printer.Usb(0x0456,0x0808,0,0x81,0x03)
+    test = printer.Usb(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
     return test 
     
 
@@ -199,8 +199,15 @@ def start_printloop(conditie):
 def printer_verwerk(printer_obj, obj):
     if "close" in obj:
         return False
+    #check of printer nog papier heeft
+    #https://github.com/python-escpos/python-escpos/issues/143
+    printer_obj.device.write(OUT_END, "\x10\x04\x04", 5000) 
+    #weet niet of dit werkt
+    ret = printer_obj.device.read(IN_END, 256, 5000)
+    
     try:
         #print en verwerk
+        #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
         print("INFO:", obj['info'])
         print("BESTELLING: ", obj['BST'])
         print("OPM:", obj['opm'])
