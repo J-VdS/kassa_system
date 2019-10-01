@@ -197,8 +197,7 @@ class KlantInfoScreen(GridLayout):
         
         self.add_widget(Label(text="Info over de klant:", size_hint_y=0.13, font_size=20))
         
-        lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85 )
-        
+        lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85)
         
         
         lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=22))
@@ -328,13 +327,37 @@ class HuidigeBestellingScreen(GridLayout):
         #TODO: popup indien de bestelling leeg is
         #in principe zou dit geen gevolgen mogen geven.
         #print("[BESTELLING] %s" %(DATA.get_bestelling()))
+        
         if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling()}) != -1:
             #TODO: backup
-            m_app.screen_manager.current = "klantinfo"
-        else:
-            #smth went wrong
+            #m_app.screen_manager.current = "klantinfo"
             pass
+        else:
+            #verbinding verbroken of een error
+            #er wordt al naar het home scherm terug gegaan 
+            return
+        #check of bestelling is toegekomen
+        data = socket_client.listenData()
+        #probleem, verbinding verbroken of timeout
+        if isinstance(data, dict):
+            print(data)
+        elif data == -1:
+            print("TIMEOUT")
+            #TODO verwijder
+            show_error("TIMEOUT")
+            return
             
+        
+        data = socket_client.listenData()
+        if isinstance(data, dict):
+            print(data)
+        elif data == -1:
+            print("TIMEOUT")
+            show_error("TIMEOUT")
+            return
+        
+        m_app.screen_manager.current = "klantinfo"
+        
     
     def verwijder(self, _):
         self.popup = Popup(title="Info")
@@ -616,6 +639,15 @@ class ProductScreen(GridLayout):
         #close popup
         self.tpopup.dismiss()
         del self.tpopup
+        
+
+
+class BestellingError(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        
+        
         
 
 class KassaClientApp(App):

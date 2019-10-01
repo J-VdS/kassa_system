@@ -8,6 +8,7 @@ import database
 import func
 #error handling
 import sys
+import time
 
 #RUN_SERVER = True
 
@@ -207,16 +208,27 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         best = {}
                         for d in message['bestelling']['BST'].values():
                             best.update(d)
+                        
+                        #stuur bevestiging goed aangekomen
+                        notified_socket.send(makeMsg({"status":"ontvangen"}))
+                        
+                        #vermijd dat er 2 acties tegelijk bezig zijn met een id
                         global EDIT_ID
                         while EDIT_ID == message['bestelling']['info']['id']:
                             pass
                         EDIT_ID = message['bestelling']['info']['id']
                         ret = database.addBestelling(db_io, message['bestelling']['info'], best)
+                        EDIT_ID = None
                         #stuur valid en goed ontvangen naar client
+                        time.sleep(20)
                         if ret == 1:
                             #herlaad de rekeningen
                             update_func(db_io)
-                        EDIT_ID = None
+                            #
+                            notified_socket.send(makeMsg({"status":"succes"}))
+                        elif ret == -1:
+                            notified_socket.send(makeMsg({"status":"closed"}))#, "info":message['bestelling']['info']}))
+                        
                         
                         #stuur naar printer
                         printer_bestelling(message['bestelling'])

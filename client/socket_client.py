@@ -62,9 +62,30 @@ def requestData(request):
 
 
 def sendData(request):
+    '''
+    return waarden:
+        -1: Verbinding verbroken en het info scherm wordt weer getoont
+        {}: bevat oa {status}
+    
+    '''
     try:
         client_socket.send(makeMsg(request))
-        return 0
     except Exception as e:
-        ON_ERR('Connection error: {}'.format(str(e)))
+        ON_ERR('Verbinding verbroken...\nConnection error: {}'.format(str(e)))
         return -1
+    
+    
+def listenData():
+    #zet de timeout op 5 seconden
+    try:
+        client_socket.settimeout(5)
+        lengte = int(client_socket.recv(HEADERLENGTH).decode('utf-8'))
+        client_socket.settimeout(None)
+        return pickle.loads(client_socket.recv(lengte))
+    except socket.timeout: # Exception as e:
+        #ON_ERR('Verbinding verbroken...\nGa naar de kassa om te controleren of je bestelling aankwam...\nConnection error: {}'.format(str(e)))
+        client_socket.settimeout(None)
+        return 1
+    except Exception as e:
+        ON_ERR('Verbinding verbroken...\nGa naar de kassa om te controleren of je bestelling aankwam...\nConnection error: {}'.format(str(e)))
+        return -2
