@@ -650,7 +650,7 @@ class KassaClientApp(App):
         scherm = Screen(name="bestelling")
         scherm.add_widget(self.bestelling_pagina)
         self.screen_manager.add_widget(scherm)
-        
+        print(self.screen_manager.screens[-1].name)
     
     def make_prod_page(self):
         self.prod_pagina = ProductScreen()
@@ -884,6 +884,7 @@ def show_error(message):
         Clock.schedule_once(sys.exit, 5)
     else:
         Clock.schedule_once(m_app.goHome, 5)
+        #m_app.
     socket_client.disconnect()
 
 
