@@ -352,3 +352,29 @@ def exportXLSX(db_io):
         os.mkdir("./exports")
     wb.save(filename = "exports/"+datetime.datetime.now().strftime("%d%m%y@%H-%M-%S_")+"export.xlsx")
     
+    
+def importCSV(file, ret_d):
+    try:
+        with open(file, newline='') as infile:
+            reader = csv.reader(infile, delimiter=',')
+            next(reader)
+            for row in reader:
+                if len(row) != 2:
+                    return -1
+                K, A = row
+                ret_d[K] = A
+        return 0
+    except Exception as e:
+        print(e)
+        return -2
+
+
+def importXLSX(file, ret_d):
+    try:
+        wb = openpyxl.load_workbook(file)
+        sheet = wb["verkochte aantallen"]
+        for row in sheet.iter_rows(min_row=2, max_col=2, values_only=True):
+            ret_d[row[0]] = row[1]
+        return 0
+    except:
+        return -1
