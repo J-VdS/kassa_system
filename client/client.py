@@ -553,7 +553,7 @@ class ProductScreen(GridLayout):
         else:
             end = COLS*ROWS*(self.paginaNr+1)
         data = data[COLS*ROWS*self.paginaNr:end]
-        print(data)
+        
         for i, knop in enumerate(self.prods_knoppen):
             try:
                 knop.text = "[b]{}[/b]".format(data[i][1])
@@ -703,8 +703,7 @@ class Client_storage():
         self._prod_typelist = {}
         self._prod_typelist_aantal = {}
         self.types = []
-        
-        print("SET:", self._prod)
+
         for type in self._prod:
             self.types.append(type)
             self._prod_typelist[type] = []
