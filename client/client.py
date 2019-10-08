@@ -146,7 +146,7 @@ class LoginScreen(GridLayout):
         ip = self.ip_veld.text
         poort = int(self.poort.text)
         naam = self.naam.text
-        wachtwoord = self.password.text
+        wachtwoord = "abc" #self.password.text
         
         
         if not socket_client.connect(ip, poort, naam, wachtwoord, show_error):
@@ -328,7 +328,7 @@ class HuidigeBestellingScreen(GridLayout):
         #TODO: popup indien de bestelling leeg is
         #in principe zou dit geen gevolgen mogen geven.
         #print("[BESTELLING] %s" %(DATA.get_bestelling()))
-        H = randint(0,99)
+        H = "{}{}".format(DATA.get_info()['id'], randint(0,99))
         if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling(), "hash":H}) != -1:
             #TODO: backup
             #m_app.screen_manager.current = "klantinfo"
@@ -362,8 +362,10 @@ class HuidigeBestellingScreen(GridLayout):
         m_app.screen_manager.current = "info"#"klantinfo"
         
         #send check TCP-msg
+        print("send check")
         ret = socket_client.requestData({'req':'CHK', "hash":H})
         if ret == -1:
+            #TODO sla alles op, voeg een knopje toe laadt laatste bestelling terug in
             print("ERROR")
             return
         elif not("status" in ret):
@@ -372,10 +374,11 @@ class HuidigeBestellingScreen(GridLayout):
         #succes
         elif ret["status"] == 1:
             m_app.info_pagina.change_info("Bestelling goed ontvangen en verwerkt.")
-            Clock.schedule_once(self.goKlantinfo, 1)
+            Clock.schedule_once(self.goKlantinfo, 4)
         #closed
         elif ret["status"] == 0:
-            pass
+            m_app.make_bestelling_closed()
+            m_app.screen_manager.current = "closedbest"
         #onbekend
         else:
             pass
@@ -667,16 +670,14 @@ class ProductScreen(GridLayout):
         
 
 
-class BestellingError(GridLayout):
+class BestellingErrorScreen(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
         self.add_widget(Label(
-                text="Het ID klopt niet.\nDeze rekening is al betaald.",
+                text="Het ID klopt niet; deze rekening is reeds afgesloten.",
                 font_size=22,
                 size_hint_y=0.2))
-        
-        self.add_widget(Label(text="Info over de klant:", size_hint_y=0.15, font_size=22))
         
         lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85)
         
@@ -691,17 +692,17 @@ class BestellingError(GridLayout):
         lay_top.add_widget(self.ID)
         
         lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=22))
-        self.tafel = TextInput(input_type='number', multiline=False, font_size=22, text=info["tafel"]) 
+        self.tafel = TextInput(input_type='number', multiline=False, font_size=22, text=str(info["tafel"])) 
         lay_top.add_widget(self.tafel)
         
         lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=22))
-        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=22, text=info["verkoper"])
+        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=22)
         lay_top.add_widget(self.verkoper)
         
         self.add_widget(lay_top)
         
         knop = Button(text="Probeer opnieuw", font_size=28, size_hint_y=0.3)
-        #knop.bind(on_press=self.start_bestelling)
+        knop.bind(on_press=self.resend)
         self.add_widget(knop)
         
         self.add_widget(Label(text="", size_hint_y=None, height=Window.size[1]*0.45))
@@ -751,14 +752,14 @@ class BestellingError(GridLayout):
         
         DATA.change_creds(naam, ID, tafel, verkoper)
         
-        m_app.klant_info_pagina.send_bestelling(None)
+        m_app.bestelling_pagina.send_bestelling(None)
     
         
 
 class KassaClientApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
+        self.best_closed = False
     
     def build(self):
         self.screen_manager = ScreenManager(transition=FadeTransition())
@@ -795,6 +796,16 @@ class KassaClientApp(App):
         scherm.add_widget(self.prod_pagina)
         self.screen_manager.add_widget(scherm)
     
+    
+    def make_bestelling_closed(self):
+        if not(self.best_closed):
+            #bestelling closed error
+            self.bestelling_closed_pagina = BestellingErrorScreen()
+            scherm = Screen(name="closedbest")
+            scherm.add_widget(self.bestelling_closed_pagina)
+            self.screen_manager.add_widget(scherm)
+            self.best_closed = True
+
     
     def goHome(self, *_):
         self.screen_manager.current = "login"
