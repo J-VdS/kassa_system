@@ -124,6 +124,7 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
     #lijst met sockets
     sockets_list = [server_socket]
     connecties = {} #socket:naam --> komt van allereerste bericht dat we zullen ontvangen
+    best_status = {}
     
     db_io = database.OpenIO(db)
     
@@ -210,7 +211,7 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                             best.update(d)
                         
                         #stuur bevestiging goed aangekomen
-                        notified_socket.send(makeMsg({"status":"ontvangen"}))
+                        #notified_socket.send(makeMsg({"status":"ontvangen"}))
                         
                         #vermijd dat er 2 acties tegelijk bezig zijn met een id
                         global EDIT_ID
@@ -219,15 +220,15 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         EDIT_ID = message['bestelling']['info']['id']
                         ret = database.addBestelling(db_io, message['bestelling']['info'], best)
                         EDIT_ID = None
-                        #stuur valid en goed ontvangen naar client
-                        time.sleep(20)
                         if ret == 1:
                             #herlaad de rekeningen
                             update_func(db_io)
                             #
-                            notified_socket.send(makeMsg({"status":"succes"}))
+                            #notified_socket.send(makeMsg({"status":"succes"}))
+                            best_status[message['hash']] = 1 #succes
                         elif ret == -1:
-                            notified_socket.send(makeMsg({"status":"closed"}))#, "info":message['bestelling']['info']}))
+                            best_status[message['hash']] = 0 #closed
+                            #notified_socket.send(makeMsg({"status":"closed"}))#, "info":message['bestelling']['info']}))
                         
                         
                         #stuur naar printer
@@ -235,6 +236,12 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         #stuur succes, gelukt naar kassa
                     elif message['req'] == "MSG":
                         pass
+                    elif message['req'] == "CHK":
+                        H = message['hash']
+                        if H in best_status:
+                            notified_socket.send(makeMsg({"status":best_status[message['hash']]}))
+                        else:
+                            notified_socket.send(makeMsg({"status":-1})) #key error/onbekend
         
             # It's not really necessary to have this, but will handle some socket exceptions just in case
             for notified_socket in exception_sockets:
