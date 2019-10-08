@@ -1477,7 +1477,7 @@ class BestelBar(GridLayout):
         if not(isinstance(totaal, float)) or not(func.is_number(ontvangen)):
             self.twisselgeld.text = "ERROR"
         else:
-            self.twisselgeld.text = str(round(float(ontvangen)-totaal,3))
+            self.twisselgeld.text = str(float(ontvangen)-totaal,3)
         
 
     def afronden_bevestigd(self, *_):
@@ -1938,7 +1938,7 @@ class StatistiekBar(GridLayout):
         db_io = database.OpenIO(global_vars.db)
         ret = database.getOmzet(db_io, *self.omzet_mode)
         for key in self.rmethodes:
-            self.rmethodes[key].text = "€ {:>9}".format(round(ret.get(key,0),2))
+            self.rmethodes[key].text = "€ {:>9}".format(ret.get(key,0),2)
         database.CloseIO(db_io)
         self.rerror.text = ""
             

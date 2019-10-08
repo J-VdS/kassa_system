@@ -37,9 +37,9 @@ def InitTabels(db_io):
     conn, c = db_io
     #tables_check aanwezig
     #producten tabel
-    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs REAL, active INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs REAL, naam TEXT, betaalwijze TEXT)")
-    #c.execute("CREATE TABLE IF NOT EXISTS bestel)
+    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs DECIMAL(10,2), active INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs DECIMAL(10,2), naam TEXT, betaalwijze TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelid INTEGER PRIMARY KEY, bestelling BLOB, printerid INTEGER, ip TEXT, status TEXT, times_send INTEGER)")
     #print("---Product Table Loaded ---")
     conn.commit()
    
@@ -228,17 +228,17 @@ def getOmzet(db_io, start=None, end=None):
     conn, c = db_io
     result = {"omzet":0}
     if start == None and end == None:
-        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0")
+        c.execute("SELECT betaalwijze, SUM(prijs) FROM totalen WHERE open = 0 GROUP BY betaalwijze")
     elif start and end:
-        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0 AND id>=? AND id<=?", (start, end))
+        c.execute("SELECT betaalwijze, SUM(prijs) FROM totalen WHERE open = 0 AND id>=? AND id<=? GROUP BY betaalwijze", (start, end))
     elif start:
-        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0 AND id>=?", (start,))
+        c.execute("SELECT betaalwijze, SUM(prijs) FROM totalen WHERE open = 0 AND id>=? GROUP BY betaalwijze", (start,))
     else:
-        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0 AND id<=?", (end,))
+        c.execute("SELECT betaalwijze, SUM(prijs) FROM totalen WHERE open = 0 AND id<=? GROUP BY betaalwijze", (end,))
         
     data = c.fetchall()
     for B, P in data:
-        result[B] = result.get(B, 0) + P
+        result[B] = P
         result["omzet"] += P
     return result
 
