@@ -553,6 +553,7 @@ class ProductScreen(GridLayout):
         else:
             end = COLS*ROWS*(self.paginaNr+1)
         data = data[COLS*ROWS*self.paginaNr:end]
+        print(data)
         for i, knop in enumerate(self.prods_knoppen):
             try:
                 knop.text = "[b]{}[/b]".format(data[i][1])
@@ -621,6 +622,8 @@ class ProductScreen(GridLayout):
 class KassaClientApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.connect_pages = False
+        self.prod_page = False
 
     
     def build(self):
@@ -639,6 +642,8 @@ class KassaClientApp(App):
 
     
     def make_connect_pages(self):
+        if self.connect_pages:
+            return
         #login
         self.klant_info_pagina = KlantInfoScreen()
         scherm = Screen(name="klantinfo")
@@ -650,13 +655,19 @@ class KassaClientApp(App):
         scherm = Screen(name="bestelling")
         scherm.add_widget(self.bestelling_pagina)
         self.screen_manager.add_widget(scherm)
-        print(self.screen_manager.screens[-1].name)
+        
+        self.connect_pages = True
+        
     
     def make_prod_page(self):
+        if self.prod_page:
+            return
         self.prod_pagina = ProductScreen()
         scherm = Screen(name="product")
         scherm.add_widget(self.prod_pagina)
         self.screen_manager.add_widget(scherm)
+        
+        self.prod_page = True
     
     
     def delete_prod_pages(self):
@@ -685,7 +696,15 @@ class Client_storage():
     
     #setters
     def set_prod(self, prod):
+        #reset data
         self._prod = prod
+        self._prod_list_aantal = []
+        self._prod_list = []
+        self._prod_typelist = {}
+        self._prod_typelist_aantal = {}
+        self.types = []
+        
+        print("SET:", self._prod)
         for type in self._prod:
             self.types.append(type)
             self._prod_typelist[type] = []
