@@ -220,14 +220,23 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         EDIT_ID = message['bestelling']['info']['id']
                         ret = database.addBestelling(db_io, message['bestelling']['info'], best)
                         EDIT_ID = None
+                        #nieuwe bestelling
                         if ret == 1:
                             #herlaad de rekeningen
                             update_func(db_io)
-                            #
                             #notified_socket.send(makeMsg({"status":"succes"}))
+                            print("Succes")
                             best_status[message['hash']] = 1 #succes
+                        #oude bestelling
+                        elif ret == 0:
+                            print("Succes")
+                            best_status[message['hash']] = 1
+                        #gesloten bestelling
                         elif ret == -1:
+                            print("Probleem")
                             best_status[message['hash']] = 0 #closed
+                            
+                            continue
                             #notified_socket.send(makeMsg({"status":"closed"}))#, "info":message['bestelling']['info']}))
                         
                         
@@ -237,11 +246,17 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                     elif message['req'] == "MSG":
                         pass
                     elif message['req'] == "CHK":
+                        print(f"[SERVER][CHK]{user} vroeg check")
                         H = message['hash']
+                        print(H)
+                        print("Voor:", best_status)
                         if H in best_status:
                             notified_socket.send(makeMsg({"status":best_status[message['hash']]}))
+                            del best_status[H]
                         else:
                             notified_socket.send(makeMsg({"status":-1})) #key error/onbekend
+                        print("verzonden")
+                        print("Na:", best_status)
         
             # It's not really necessary to have this, but will handle some socket exceptions just in case
             for notified_socket in exception_sockets:

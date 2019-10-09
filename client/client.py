@@ -338,28 +338,9 @@ class HuidigeBestellingScreen(GridLayout):
             #er wordt al naar het home scherm terug gegaan 
             return
         #check of bestelling is toegekomen
-        """data = socket_client.listenData()
-        #probleem, verbinding verbroken of timeout
-        if isinstance(data, dict):
-            print(data)
-        elif data == -1:
-            print("TIMEOUT")
-            #TODO verwijder
-            show_error("TIMEOUT")
-            return
-            
-        
-        data = socket_client.listenData()
-        if isinstance(data, dict):
-            print(data)
-        elif data == -1:
-            print("TIMEOUT")
-            show_error("TIMEOUT")
-            return
-        """
         
         m_app.info_pagina.change_info("Bestelling onderweg...")
-        m_app.screen_manager.current = "info"#"klantinfo"
+        m_app.screen_manager.current = "info"
         
         #send check TCP-msg
         print("send check")
