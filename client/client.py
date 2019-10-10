@@ -240,38 +240,11 @@ class KlantInfoScreen(GridLayout):
         tafel = self.tafel.text.strip()
         
         if (ID == "")+(naam == "")+(tafel == "")+(verkoper == ""):
-            #popup vul alle velden in
-            popup = Popup(title="Info")
-            layout = GridLayout(cols=1)
-            
-            layout.add_widget(Label(text="Vul alle velden in!",
-                                    height=Window.size[1]*.8,
-                                    size_hint_y=None,
-                                    font_size=30))
-            
-            knop = Button(text="sluit",width=Window.size[0]*.75)
-            knop.bind(on_press=popup.dismiss)
-            layout.add_widget(knop)
-            
-            popup.add_widget(layout)                        
-            popup.open()
+            self.info_popup("Vul alle velden in!")
             return
         elif not(ID.isdigit()) or not(tafel.isdigit()):
             #popup gebruik nummers
-            popup = Popup(title="Info")
-            layout = GridLayout(cols=1)
-            
-            layout.add_widget(Label(text="ID en tafelnummer\nmoeten getallen zijn!",
-                                    height=Window.size[1]*.8,
-                                    size_hint_y=None,
-                                    font_size=30))
-            
-            knop = Button(text="sluit",width=Window.size[0]*.75)
-            knop.bind(on_press=popup.dismiss)
-            layout.add_widget(knop)
-            
-            popup.add_widget(layout)                        
-            popup.open()
+            self.info_popup("ID en tafelnummer\nmoeten getallen zijn!")
             return
         
         #reset de huidige bestelling en vul nieuwe indentificaties in
@@ -290,8 +263,75 @@ class KlantInfoScreen(GridLayout):
         m_app.screen_manager.current = "product" 
         
     
+    def info_popup(self, text):
+        popup = Popup(title="Info")
+        layout = GridLayout(cols=1)
+        
+        info_label = Label(text=text,
+                           height=Window.size[1]*.8,
+                           size_hint_y=None,
+                           font_size=30,
+                           halign="center")
+        info_label.bind(width=self._update_text_width)
+        layout.add_widget(info_label)
+        
+        knop = Button(text="sluit",width=Window.size[0]*.75)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
+        
+        
+    def _update_text_width(self, instance, _):
+        instance.text_size = (instance.width * .9, None)
+    
+    
+    #TODO
     def check_backup(self, _):
-        pass
+        if not(os.path.isfile("datadump.json")):
+            self.info_popup("Er is geen backup gevonden.\nJe bestelling is verzonden en aangekomen.")
+            return
+        #probeer de backup in te laden
+        try:
+            store = JsonStore("datadump.json")
+            info = store.get("backup").get("info") #gebruiken voor popup met info
+            data = store.get("backup").get("data")
+            DATA.load_data(data)
+            
+        except Exception as e:
+            print("JSON load error", str(e))
+            self.info_popup("Er ging iets mis bij het inladen van de backup.")
+            return
+        
+        #maak popup met info over de klant/status
+        popup = Popup(title="Klantinfo")
+        layout = GridLayout(cols=1)
+    
+        
+        layout.add_widget(Label(text="ID:  {}".format(info["naam"]), font_size=24))
+        layout.add_widget(Label(text="Naam:  {}".format(info["naam"]), font_size=24))
+        layout.add_widget(Label(text="Tafel: {}".format(info["tafel"]), font_size=24))
+        layout.add_widget(Label(text="Verzonden: {}".format("Ja" if (info["verzonden"]) else "Nee"), font_size=24))
+        layout.add_widget(Label(text="Bevestigd: {}".format("Ja" if (info["bevestigd"]) else "Nee"), font_size=24))
+        
+        info_label = Label(text="[color=#ffff00]Indien je bestelling reeds verzonden is zullen veranderingen niet worden toegelaten![/color]",
+                           font_size=22,
+                           markup=True)
+        info_label.bind(width=self._update_text_width)
+        layout.add_widget(info_label)
+        
+        knop = Button(text="sluit",width=Window.size[0]*.75)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
+        
+        #herlaad het bestellingscherm
+        m_app.prod_pagina.klik(Label(text=""), True)
+        m_app.prod_pagina.reset()
+        m_app.screen_manager.current = "bestelling"
         
 
 class HuidigeBestellingScreen(GridLayout):
@@ -339,20 +379,25 @@ class HuidigeBestellingScreen(GridLayout):
         #TODO: popup indien de bestelling leeg is
         #in principe zou dit geen gevolgen mogen geven.
         #print("[BESTELLING] %s" %(DATA.get_bestelling()))
-        H = "{}{}".format(DATA.get_info()['id'], randint(0,99))
-        DATA.set_hash(H)
-        if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling(), "hash":H}) != -1:
-            #TODO: backup
-            #m_app.screen_manager.current = "klantinfo"
-            pass
-        else:
-            #verbinding verbroken of een error
-            #er wordt al naar het home scherm terug gegaan 
-            return
-        #check of bestelling is toegekomen
-        DATA.set_verzonden(True)        
+        if not(DATA.get_status()[0]):
+            H = "{}{}".format(DATA.get_info()['id'], randint(0,99))
+            DATA.set_hash(H)
+            if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling(), "hash":H}) != -1:
+                #TODO: backup
+                #m_app.screen_manager.current = "klantinfo"
+                pass
+            else:
+                #verbinding verbroken of een error
+                #er wordt al naar het home scherm terug gegaan 
+                return
+            #check of bestelling is toegekomen
+            DATA.set_verzonden(True)        
         
-        m_app.info_pagina.change_info("Bestelling onderweg...")
+            m_app.info_pagina.change_info("Bestelling onderweg...")
+        else:
+            H = DATA.get_hash()
+            m_app.info_pagina.change_info("Aankomst bestelling aan het controleren")
+        
         m_app.screen_manager.current = "info"
         
         #send check TCP-msg
@@ -368,15 +413,40 @@ class HuidigeBestellingScreen(GridLayout):
         #succes
         elif ret["status"] == 1:
             m_app.info_pagina.change_info("Bestelling goed ontvangen en verwerkt.")
-            Clock.schedule_once(self.goKlantinfo, 4)
+            Clock.schedule_once(self.goKlantinfo, 2)
             DATA.set_bevestigd(True)
+            #verwijder de json file (moest die er zijn)
+            if os.path.isfile("datadump.json"):
+                os.remove("datadump.json")
+            
         #closed
         elif ret["status"] == 0:
             m_app.make_bestelling_closed()
             m_app.screen_manager.current = "closedbest"
+            DATA.set_verzonden(False) #terug op false want anders krijgen we een fake bestelling!
         #onbekend
         else:
-            pass
+            #geef foutmelding met hash en laat ze naar de keuken en kassa gaan
+            popup = Popup(title="Onbekend")
+            layout = GridLayout(cols=1)
+            
+            info_label = Label(text="[b][color=#00ff00]Hash: {}[/color][/b]\nGa nu naar de kassa en/of naar de togen om te controleren of er een ticket met deze hash is toegekomen!".format(DATA.get_hash()),
+                               height=Window.size[1]*.8,
+                               size_hint_y=None,
+                               font_size=30,
+                               halign="center",
+                               markup=True)
+            info_label.bind(width=self._update_width)
+            layout.add_widget(info_label)
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
+            
+            m_app.screen_manager.current = "klantinfo"
         
         
     def goKlantinfo(self, *_):
@@ -425,17 +495,16 @@ class HuidigeBestellingScreen(GridLayout):
         self.popup = Popup(title="Opmerkingen")
         layout = GridLayout(cols=1)
         
+        knop = Button(text="toevoegen", width=Window.size[0]*.4)
+        knop.bind(on_press=self._opmerking_toevoegen)
+        layout.add_widget(knop)
+        
         self.opm_input = TextInput(text=DATA.get_opm(), 
                                    height=Window.size[1]*.8,
                                    size_hint_y=None,
                                    font_size=22)
         self.opm_input.bind(width=self._update_width)
         layout.add_widget(self.opm_input)
-        
-        knop = Button(text="toevoegen", width=Window.size[0]*.4)
-        knop.bind(on_press=self._opmerking_toevoegen)
-        layout.add_widget(knop)
-        
 
         self.popup.add_widget(layout)                        
         self.popup.open()        
@@ -444,9 +513,29 @@ class HuidigeBestellingScreen(GridLayout):
     def _opmerking_toevoegen(self, _):
         DATA.set_opm(self.opm_input.text.strip())
         self.popup.dismiss()
+        
     
     def terug(self, _):
-        m_app.screen_manager.current = "product"  
+        if not(DATA.get_status()[0]):
+            m_app.screen_manager.current = "product"
+        else:
+            popup = Popup(title="Info")
+            layout = GridLayout(cols=1)
+            
+            info_label = Label(text="Normaal is de bestelling al verzonden\nBewerken is niet toegelaten!",
+                               height=Window.size[1]*.8,
+                               size_hint_y=None,
+                               font_size=30,
+                               halign="center")
+            info_label.bind(width=self._update_width)
+            layout.add_widget(info_label)
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
          
         
 class ProductScreen(GridLayout):
@@ -551,10 +640,17 @@ class ProductScreen(GridLayout):
         Clock.schedule_once(self.refill, 0.5)
         
                 
-    def klik(self, instance):
+    def klik(self, instance, load_backup=False):
         if instance.text != "":
             DATA.bestelling_add_prod(instance.text, instance.id, self.mode)
             #temp
+            m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
+            self.update_list = DATA.bestelling_list()
+            Clock.schedule_once(self.refill, 0.5)
+            #message = "{:<28}1".format(instance.text.strip())                
+            self.vul_in()
+        #TODO: remove or change
+        elif load_backup:
             m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
             self.update_list = DATA.bestelling_list()
             Clock.schedule_once(self.refill, 0.5)
@@ -807,11 +903,18 @@ class KassaClientApp(App):
     
     #indien de applicatie per ongeluk gesloten wordt
     def on_stop(self):
+        #als hij nog niet gestart is met een bestelling maar toch afsluit is dit niet nuttig!
+        if not(DATA.is_started()):
+            print("start")
+            return
+        
         if os.path.isfile("datadump.json"):
             os.remove("datadump.json")
-        if DATA.get_status == (True, True):
-            return 
+            print("verwijdert")
         
+        if DATA.get_status() == (True, True):
+            return 
+        #TODO: verwijder dit, was voor snel te scrollen
         data = DATA.dump_data()
         info = DATA.get_info()
         store = JsonStore("datadump.json")
@@ -838,6 +941,7 @@ class Client_storage():
         #info over de verzending
         self.verzonden = False
         self.bevestigd = False
+        self.started = False
         
     
     #setters
@@ -872,6 +976,11 @@ class Client_storage():
             self._prod_typelist_aantal[key] = self._prod_typelist[key][:]
         #self._prod_typelist_aantal = copy.deepcopy(self._prod_typelist)
         
+        #status
+        self.verzonden = False
+        self.bevestigd = False
+        self.started = True #dit zal anders key errors geven, of we slaan een nutteloze bestelling op
+        
     
     def change_creds(self, naam, id, tafelnr, verkoper):
         if verkoper != self.verkoper:
@@ -897,13 +1006,13 @@ class Client_storage():
         
     
     def dump_data(self):
-        return {"_prod": self._prod,
-                "_prod_list": self._prod_list,
+        return {"_prod": self._prod,            #eig niet nodig
+                "_prod_list": self._prod_list,  #eig niet nodig
                 "_prod_list_aantal": self._prod_list_aantal,
                 "verkoper": self.verkoper,
-                "_prod_typelist": self._prod_typelist,
+                "_prod_typelist": self._prod_typelist, #eig niet nodig
                 "_prod_typelist_aantal": self._prod_typelist_aantal,
-                "types": self.types,
+                "types": self.types,            #eig niet nodig
                 "bestelling": self.bestelling,
                 "status":(self.verzonden, self.bevestigd),
                 "hash": self.H
@@ -930,7 +1039,9 @@ class Client_storage():
     
     
     def get_info(self):
-        return self.bestelling["info"] 
+        extra = {"verzonden":self.verzonden, "bevestigd":self.bevestigd}
+        extra.update(self.bestelling["info"])
+        return extra
     
     
     def get_prod(self):
@@ -981,6 +1092,15 @@ class Client_storage():
     
     def get_status(self):
         return (self.verzonden, self.bevestigd)
+    
+    
+    def get_hash(self):
+        return self.H
+    
+    
+    #boolstatements
+    def is_started(self):
+        return self.started
     
     
     #bestelling

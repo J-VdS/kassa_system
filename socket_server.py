@@ -8,7 +8,6 @@ import database
 import func
 #error handling
 import sys
-import time
 
 #RUN_SERVER = True
 
@@ -59,7 +58,7 @@ def makeMsg(msg):
     return msg_header + msg
     
 
-def printer_bestelling(bestelling):
+def printer_bestelling(bestelling, h):
     producten = bestelling['BST']
     info = bestelling['info']
     opm = bestelling['opm']
@@ -67,7 +66,7 @@ def printer_bestelling(bestelling):
         b = {}
         for t in types:
             b.update(producten.get(t, {}))
-        msg = makeMsg({'info':info, 'opm':opm, 'BST':b})
+        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((ip, poort))
@@ -84,7 +83,8 @@ def printer_bestelling(bestelling):
 def printer_test(ip, poort):
     msg = makeMsg({'info':{'id':0, 'tafel':-1, 'naam':'KASSA', 'verkoper':'KASSA'},
                    'opm':"DIT is een test, geen actie nodig...",
-                   'BST':{}})
+                   'BST':{},
+                   'hash':"0000"})
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ip, poort))
@@ -241,7 +241,7 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         
                         
                         #stuur naar printer
-                        printer_bestelling(message['bestelling'])
+                        printer_bestelling(message['bestelling'], message['hash'])
                         #stuur succes, gelukt naar kassa
                     elif message['req'] == "MSG":
                         pass
