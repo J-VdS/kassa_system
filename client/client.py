@@ -200,7 +200,7 @@ class KlantInfoScreen(GridLayout):
         
         top_info = GridLayout(cols=2, rows=1, size_hint_y=0.15)
         top_info.add_widget(Label(text="Info over de klant:", font_size=22))
-        knop = Button(text="BACK UP", size_hint_x=0.5, background_color=(1,1,0,1), font_size=22)
+        knop = Button(text="BACK UP", size_hint_x=0.5, background_color=(0,0.2,1,1), background_normal='', font_size=22)
         knop.bind(on_press=self.check_backup)
         top_info.add_widget(knop)
         
