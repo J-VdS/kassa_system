@@ -401,7 +401,6 @@ class HuidigeBestellingScreen(GridLayout):
         m_app.screen_manager.current = "info"
         
         #send check TCP-msg
-        print("send check")
         ret = socket_client.requestData({'req':'CHK', "hash":H})
         if ret == -1:
             #TODO sla alles op, voeg een knopje toe laadt laatste bestelling terug in
@@ -905,12 +904,10 @@ class KassaClientApp(App):
     def on_stop(self):
         #als hij nog niet gestart is met een bestelling maar toch afsluit is dit niet nuttig!
         if not(DATA.is_started()):
-            print("start")
             return
         
         if os.path.isfile("datadump.json"):
             os.remove("datadump.json")
-            print("verwijdert")
         
         if DATA.get_status() == (True, True):
             return 
@@ -1020,14 +1017,14 @@ class Client_storage():
     
     
     def load_data(self, data):
-        print("loaded\n", data)
-        self._prod = data["_prod"]
-        self._prod_list = data["_prod_list"]
+        #print("loaded\n", data)
+        #self._prod = data["_prod"]
+        #self._prod_list = data["_prod_list"]
         self._prod_list_aantal = data["_prod_list_aantal"]
         self.verkoper = data["verkoper"]
-        self._prod_typelist = data["_prod_typelist"]
+        #self._prod_typelist = data["_prod_typelist"]
         self._prod_typelist_aantal = data["_prod_typelist_aantal"]
-        self.types = data["types"]
+        #self.types = data["types"]
         self.bestelling = data["bestelling"]
         self.status = data["status"]
         self.H = data["hash"]
