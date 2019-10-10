@@ -129,3 +129,6 @@ network_prot.txt
 
 #printer_data
 printer.data
+
+#json backup data
+client/*.json

@@ -20,6 +20,8 @@ from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.scrollview import ScrollView
+#save/dump
+from kivy.storage.jsonstore import JsonStore
 
 #networking
 import socket_client
@@ -196,24 +198,29 @@ class KlantInfoScreen(GridLayout):
         
         self.cols = 1
         
-        self.add_widget(Label(text="Info over de klant:", size_hint_y=0.15, font_size=22))
+        top_info = GridLayout(cols=2, rows=1, size_hint_y=0.15)
+        top_info.add_widget(Label(text="Info over de klant:", font_size=22))
+        knop = Button(text="BACK UP", size_hint_x=0.5, background_color=(1,1,0,1), font_size=22)
+        knop.bind(on_press=self.check_backup)
+        top_info.add_widget(knop)
         
+        self.add_widget(top_info)
         lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85)
         
         
-        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=22))
+        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=24))
         self.naam = TextInput(multiline=False, font_size=22)
         lay_top.add_widget(self.naam)
         
-        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=22))
+        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=24))
         self.ID = TextInput(input_type='number', multiline=False, font_size=22)
         lay_top.add_widget(self.ID)
         
-        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=22))
+        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=24))
         self.tafel = TextInput(input_type='number', multiline=False, font_size=22) 
         lay_top.add_widget(self.tafel)
         
-        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=22))
+        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=24))
         self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=22)
         lay_top.add_widget(self.verkoper)
         
@@ -280,7 +287,11 @@ class KlantInfoScreen(GridLayout):
         self.naam.text = ""
         self.tafel.text = ""
         
-        m_app.screen_manager.current = "product"       
+        m_app.screen_manager.current = "product" 
+        
+    
+    def check_backup(self, _):
+        pass
         
 
 class HuidigeBestellingScreen(GridLayout):
@@ -329,6 +340,7 @@ class HuidigeBestellingScreen(GridLayout):
         #in principe zou dit geen gevolgen mogen geven.
         #print("[BESTELLING] %s" %(DATA.get_bestelling()))
         H = "{}{}".format(DATA.get_info()['id'], randint(0,99))
+        DATA.set_hash(H)
         if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling(), "hash":H}) != -1:
             #TODO: backup
             #m_app.screen_manager.current = "klantinfo"
@@ -338,6 +350,7 @@ class HuidigeBestellingScreen(GridLayout):
             #er wordt al naar het home scherm terug gegaan 
             return
         #check of bestelling is toegekomen
+        DATA.set_verzonden(True)        
         
         m_app.info_pagina.change_info("Bestelling onderweg...")
         m_app.screen_manager.current = "info"
@@ -356,6 +369,7 @@ class HuidigeBestellingScreen(GridLayout):
         elif ret["status"] == 1:
             m_app.info_pagina.change_info("Bestelling goed ontvangen en verwerkt.")
             Clock.schedule_once(self.goKlantinfo, 4)
+            DATA.set_bevestigd(True)
         #closed
         elif ret["status"] == 0:
             m_app.make_bestelling_closed()
@@ -736,7 +750,6 @@ class BestellingErrorScreen(GridLayout):
         m_app.bestelling_pagina.send_bestelling(None)
     
         
-
 class KassaClientApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -790,7 +803,21 @@ class KassaClientApp(App):
     
     def goHome(self, *_):
         self.screen_manager.current = "login"
-
+        
+    
+    #indien de applicatie per ongeluk gesloten wordt
+    def on_stop(self):
+        if os.path.isfile("datadump.json"):
+            os.remove("datadump.json")
+        if DATA.get_status == (True, True):
+            return 
+        
+        data = DATA.dump_data()
+        info = DATA.get_info()
+        store = JsonStore("datadump.json")
+        store.put("backup", data=data, info=info)
+        store.put("viewer", url="http://jsonviewer.stack.hu/")
+        
 
 #datastructuur voor alle info
 class Client_storage():
@@ -805,7 +832,12 @@ class Client_storage():
         self.types = []
         
         #bevat alle info voor de server en de kassa
-        self.bestelling = {} 
+        self.bestelling = {}
+        self.H = 0
+        
+        #info over de verzending
+        self.verzonden = False
+        self.bevestigd = False
         
     
     #setters
@@ -850,6 +882,47 @@ class Client_storage():
     def set_opm(self, opm):
         self.bestelling["opm"] = opm        
         
+        
+    def set_verzonden(self, value):
+        self.verzonden = value
+    
+    
+    def set_bevestigd(self, value):
+        self.bevestigd = value
+        
+    
+    #nodig voor dump data als je afsluit ofzo
+    def set_hash(self, H):
+        self.H = H
+        
+    
+    def dump_data(self):
+        return {"_prod": self._prod,
+                "_prod_list": self._prod_list,
+                "_prod_list_aantal": self._prod_list_aantal,
+                "verkoper": self.verkoper,
+                "_prod_typelist": self._prod_typelist,
+                "_prod_typelist_aantal": self._prod_typelist_aantal,
+                "types": self.types,
+                "bestelling": self.bestelling,
+                "status":(self.verzonden, self.bevestigd),
+                "hash": self.H
+                }
+    
+    
+    def load_data(self, data):
+        print("loaded\n", data)
+        self._prod = data["_prod"]
+        self._prod_list = data["_prod_list"]
+        self._prod_list_aantal = data["_prod_list_aantal"]
+        self.verkoper = data["verkoper"]
+        self._prod_typelist = data["_prod_typelist"]
+        self._prod_typelist_aantal = data["_prod_typelist_aantal"]
+        self.types = data["types"]
+        self.bestelling = data["bestelling"]
+        self.status = data["status"]
+        self.H = data["hash"]
+    
         
     #getters
     def get_bestelling(self):
@@ -904,6 +977,10 @@ class Client_storage():
         else:
             geh, rest = divmod(len(self.get_prod_by_type(type_index)), COLS*ROWS)
         return geh if (rest==0) else (geh + 1)
+    
+    
+    def get_status(self):
+        return (self.verzonden, self.bevestigd)
     
     
     #bestelling
