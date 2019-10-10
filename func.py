@@ -22,10 +22,10 @@ def sort_by_type(data):
 
 
 def print_dict(d):
-    msg = ["{:^28}##".format("Product"), "-"*29]
+    msg = []
     for key in d:
         msg.append("{:<28}{:>2}".format(key, d[key]))
-    return msg
+    return ["{:^28}##".format("Product"), "-"*32] + sorted(msg)
 
 
 #datastructuur voor alle info

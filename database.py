@@ -37,9 +37,9 @@ def InitTabels(db_io):
     conn, c = db_io
     #tables_check aanwezig
     #producten tabel
-    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs REAL, active INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs REAL, naam TEXT, betaalwijze TEXT)")
-    #c.execute("CREATE TABLE IF NOT EXISTS bestel)
+    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs DECIMAL(10,2), active INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs DECIMAL(10,2), naam TEXT, betaalwijze TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelid INTEGER PRIMARY KEY, bestelling BLOB, printerid INTEGER, ip TEXT, status TEXT, times_send INTEGER)")
     #print("---Product Table Loaded ---")
     conn.commit()
    
@@ -232,17 +232,17 @@ def getOmzet(db_io, start=None, end=None):
     conn, c = db_io
     result = {"omzet":0}
     if start == None and end == None:
-        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0")
+        c.execute("SELECT betaalwijze, SUM(prijs) FROM totalen WHERE open = 0 GROUP BY betaalwijze")
     elif start and end:
-        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0 AND id>=? AND id<=?", (start, end))
+        c.execute("SELECT betaalwijze, SUM(prijs) FROM totalen WHERE open = 0 AND id>=? AND id<=? GROUP BY betaalwijze", (start, end))
     elif start:
-        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0 AND id>=?", (start,))
+        c.execute("SELECT betaalwijze, SUM(prijs) FROM totalen WHERE open = 0 AND id>=? GROUP BY betaalwijze", (start,))
     else:
-        c.execute("SELECT betaalwijze, prijs FROM totalen WHERE open = 0 AND id<=?", (end,))
+        c.execute("SELECT betaalwijze, SUM(prijs) FROM totalen WHERE open = 0 AND id<=? GROUP BY betaalwijze", (end,))
         
     data = c.fetchall()
     for B, P in data:
-        result[B] = result.get(B, 0) + P
+        result[B] = P
         result["omzet"] += P
     return result
 
@@ -356,3 +356,29 @@ def exportXLSX(db_io):
         os.mkdir("./exports")
     wb.save(filename = "exports/"+datetime.datetime.now().strftime("%d%m%y@%H-%M-%S_")+"export.xlsx")
     
+    
+def importCSV(file, ret_d):
+    try:
+        with open(file, newline='') as infile:
+            reader = csv.reader(infile, delimiter=',')
+            next(reader)
+            for row in reader:
+                if len(row) != 2:
+                    return -1
+                K, A = row
+                ret_d[K] = A
+        return 0
+    except Exception as e:
+        print(e)
+        return -2
+
+
+def importXLSX(file, ret_d):
+    try:
+        wb = openpyxl.load_workbook(file)
+        sheet = wb["verkochte aantallen"]
+        for row in sheet.iter_rows(min_row=2, max_col=2, values_only=True):
+            ret_d[row[0]] = row[1]
+        return 0
+    except:
+        return -1

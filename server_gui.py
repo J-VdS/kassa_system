@@ -22,6 +22,9 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.popup import Popup
+#fileviewer
+from kivy.uix.filechooser import FileChooserListView
+
 
 from kivy.core.window import Window
 from kivy.clock import Clock
@@ -171,6 +174,7 @@ class OptieScherm(GridLayout):
         self.navbar = NavigatieBar(huidig="setting")
         self.add_widget(self.navbar)
         self.add_widget(Label(text="scherm1"))
+        
         
 #bars
 class NavigatieBar(BoxLayout):
@@ -1473,7 +1477,7 @@ class BestelBar(GridLayout):
         if not(isinstance(totaal, float)) or not(func.is_number(ontvangen)):
             self.twisselgeld.text = "ERROR"
         else:
-            self.twisselgeld.text = str(round(float(ontvangen)-totaal,3))
+            self.twisselgeld.text = str(float(ontvangen)-totaal,3)
         
 
     def afronden_bevestigd(self, *_):
@@ -1595,7 +1599,7 @@ class StatistiekBar(GridLayout):
         
         links.add_widget(linkstop)
         self.links_scroll = LijstLabel() #momenteel in db
-        self.update_list_links = ["{:^28}{:>2}".format("Product", "#"), "-"*32]
+        self.update_list_links = ["{:^28}##".format("Product"), "-"*32]
         self.refill_left()
         links.add_widget(self.links_scroll)
         self.add_widget(links)
@@ -1603,12 +1607,23 @@ class StatistiekBar(GridLayout):
         #midden
         midden = GridLayout(cols=1, rows=2, spacing=[0, 10])
         #bevat de mogelijkheden + herlaadknop + import knop
-        midtop = GridLayout(cols=2, size_hint_y=0.25)
-        
+        midtop = GridLayout(cols=1, size_hint_y=0.25)
+        midtopa = GridLayout(cols=2)
+        knop = Button(text="import .csv", font_size=20)
+        knop.bind(on_press=self.import_csv_popup)
+        midtopa.add_widget(knop)
+        knop = Button(text="import .xlsx", font_size=20)
+        knop.bind(on_press=self.import_xlsx_popup)
+        midtopa.add_widget(knop)
+        midtop.add_widget(midtopa)
+        self.mid_status = Label(text="", font_size=20, markup=True, size_hint_y=0.58, halign="center")
+        self.mid_status.bind(width=self._update_text_width)
+        midtop.add_widget(self.mid_status)
+    
         
         midden.add_widget(midtop)
         self.mid_scroll = LijstLabel() #import csv
-        self.update_list_mid = ["{:^28}{:>2}".format("Product", "#"), "-"*32]
+        self.update_list_mid = ["{:^28}##".format("Product"), "-"*32]
         self.refill_mid()
         midden.add_widget(self.mid_scroll)
         self.add_widget(midden)
@@ -1760,18 +1775,105 @@ class StatistiekBar(GridLayout):
             database.CloseIO(db_io)
             self.lerror.text = ""
     
+    
     def refill_left(self, *_):
         #vult het linkselabel
         if len(self.update_list_links):
             self.links_scroll.update_bestelling(self.update_list_links.pop(0))
             Clock.schedule_once(self.refill_left, 0.001)
-    
+
     
     def refill_mid(self, *_):
         if len(self.update_list_mid):
             self.mid_scroll.update_bestelling(self.update_list_mid.pop(0))
             Clock.schedule_once(self.refill_mid, 0.001)
      
+        
+    def import_csv_popup(self, _):
+        self.ipopup = Popup(title="Importeren", size=(600,400), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+                
+        self.FS = FileChooserListView(size_hint_y=None, height=290)
+        layout.add_widget(self.FS)
+        
+        knoplayout = BoxLayout(orientation="horizontal")
+    
+        knop = Button(text="annuleer", size_hint_y=None, height=40)
+        knop.bind(on_press=self.ipopup.dismiss)
+        knoplayout.add_widget(knop)
+        
+        knop = Button(text="importeren", size_hint_y=None, height=40, id="csv")
+        knop.bind(on_press=self.import_data)
+        knoplayout.add_widget(knop)
+        
+        layout.add_widget(knoplayout)
+        
+        self.ipopup.add_widget(layout)                        
+        self.ipopup.open()
+    
+    
+    def import_xlsx_popup(self, _):
+        self.ipopup = Popup(title="Importeren", size=(600,400), size_hint=(None,None))
+        layout = GridLayout(cols=1)
+                
+        self.FS = FileChooserListView(size_hint_y=None, height=290)
+        layout.add_widget(self.FS)
+        
+        knoplayout = BoxLayout(orientation="horizontal")
+    
+        knop = Button(text="annuleer", size_hint_y=None, height=40)
+        knop.bind(on_press=self.ipopup.dismiss)
+        knoplayout.add_widget(knop)
+        
+        knop = Button(text="importeren", size_hint_y=None, height=40, id="xlsx")
+        knop.bind(on_press=self.import_data)
+        knoplayout.add_widget(knop)
+        
+        layout.add_widget(knoplayout)
+        
+        self.ipopup.add_widget(layout)                        
+        self.ipopup.open()
+        
+        
+    def import_data(self, instance):
+        if not(self.FS.selection):
+            self.mid_status.text = "[color=#ff0000]Selecteer een bestand![/color]"
+            self.ipopup.dismiss()
+            return
+        file = self.FS.selection[0]
+        print(file)
+        ID = instance.id
+        if file.split(".")[-1] != instance.id:
+            self.mid_status.text = "[color=#ff0000]Dit is geen .{} bestand![/color]".format(ID)
+            self.ipopup.dismiss()
+            return
+        if ID == "csv":
+            ret_d = {}
+            ret = database.importCSV(file, ret_d)
+            if ret == 0:
+                self.mid_status.text = file.split("\\")[-1]
+                self.mid_scroll.verklein_bestelling()
+                self.update_list_mid = func.print_dict(ret_d)
+                Clock.schedule_once(self.refill_mid, 0.5)
+            elif ret == -1:
+                self.mid_status.text = "[color=#ff0000]Ongeldig bestand![/color]"
+            else:
+                self.mid.status.text = "[color=#ffff00]ERROR...[/color]"
+        else:#XLSX
+            ret_d = {}
+            ret = database.importXLSX(file, ret_d)
+            if ret == 0:
+                self.mid_status.text = file.split("\\")[-1]
+                self.mid_scroll.verklein_bestelling()
+                self.update_list_mid = func.print_dict(ret_d)
+                Clock.schedule_once(self.refill_mid, 0.5)
+            elif ret == -1:
+                self.mid_status.text = "[color=#ff0000]Ongeldig bestand![/color]"
+            else:
+                self.mid.status.text = "[color=#ffff00]ERROR...[/color]"
+        
+        self.ipopup.dismiss()
+        
         
     def omzet_selectie(self, _):
         self.rpopup = Popup(title="selectie", size=(300, 300), size_hint=(None,None))
@@ -1836,7 +1938,7 @@ class StatistiekBar(GridLayout):
         db_io = database.OpenIO(global_vars.db)
         ret = database.getOmzet(db_io, *self.omzet_mode)
         for key in self.rmethodes:
-            self.rmethodes[key].text = "€ {:>9}".format(round(ret.get(key,0),2))
+            self.rmethodes[key].text = "€ {:>9}".format(ret.get(key,0),2)
         database.CloseIO(db_io)
         self.rerror.text = ""
             
