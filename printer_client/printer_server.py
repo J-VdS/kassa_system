@@ -199,11 +199,14 @@ def start_printloop(conditie):
 def printer_verwerk(printer_obj, obj):
     if "close" in obj:
         return False
-    #check of printer nog papier heeft
-    #https://github.com/python-escpos/python-escpos/issues/143
-    printer_obj.device.write(OUT_END, "\x10\x04\x04", 5000) 
-    #weet niet of dit werkt
-    ret = printer_obj.device.read(IN_END, 256, 5000)
+    try:
+        #check of printer nog papier heeft
+        #https://github.com/python-escpos/python-escpos/issues/143
+        printer_obj.device.write(OUT_END, "\x10\x04\x04", 5000) 
+        #weet niet of dit werkt
+        ret = printer_obj.device.read(IN_END, 256, 5000)
+    except Exception as e:
+        print("Papiererror: ", e)
     
     try:
         #print en verwerk
@@ -211,7 +214,7 @@ def printer_verwerk(printer_obj, obj):
         print("INFO:", obj['info'])
         print("BESTELLING: ", obj['BST'])
         print("OPM:", obj['opm'])
-        printer_obj.text("ID:{:<13}TAFEL:{}\nN:{}\nV:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['naam'], obj['info']['verkoper']))
+        printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<13}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
         printer_obj.text("-"*32+"\n")
         for prod in obj['BST']:
             printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))

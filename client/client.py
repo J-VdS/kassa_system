@@ -1,5 +1,6 @@
 import os
 import sys
+from random import randint
 
 #algemeen
 import kivy
@@ -19,6 +20,8 @@ from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.scrollview import ScrollView
+#save/dump
+from kivy.storage.jsonstore import JsonStore
 
 #networking
 import socket_client
@@ -82,14 +85,14 @@ class LoginScreen(GridLayout):
                 font_size = 22)
         lay_top.add_widget(self.naam)
         
-        lay_top.add_widget(Label(
-                text="Wachtwoord:", 
-                font_size = 22))
-        self.password = TextInput(
-                multiline=False, 
-                password=True, 
-                font_size = 22)
-        lay_top.add_widget(self.password)
+#        lay_top.add_widget(Label(
+#                text="Wachtwoord:", 
+#                font_size = 22))
+#        self.password = TextInput(
+#                multiline=False, 
+#                password=True, 
+#                font_size = 22)
+#        lay_top.add_widget(self.password)
         
         self.add_widget(lay_top)
         
@@ -109,7 +112,7 @@ class LoginScreen(GridLayout):
         ip = self.ip_veld.text
         poort = self.poort.text
         naam = self.naam.text
-        wachtwoord = self.password.text
+        wachtwoord =  "abc" #self.password.text
         
         if ip != "" and poort != "" and naam != "" and wachtwoord != "":
             with open("credentials.txt", "w") as f:
@@ -145,7 +148,7 @@ class LoginScreen(GridLayout):
         ip = self.ip_veld.text
         poort = int(self.poort.text)
         naam = self.naam.text
-        wachtwoord = self.password.text
+        wachtwoord = "abc" #self.password.text
         
         
         if not socket_client.connect(ip, poort, naam, wachtwoord, show_error):
@@ -195,25 +198,29 @@ class KlantInfoScreen(GridLayout):
         
         self.cols = 1
         
-        self.add_widget(Label(text="Info over de klant:", size_hint_y=0.13, font_size=20))
+        top_info = GridLayout(cols=2, rows=1, size_hint_y=0.15)
+        top_info.add_widget(Label(text="Info over de klant:", font_size=22))
+        knop = Button(text="BACK UP", size_hint_x=0.5, background_color=(0,0.2,1,1), background_normal='', font_size=22)
+        knop.bind(on_press=self.check_backup)
+        top_info.add_widget(knop)
         
-        lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85 )
+        self.add_widget(top_info)
+        lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85)
         
         
-        
-        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=22))
+        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=24))
         self.naam = TextInput(multiline=False, font_size=22)
         lay_top.add_widget(self.naam)
         
-        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=22))
+        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=24))
         self.ID = TextInput(input_type='number', multiline=False, font_size=22)
         lay_top.add_widget(self.ID)
         
-        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=22))
+        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=24))
         self.tafel = TextInput(input_type='number', multiline=False, font_size=22) 
         lay_top.add_widget(self.tafel)
         
-        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=22))
+        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=24))
         self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=22)
         lay_top.add_widget(self.verkoper)
         
@@ -233,38 +240,11 @@ class KlantInfoScreen(GridLayout):
         tafel = self.tafel.text.strip()
         
         if (ID == "")+(naam == "")+(tafel == "")+(verkoper == ""):
-            #popup vul alle velden in
-            popup = Popup(title="Info")
-            layout = GridLayout(cols=1)
-            
-            layout.add_widget(Label(text="Vul alle velden in!",
-                                    height=Window.size[1]*.8,
-                                    size_hint_y=None,
-                                    font_size=30))
-            
-            knop = Button(text="sluit",width=Window.size[0]*.75)
-            knop.bind(on_press=popup.dismiss)
-            layout.add_widget(knop)
-            
-            popup.add_widget(layout)                        
-            popup.open()
+            self.info_popup("Vul alle velden in!")
             return
         elif not(ID.isdigit()) or not(tafel.isdigit()):
             #popup gebruik nummers
-            popup = Popup(title="Info")
-            layout = GridLayout(cols=1)
-            
-            layout.add_widget(Label(text="ID en tafelnummer\nmoeten getallen zijn!",
-                                    height=Window.size[1]*.8,
-                                    size_hint_y=None,
-                                    font_size=30))
-            
-            knop = Button(text="sluit",width=Window.size[0]*.75)
-            knop.bind(on_press=popup.dismiss)
-            layout.add_widget(knop)
-            
-            popup.add_widget(layout)                        
-            popup.open()
+            self.info_popup("ID en tafelnummer\nmoeten getallen zijn!")
             return
         
         #reset de huidige bestelling en vul nieuwe indentificaties in
@@ -280,7 +260,78 @@ class KlantInfoScreen(GridLayout):
         self.naam.text = ""
         self.tafel.text = ""
         
-        m_app.screen_manager.current = "product"       
+        m_app.screen_manager.current = "product" 
+        
+    
+    def info_popup(self, text):
+        popup = Popup(title="Info")
+        layout = GridLayout(cols=1)
+        
+        info_label = Label(text=text,
+                           height=Window.size[1]*.8,
+                           size_hint_y=None,
+                           font_size=30,
+                           halign="center")
+        info_label.bind(width=self._update_text_width)
+        layout.add_widget(info_label)
+        
+        knop = Button(text="sluit",width=Window.size[0]*.75)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
+        
+        
+    def _update_text_width(self, instance, _):
+        instance.text_size = (instance.width * .9, None)
+    
+    
+    #TODO
+    def check_backup(self, _):
+        if not(os.path.isfile("datadump.json")):
+            self.info_popup("Er is geen backup gevonden.\nJe bestelling is verzonden en aangekomen.")
+            return
+        #probeer de backup in te laden
+        try:
+            store = JsonStore("datadump.json")
+            info = store.get("backup").get("info") #gebruiken voor popup met info
+            data = store.get("backup").get("data")
+            DATA.load_data(data)
+            
+        except Exception as e:
+            print("JSON load error", str(e))
+            self.info_popup("Er ging iets mis bij het inladen van de backup.")
+            return
+        
+        #maak popup met info over de klant/status
+        popup = Popup(title="Klantinfo")
+        layout = GridLayout(cols=1)
+    
+        
+        layout.add_widget(Label(text="ID:  {}".format(info["naam"]), font_size=24))
+        layout.add_widget(Label(text="Naam:  {}".format(info["naam"]), font_size=24))
+        layout.add_widget(Label(text="Tafel: {}".format(info["tafel"]), font_size=24))
+        layout.add_widget(Label(text="Verzonden: {}".format("Ja" if (info["verzonden"]) else "Nee"), font_size=24))
+        layout.add_widget(Label(text="Bevestigd: {}".format("Ja" if (info["bevestigd"]) else "Nee"), font_size=24))
+        
+        info_label = Label(text="[color=#ffff00]Indien je bestelling reeds verzonden is zullen veranderingen niet worden toegelaten![/color]",
+                           font_size=22,
+                           markup=True)
+        info_label.bind(width=self._update_text_width)
+        layout.add_widget(info_label)
+        
+        knop = Button(text="sluit",width=Window.size[0]*.75)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
+        
+        #herlaad het bestellingscherm
+        m_app.prod_pagina.klik(Label(text=""), True)
+        m_app.prod_pagina.reset()
+        m_app.screen_manager.current = "bestelling"
         
 
 class HuidigeBestellingScreen(GridLayout):
@@ -328,13 +379,78 @@ class HuidigeBestellingScreen(GridLayout):
         #TODO: popup indien de bestelling leeg is
         #in principe zou dit geen gevolgen mogen geven.
         #print("[BESTELLING] %s" %(DATA.get_bestelling()))
-        if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling()}) != -1:
-            #TODO: backup
-            m_app.screen_manager.current = "klantinfo"
+        if not(DATA.get_status()[0]):
+            H = "{}{}".format(DATA.get_info()['id'], randint(0,99))
+            DATA.set_hash(H)
+            if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling(), "hash":H}) != -1:
+                #TODO: backup
+                #m_app.screen_manager.current = "klantinfo"
+                pass
+            else:
+                #verbinding verbroken of een error
+                #er wordt al naar het home scherm terug gegaan 
+                return
+            #check of bestelling is toegekomen
+            DATA.set_verzonden(True)        
+        
+            m_app.info_pagina.change_info("Bestelling onderweg...")
         else:
-            #smth went wrong
-            pass
+            H = DATA.get_hash()
+            m_app.info_pagina.change_info("Aankomst bestelling aan het controleren")
+        
+        m_app.screen_manager.current = "info"
+        
+        #send check TCP-msg
+        ret = socket_client.requestData({'req':'CHK', "hash":H})
+        if ret == -1:
+            #TODO sla alles op, voeg een knopje toe laadt laatste bestelling terug in
+            print("ERROR")
+            return
+        elif not("status" in ret):
+            print("ERROR, geen status")
+            return
+        #succes
+        elif ret["status"] == 1:
+            m_app.info_pagina.change_info("Bestelling goed ontvangen en verwerkt.")
+            Clock.schedule_once(self.goKlantinfo, 2)
+            DATA.set_bevestigd(True)
+            #verwijder de json file (moest die er zijn)
+            if os.path.isfile("datadump.json"):
+                os.remove("datadump.json")
             
+        #closed
+        elif ret["status"] == 0:
+            m_app.make_bestelling_closed()
+            m_app.screen_manager.current = "closedbest"
+            DATA.set_verzonden(False) #terug op false want anders krijgen we een fake bestelling!
+        #onbekend
+        else:
+            #geef foutmelding met hash en laat ze naar de keuken en kassa gaan
+            popup = Popup(title="Onbekend")
+            layout = GridLayout(cols=1)
+            
+            info_label = Label(text="[b][color=#00ff00]Hash: {}[/color][/b]\nGa nu naar de kassa en/of naar de togen om te controleren of er een ticket met deze hash is toegekomen!".format(DATA.get_hash()),
+                               height=Window.size[1]*.8,
+                               size_hint_y=None,
+                               font_size=30,
+                               halign="center",
+                               markup=True)
+            info_label.bind(width=self._update_width)
+            layout.add_widget(info_label)
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
+            
+            m_app.screen_manager.current = "klantinfo"
+        
+        
+    def goKlantinfo(self, *_):
+        m_app.screen_manager.current = "klantinfo"
+        
     
     def verwijder(self, _):
         self.popup = Popup(title="Info")
@@ -378,17 +494,16 @@ class HuidigeBestellingScreen(GridLayout):
         self.popup = Popup(title="Opmerkingen")
         layout = GridLayout(cols=1)
         
+        knop = Button(text="toevoegen", width=Window.size[0]*.4)
+        knop.bind(on_press=self._opmerking_toevoegen)
+        layout.add_widget(knop)
+        
         self.opm_input = TextInput(text=DATA.get_opm(), 
                                    height=Window.size[1]*.8,
                                    size_hint_y=None,
                                    font_size=22)
         self.opm_input.bind(width=self._update_width)
         layout.add_widget(self.opm_input)
-        
-        knop = Button(text="toevoegen", width=Window.size[0]*.4)
-        knop.bind(on_press=self._opmerking_toevoegen)
-        layout.add_widget(knop)
-        
 
         self.popup.add_widget(layout)                        
         self.popup.open()        
@@ -397,10 +512,29 @@ class HuidigeBestellingScreen(GridLayout):
     def _opmerking_toevoegen(self, _):
         DATA.set_opm(self.opm_input.text.strip())
         self.popup.dismiss()
+        
     
     def terug(self, _):
-        m_app.screen_manager.current = "product"
-        
+        if not(DATA.get_status()[0]):
+            m_app.screen_manager.current = "product"
+        else:
+            popup = Popup(title="Info")
+            layout = GridLayout(cols=1)
+            
+            info_label = Label(text="Normaal is de bestelling al verzonden\nBewerken is niet toegelaten!",
+                               height=Window.size[1]*.8,
+                               size_hint_y=None,
+                               font_size=30,
+                               halign="center")
+            info_label.bind(width=self._update_width)
+            layout.add_widget(info_label)
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
          
         
 class ProductScreen(GridLayout):
@@ -505,10 +639,17 @@ class ProductScreen(GridLayout):
         Clock.schedule_once(self.refill, 0.5)
         
                 
-    def klik(self, instance):
+    def klik(self, instance, load_backup=False):
         if instance.text != "":
             DATA.bestelling_add_prod(instance.text, instance.id, self.mode)
             #temp
+            m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
+            self.update_list = DATA.bestelling_list()
+            Clock.schedule_once(self.refill, 0.5)
+            #message = "{:<28}1".format(instance.text.strip())                
+            self.vul_in()
+        #TODO: remove or change
+        elif load_backup:
             m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
             self.update_list = DATA.bestelling_list()
             Clock.schedule_once(self.refill, 0.5)
@@ -619,12 +760,98 @@ class ProductScreen(GridLayout):
         del self.tpopup
         
 
+
+class BestellingErrorScreen(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        self.add_widget(Label(
+                text="Het ID klopt niet; deze rekening is reeds afgesloten.",
+                font_size=22,
+                size_hint_y=0.2))
+        
+        lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85)
+        
+        info = DATA.get_info()
+        
+        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=22))
+        self.naam = TextInput(multiline=False, font_size=22, text=info["naam"])
+        lay_top.add_widget(self.naam)
+        
+        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=22))
+        self.ID = TextInput(input_type='number', multiline=False, font_size=22)
+        lay_top.add_widget(self.ID)
+        
+        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=22))
+        self.tafel = TextInput(input_type='number', multiline=False, font_size=22, text=str(info["tafel"])) 
+        lay_top.add_widget(self.tafel)
+        
+        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=22))
+        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=22)
+        lay_top.add_widget(self.verkoper)
+        
+        self.add_widget(lay_top)
+        
+        knop = Button(text="Probeer opnieuw", font_size=28, size_hint_y=0.3)
+        knop.bind(on_press=self.resend)
+        self.add_widget(knop)
+        
+        self.add_widget(Label(text="", size_hint_y=None, height=Window.size[1]*0.45))
+        
+    
+    def resend(self, _):
+        #check alle velden ingevuld
+        verkoper = self.verkoper.text.strip()
+        ID = self.ID.text.strip()
+        naam = self.naam.text.strip()
+        tafel = self.tafel.text.strip()
+        
+        if (ID == "")+(naam == "")+(tafel == "")+(verkoper == ""):
+            #popup vul alle velden in
+            popup = Popup(title="Info")
+            layout = GridLayout(cols=1)
+            
+            layout.add_widget(Label(text="Vul alle velden in!",
+                                    height=Window.size[1]*.8,
+                                    size_hint_y=None,
+                                    font_size=30))
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
+            return
+        elif not(ID.isdigit()) or not(tafel.isdigit()):
+            #popup gebruik nummers
+            popup = Popup(title="Info")
+            layout = GridLayout(cols=1)
+            
+            layout.add_widget(Label(text="ID en tafelnummer\nmoeten getallen zijn!",
+                                    height=Window.size[1]*.8,
+                                    size_hint_y=None,
+                                    font_size=30))
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
+            return
+        
+        DATA.change_creds(naam, ID, tafel, verkoper)
+        
+        m_app.bestelling_pagina.send_bestelling(None)
+    
+        
 class KassaClientApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.best_closed = False
         self.connect_pages = False
         self.prod_page = False
-
     
     def build(self):
         self.screen_manager = ScreenManager(transition=FadeTransition())
@@ -670,13 +897,38 @@ class KassaClientApp(App):
         self.prod_page = True
     
     
-    def delete_prod_pages(self):
-        pass
-    
+    def make_bestelling_closed(self):
+        if not(self.best_closed):
+            #bestelling closed error
+            self.bestelling_closed_pagina = BestellingErrorScreen()
+            scherm = Screen(name="closedbest")
+            scherm.add_widget(self.bestelling_closed_pagina)
+            self.screen_manager.add_widget(scherm)
+            self.best_closed = True
+
     
     def goHome(self, *_):
         self.screen_manager.current = "login"
-
+        
+    
+    #indien de applicatie per ongeluk gesloten wordt
+    def on_stop(self):
+        #als hij nog niet gestart is met een bestelling maar toch afsluit is dit niet nuttig!
+        if not(DATA.is_started()):
+            return
+        
+        if os.path.isfile("datadump.json"):
+            os.remove("datadump.json")
+        
+        if DATA.get_status() == (True, True):
+            return 
+        #TODO: verwijder dit, was voor snel te scrollen
+        data = DATA.dump_data()
+        info = DATA.get_info()
+        store = JsonStore("datadump.json")
+        store.put("backup", data=data, info=info)
+        store.put("viewer", url="http://jsonviewer.stack.hu/")
+        
 
 #datastructuur voor alle info
 class Client_storage():
@@ -691,7 +943,13 @@ class Client_storage():
         self.types = []
         
         #bevat alle info voor de server en de kassa
-        self.bestelling = {} 
+        self.bestelling = {}
+        self.H = 0
+        
+        #info over de verzending
+        self.verzonden = False
+        self.bevestigd = False
+        self.started = False
         
     
     #setters
@@ -732,15 +990,73 @@ class Client_storage():
         for key in self._prod_typelist:
             self._prod_typelist_aantal[key] = self._prod_typelist[key][:]
         #self._prod_typelist_aantal = copy.deepcopy(self._prod_typelist)
+        
+        #status
+        self.verzonden = False
+        self.bevestigd = False
+        self.started = True #dit zal anders key errors geven, of we slaan een nutteloze bestelling op
+        
+    
+    def change_creds(self, naam, id, tafelnr, verkoper):
+        if verkoper != self.verkoper:
+            self.verkoper = verkoper
+        self.bestelling["info"] = {"naam":naam, "id":id, "tafel":tafelnr, "verkoper":verkoper}
 
 
     def set_opm(self, opm):
         self.bestelling["opm"] = opm        
         
         
+    def set_verzonden(self, value):
+        self.verzonden = value
+    
+    
+    def set_bevestigd(self, value):
+        self.bevestigd = value
+        
+    
+    #nodig voor dump data als je afsluit ofzo
+    def set_hash(self, H):
+        self.H = H
+        
+    
+    def dump_data(self):
+        return {"_prod": self._prod,            #eig niet nodig
+                "_prod_list": self._prod_list,  #eig niet nodig
+                "_prod_list_aantal": self._prod_list_aantal,
+                "verkoper": self.verkoper,
+                "_prod_typelist": self._prod_typelist, #eig niet nodig
+                "_prod_typelist_aantal": self._prod_typelist_aantal,
+                "types": self.types,            #eig niet nodig
+                "bestelling": self.bestelling,
+                "status":(self.verzonden, self.bevestigd),
+                "hash": self.H
+                }
+    
+    
+    def load_data(self, data):
+        #print("loaded\n", data)
+        #self._prod = data["_prod"]
+        #self._prod_list = data["_prod_list"]
+        self._prod_list_aantal = data["_prod_list_aantal"]
+        self.verkoper = data["verkoper"]
+        #self._prod_typelist = data["_prod_typelist"]
+        self._prod_typelist_aantal = data["_prod_typelist_aantal"]
+        #self.types = data["types"]
+        self.bestelling = data["bestelling"]
+        self.status = data["status"]
+        self.H = data["hash"]
+    
+        
     #getters
     def get_bestelling(self):
         return self.bestelling
+    
+    
+    def get_info(self):
+        extra = {"verzonden":self.verzonden, "bevestigd":self.bevestigd}
+        extra.update(self.bestelling["info"])
+        return extra
     
     
     def get_prod(self):
@@ -787,6 +1103,19 @@ class Client_storage():
         else:
             geh, rest = divmod(len(self.get_prod_by_type(type_index)), COLS*ROWS)
         return geh if (rest==0) else (geh + 1)
+    
+    
+    def get_status(self):
+        return (self.verzonden, self.bevestigd)
+    
+    
+    def get_hash(self):
+        return self.H
+    
+    
+    #boolstatements
+    def is_started(self):
+        return self.started
     
     
     #bestelling

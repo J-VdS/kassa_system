@@ -773,13 +773,13 @@ class ConnectBar(GridLayout):
         self.server_status.bind(active=self.switch_server)
         self.add_widget(self.server_status)
         
-        self.add_widget(Label(
-                text="Wachtwoord: ",
-                size_hint_y=None,
-                height=50,
-                font_size=22))
-        self.password_veld = TextInput(multiline=False, font_size=20, height=50, size_hint_y=None)
-        self.add_widget(self.password_veld)
+        #self.add_widget(Label(
+        #        text="Wachtwoord: ",
+        #        size_hint_y=None,
+        #        height=50,
+        #        font_size=22))
+        #self.password_veld = TextInput(multiline=False, font_size=20, height=50, size_hint_y=None)
+        #self.add_widget(self.password_veld)
         
         #aanvaard connecties
         self.add_widget(Label(

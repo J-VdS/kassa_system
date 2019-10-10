@@ -135,11 +135,12 @@ def addBestelling(db_io, info, bestelling):
         bestelling (dict): nieuwe bestelling
         
         return:
-            1 - nieuwe rekening wordt geopend
-            0 - bestelling wordt toegevoegd
+            1  - nieuwe rekening wordt geopend
+            0  - bestelling wordt toegevoegd
+            -1 - bestelling is al gesloten
     '''
     conn, c = db_io
-    c.execute("SELECT bestelling FROM totalen WHERE id = ?", (info["id"],))
+    c.execute("SELECT bestelling, open FROM totalen WHERE id = ?", (info["id"],))
     data = c.fetchone()
     if not data:
         #maak een nieuw ID aan
@@ -148,6 +149,9 @@ def addBestelling(db_io, info, bestelling):
         conn.commit()
         return 1
     else:
+        #bestelling is gesloten
+        if data[1] == 0:
+            return -1
         bst = pickle.dumps(update_dict(pickle.loads(data[0]), bestelling))
         c.execute("UPDATE totalen SET bestelling = ? WHERE id = ?", (bst, info["id"]))
         conn.commit()
