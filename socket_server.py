@@ -211,7 +211,7 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                             best.update(d)
                         
                         #stuur bevestiging goed aangekomen
-                        #notified_socket.send(makeMsg({"status":"ontvangen"}))
+                        notified_socket.send(makeMsg({"status":"ontvangen"}))
                         
                         #vermijd dat er 2 acties tegelijk bezig zijn met een id
                         global EDIT_ID
@@ -257,6 +257,9 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                             notified_socket.send(makeMsg({"status":-1})) #key error/onbekend
                         print("verzonden")
                         print("Na:", best_status)
+                    elif message['req'] == "PNG":
+                        print("Pinged by {}".format(user))
+                        
         
             # It's not really necessary to have this, but will handle some socket exceptions just in case
             for notified_socket in exception_sockets:
