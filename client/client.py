@@ -382,18 +382,19 @@ class HuidigeBestellingScreen(GridLayout):
         if not(DATA.get_status()[0]):
             H = "{}{}".format(DATA.get_info()['id'], randint(0,99))
             DATA.set_hash(H)
-            if socket_client.sendData({'req':'BST', 'bestelling':DATA.get_bestelling(), "hash":H}) != -1:
-                #TODO: backup
-                #m_app.screen_manager.current = "klantinfo"
-                pass
-            else:
-                #verbinding verbroken of een error
-                #er wordt al naar het home scherm terug gegaan 
+            m_app.info_pagina.change_info("Bestelling onderweg...")
+            
+            #bevat {"status":"ontvangen"} indien de bestelling goed is aangekomen
+            ret = socket_client.requestData({'req':'BST', 'bestelling':DATA.get_bestelling(), "hash":H})
+            if ret == -1:
+                print("disconnect dump")
+                m_app.dump_data()
                 return
+            
             #check of bestelling is toegekomen
             DATA.set_verzonden(True)        
         
-            m_app.info_pagina.change_info("Bestelling onderweg...")
+            
         else:
             H = DATA.get_hash()
             m_app.info_pagina.change_info("Aankomst bestelling aan het controleren")
@@ -917,6 +918,10 @@ class KassaClientApp(App):
         if not(DATA.is_started()):
             return
         
+        self.dump_data()
+    
+    
+    def dump_data(self):
         if os.path.isfile("datadump.json"):
             os.remove("datadump.json")
         

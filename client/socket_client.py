@@ -56,8 +56,15 @@ def requestData(request):
         client_socket.send(makeMsg(request))
         lengte = int(client_socket.recv(HEADERLENGTH).decode('utf-8'))
         return pickle.loads(client_socket.recv(lengte))
+    except socket.error as e:
+        if e.errno == 10053:
+            ON_ERR('Server is gesloten. Je kan je bestelling terug inladen via de BACK UP knop.')
+            return -1
+        else:
+            ON_ERR('Connection error [RD]: {}'.format(str(e)))
+            return -1
     except Exception as e:
-        ON_ERR('Connection error: {}'.format(str(e)))
+        ON_ERR('Connection error [RD]: {}'.format(str(e)))
         return -1
 
 
@@ -69,7 +76,9 @@ def sendData(request):
     
     '''
     try:
+        #client_socket.send(makeMsg({"req":"PING"})) #minstens 2 mislukte calls voor dat connectie wordt gedetecteerd als verbroken
         client_socket.send(makeMsg(request))
+        print(client_socket)
     except Exception as e:
         ON_ERR('Verbinding verbroken...\nConnection error: {}'.format(str(e)))
         return -1
