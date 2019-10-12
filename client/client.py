@@ -921,6 +921,15 @@ class KassaClientApp(App):
         self.dump_data()
     
     
+    def on_pause(self):
+        #als hij nog niet gestart is met een bestelling maar toch afsluit is dit niet nuttig!
+        if not(DATA.is_started()):
+            return
+        
+        self.dump_data()
+        return True
+    
+    
     def dump_data(self):
         if os.path.isfile("datadump.json"):
             os.remove("datadump.json")
