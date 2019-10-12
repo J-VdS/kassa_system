@@ -309,7 +309,7 @@ class KlantInfoScreen(GridLayout):
         layout = GridLayout(cols=1)
     
         
-        layout.add_widget(Label(text="ID:  {}".format(info["naam"]), font_size=24))
+        layout.add_widget(Label(text="ID:  {}".format(info["id"]), font_size=24))
         layout.add_widget(Label(text="Naam:  {}".format(info["naam"]), font_size=24))
         layout.add_widget(Label(text="Tafel: {}".format(info["tafel"]), font_size=24))
         layout.add_widget(Label(text="Verzonden: {}".format("Ja" if (info["verzonden"]) else "Nee"), font_size=24))
