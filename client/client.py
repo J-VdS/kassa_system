@@ -39,6 +39,7 @@ DEBUG = False
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
 ROWS = 4
+FS = 37 #fontsize
 
 class LoginScreen(GridLayout):
     def __init__(self, **kwargs):
@@ -60,29 +61,29 @@ class LoginScreen(GridLayout):
                 height=0.45*Window.size[1])
         lay_top.add_widget(Label(
                 text="ip:", 
-                font_size = 22))
+                font_size = FS))
         self.ip_veld = TextInput(
                 text=ip,
                 multiline=False,
-                font_size = 22)
+                font_size = FS-4)
         lay_top.add_widget(self.ip_veld)
         
         lay_top.add_widget(Label(
                 text="Poort:", 
-                font_size = 22))
+                font_size = FS))
         self.poort = TextInput(
                 text=poort,
                 multiline=False,
-                font_size = 22)
+                font_size = FS-4)
         lay_top.add_widget(self.poort)
         
         lay_top.add_widget(Label(
                 text="Naam:", 
-                font_size = 22))
+                font_size = FS))
         self.naam = TextInput(
                 text=naam, 
                 multiline=False, 
-                font_size = 22)
+                font_size = FS-4)
         lay_top.add_widget(self.naam)
         
 #        lay_top.add_widget(Label(
@@ -98,7 +99,7 @@ class LoginScreen(GridLayout):
         
         self.knop = Button(
                 text="verbinden", 
-                font_size=28,
+                font_size=FS,
                 size_hint_y = None, 
                 height=0.1*Window.size[1])
         self.knop.bind(on_press=self.gedrukt)
@@ -130,7 +131,7 @@ class LoginScreen(GridLayout):
             layout.add_widget(Label(text="Vul alle velden in!",
                                     height=Window.size[1]*.8,
                                     size_hint_y=None,
-                                    font_size=30))
+                                    font_size=FS))
             
             knop = Button(text="sluit",width=Window.size[0]*.75)
             knop.bind(on_press=popup.dismiss)
@@ -178,7 +179,7 @@ class InfoScreen(GridLayout):
         self.cols = 1
         self.rows = 1
         
-        self.label = Label(halign="center", valign="middle", font_size=30)
+        self.label = Label(halign="center", valign="middle", font_size=FS)
         
         self.label.bind(width=self._update_text_width)
         
@@ -199,8 +200,8 @@ class KlantInfoScreen(GridLayout):
         self.cols = 1
         
         top_info = GridLayout(cols=2, rows=1, size_hint_y=0.15)
-        top_info.add_widget(Label(text="Info over de klant:", font_size=22))
-        knop = Button(text="BACK UP", size_hint_x=0.5, background_color=(0,0.2,1,1), background_normal='', font_size=22)
+        top_info.add_widget(Label(text="Info over de klant:", font_size=FS-2))
+        knop = Button(text="BACK UP", size_hint_x=0.5, background_color=(0,0.2,1,1), background_normal='', font_size=FS-2)
         knop.bind(on_press=self.check_backup)
         top_info.add_widget(knop)
         
@@ -208,25 +209,25 @@ class KlantInfoScreen(GridLayout):
         lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85)
         
         
-        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=24))
-        self.naam = TextInput(multiline=False, font_size=22)
+        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=FS))
+        self.naam = TextInput(multiline=False, font_size=FS-2)
         lay_top.add_widget(self.naam)
         
-        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=24))
-        self.ID = TextInput(input_type='number', multiline=False, font_size=22)
+        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=FS))
+        self.ID = TextInput(input_type='number', multiline=False, font_size=FS-2)
         lay_top.add_widget(self.ID)
         
-        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=24))
-        self.tafel = TextInput(input_type='number', multiline=False, font_size=22) 
+        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=FS))
+        self.tafel = TextInput(input_type='number', multiline=False, font_size=FS-2) 
         lay_top.add_widget(self.tafel)
         
-        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=24))
-        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=22)
+        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=FS))
+        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=FS-2)
         lay_top.add_widget(self.verkoper)
         
         self.add_widget(lay_top)
         
-        knop = Button(text="Ga verder", font_size=28, size_hint_y=0.3)
+        knop = Button(text="Ga verder", font_size=FS, size_hint_y=0.3)
         knop.bind(on_press=self.start_bestelling)
         self.add_widget(knop)
         
@@ -309,14 +310,14 @@ class KlantInfoScreen(GridLayout):
         layout = GridLayout(cols=1)
     
         
-        layout.add_widget(Label(text="ID:  {}".format(info["id"]), font_size=24))
-        layout.add_widget(Label(text="Naam:  {}".format(info["naam"]), font_size=24))
-        layout.add_widget(Label(text="Tafel: {}".format(info["tafel"]), font_size=24))
-        layout.add_widget(Label(text="Verzonden: {}".format("Ja" if (info["verzonden"]) else "Nee"), font_size=24))
-        layout.add_widget(Label(text="Bevestigd: {}".format("Ja" if (info["bevestigd"]) else "Nee"), font_size=24))
+        layout.add_widget(Label(text="ID:  {}".format(info["id"]), font_size=30))
+        layout.add_widget(Label(text="Naam:  {}".format(info["naam"]), font_size=28))
+        layout.add_widget(Label(text="Tafel: {}".format(info["tafel"]), font_size=30))
+        layout.add_widget(Label(text="Verzonden: {}".format("Ja" if (info["verzonden"]) else "Nee"), font_size=30))
+        layout.add_widget(Label(text="Bevestigd: {}".format("Ja" if (info["bevestigd"]) else "Nee"), font_size=30))
         
         info_label = Label(text="[color=#ffff00]Indien je bestelling reeds verzonden is zullen veranderingen niet worden toegelaten![/color]",
-                           font_size=22,
+                           font_size=30,
                            markup=True)
         info_label.bind(width=self._update_text_width)
         layout.add_widget(info_label)
@@ -345,27 +346,27 @@ class HuidigeBestellingScreen(GridLayout):
         #verzend knop, stuurt je terug naar nieuwe rekening
         knop = Button(text="Send", size_hint_y=0.125,
                       background_color=(0,1,0,1),
-                      font_size=24)
+                      font_size=FS)
         knop.bind(on_press=self.send_bestelling)
         self.add_widget(knop)
         
         #verwijder bestelling
         knop = Button(text="Verwijder", size_hint_y=0.125,
                       background_color=(1,1,0,1),
-                      font_size=24)
+                      font_size=FS)
         knop.bind(on_press=self.verwijder)
         self.add_widget(knop)
         
         #voeg opmerking toe
         knop = Button(text="Opmerkingen", size_hint_y=0.125,
-                      font_size=24)
+                      font_size=FS)
         knop.bind(on_press=self.opmerkingen)
         self.add_widget(knop)
                 
         #knop terug
         knop = Button(text="ga terug", size_hint_y=0.125,
                       background_color=(0,0.2,0.8,1),
-                      font_size=24)
+                      font_size=FS)
         knop.bind(on_press=self.terug)
         self.add_widget(knop)
         
@@ -495,14 +496,14 @@ class HuidigeBestellingScreen(GridLayout):
         self.popup = Popup(title="Opmerkingen")
         layout = GridLayout(cols=1)
         
-        knop = Button(text="toevoegen", width=Window.size[0]*.4)
+        knop = Button(text="toevoegen", width=Window.size[0]*.4, font_size=FS)
         knop.bind(on_press=self._opmerking_toevoegen)
         layout.add_widget(knop)
         
         self.opm_input = TextInput(text=DATA.get_opm(), 
                                    height=Window.size[1]*.8,
                                    size_hint_y=None,
-                                   font_size=22)
+                                   font_size=30)
         self.opm_input.bind(width=self._update_width)
         layout.add_widget(self.opm_input)
 
@@ -560,10 +561,10 @@ class ProductScreen(GridLayout):
         self.paginaNr_label = Label(
                 text=f"Pagina {self.paginaNr+1}",
                 size_hint_y=0.1,
-                font_size=22)
+                font_size=FS-2)
         topgrid.add_widget(self.paginaNr_label)
         
-        knop = Button(text="SORT", size_hint_x=0.25, font_size=22)
+        knop = Button(text="SORT", size_hint_x=0.25, font_size=FS-2)
         knop.bind(on_press=self.type_sort)
         topgrid.add_widget(knop)
         self.add_widget(topgrid)
@@ -573,14 +574,14 @@ class ProductScreen(GridLayout):
         for _ in range(COLS*ROWS):
             self.prods_knoppen.append(Button(
                     text="", halign="center",
-                    font_size=25, markup=True,
+                    font_size=FS, markup=True,
                     background_normal = ''))
             self.prods_knoppen[-1].bind(on_press=self.klik, width=self._update_text_width)
             self.knopLayout.add_widget(self.prods_knoppen[-1])
             
         
         self.min_knop = Button(text="[b]-[/b]",
-                               font_size=24, 
+                               font_size=40, 
                                markup=True,
                                background_color = (0.5, 0.5, 0.5,1),
                                background_normal='',
@@ -589,7 +590,7 @@ class ProductScreen(GridLayout):
         self.knopLayout.add_widget(self.min_knop)
         
         self.plus_knop = Button(text="[b]+[/b]",
-                                font_size=24,
+                                font_size=40,
                                 markup=True,
                                 background_color=(0.8,0.8,0,1),
                                 background_normal='',
@@ -598,14 +599,14 @@ class ProductScreen(GridLayout):
         self.knopLayout.add_widget(self.plus_knop)
         
         knop = Button(text="[b]<-[/b]",
-                      font_size=24,
+                      font_size=40,
                       markup=True,
                       size_hint_y=0.5)
         knop.bind(on_press=self.switch_page)
         self.knopLayout.add_widget(knop)
         
         knop = Button(text="[b]->[/b]",
-                      font_size=24,
+                      font_size=40,
                       markup=True,
                       size_hint_y=0.5)
         knop.bind(on_press=self.switch_page)
@@ -618,7 +619,7 @@ class ProductScreen(GridLayout):
                 background_color=(0.1,0.7,0.3,1),
                 background_normal='', #om donkere tint te vermijden
                 size_hint_y=0.15,
-                font_size=22)
+                font_size=FS-2)
         knop.bind(on_press=self.zie_huidig)
         self.add_widget(knop)
             
@@ -724,19 +725,19 @@ class ProductScreen(GridLayout):
         
         select_layout = GridLayout(cols=2)
         
-        select_layout.add_widget(Label(text="alles", font_size=22))
+        select_layout.add_widget(Label(text="alles", font_size=30))
         self._type_checkboxes = [CheckBox(group="select_type", size_hint_x=0.4, active=True)]
         select_layout.add_widget(self._type_checkboxes[-1])
         
         for type in DATA.get_types():
-            select_layout.add_widget(Label(text=type, font_size=22))
+            select_layout.add_widget(Label(text=type, font_size=30))
             self._type_checkboxes.append(CheckBox(group="select_type", size_hint_x=0.4))
             select_layout.add_widget(self._type_checkboxes[-1])
         
         layout.add_widget(select_layout)
         
         
-        knop = Button(text="select",width=Window.size[0]*.75, font_size=22, size_hint_y=0.25)
+        knop = Button(text="select",width=Window.size[0]*.75, font_size=30, size_hint_y=0.25)
         knop.bind(on_press=self.type_selected)
         layout.add_widget(knop)
         
@@ -768,32 +769,32 @@ class BestellingErrorScreen(GridLayout):
         self.cols = 1
         self.add_widget(Label(
                 text="Het ID klopt niet; deze rekening is reeds afgesloten.",
-                font_size=22,
+                font_size=FS-4,
                 size_hint_y=0.2))
         
         lay_top = GridLayout(cols=2, rows=4, size_hint_y=0.85)
         
         info = DATA.get_info()
         
-        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=22))
-        self.naam = TextInput(multiline=False, font_size=22, text=info["naam"])
+        lay_top.add_widget(Label(text="Naam:", size_hint_x=0.75, font_size=FS))
+        self.naam = TextInput(multiline=False, font_size=FS-4, text=info["naam"])
         lay_top.add_widget(self.naam)
         
-        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=22))
-        self.ID = TextInput(input_type='number', multiline=False, font_size=22)
+        lay_top.add_widget(Label(text="ID:", size_hint_x=0.75, font_size=FS))
+        self.ID = TextInput(input_type='number', multiline=False, font_size=FS-4)
         lay_top.add_widget(self.ID)
         
-        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=22))
-        self.tafel = TextInput(input_type='number', multiline=False, font_size=22, text=str(info["tafel"])) 
+        lay_top.add_widget(Label(text="Tafelnummer:", size_hint_x=0.75, font_size=FS))
+        self.tafel = TextInput(input_type='number', multiline=False, font_size=FS-4, text=str(info["tafel"])) 
         lay_top.add_widget(self.tafel)
         
-        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=22))
-        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=22)
+        lay_top.add_widget(Label(text="Verkoper:", size_hint_x=0.75, font_size=FS))
+        self.verkoper = TextInput(text=DATA.get_verkoper(), multiline=False, font_size=FS-4)
         lay_top.add_widget(self.verkoper)
         
         self.add_widget(lay_top)
         
-        knop = Button(text="Probeer opnieuw", font_size=28, size_hint_y=0.3)
+        knop = Button(text="Probeer opnieuw", font_size=FS, size_hint_y=0.3)
         knop.bind(on_press=self.resend)
         self.add_widget(knop)
         
