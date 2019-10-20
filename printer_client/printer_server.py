@@ -215,7 +215,7 @@ def printer_verwerk(printer_obj, obj):
         print("INFO:", obj['info'])
         print("BESTELLING: ", obj['BST'])
         print("OPM:", obj['opm'])
-        printer_obj.text("TIJD: {}".format(obj.get('time', '')))
+        printer_obj.text("TIJD: {}\n".format(obj.get('time', '')))
         printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<14}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
         printer_obj.text("-"*32+"\n")
         for prod in obj['BST']:
