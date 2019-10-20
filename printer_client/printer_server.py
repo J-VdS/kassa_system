@@ -234,6 +234,17 @@ def printer_verwerk(printer_obj, obj):
         return True
     
 
+#https://github.com/python-escpos/python-escpos/tree/v2.2.0
+def print_kasticket(printer_obj, obj):
+    try:
+        printer_obj.set(align="center", type="b")
+    except Exception as e:
+        trace_back = sys.exc_info()[2]
+        line = trace_back.tb_lineno
+        print("line {}: {}".format(str(line), str(e)))
+    finally:
+        return True
+
 if __name__ == "__main__":
     start_listening()
     
