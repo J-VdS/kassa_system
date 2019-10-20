@@ -4,6 +4,8 @@
 import socket
 import select
 import pickle
+import datetime
+#zelf geschreven
 import database
 import func
 #error handling
@@ -66,7 +68,8 @@ def printer_bestelling(bestelling, h):
         b = {}
         for t in types:
             b.update(producten.get(t, {}))
-        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h})
+        tijd = datetime.datetime.now().strftime("%H:%M:%S")
+        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((ip, poort))

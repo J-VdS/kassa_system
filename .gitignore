@@ -132,3 +132,8 @@ printers.data
 
 #json backup data
 client/*.json
+
+#testing
+client/*.out
+client/test2.py
+client/printer_server_W.py

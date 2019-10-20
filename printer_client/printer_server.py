@@ -23,10 +23,10 @@ HEADERLENGTH = 10
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
 #breedte is 32 wss
-ID_VENDOR = 0x0456  #hex 0xabcd
-ID_PRODUCT = 0x0808 #hex 0xabcd
-OUT_END = 0x81 #hex
-IN_END = 0x03 #hex
+ID_VENDOR = 0x04b8 #0x0456  #hex 0xabcd
+ID_PRODUCT = 0x0202 #0x0808 #hex 0xabcd
+OUT_END = 0x01  #0x03 #hex
+IN_END = 0x82 #0x81 #hex
 
 #printer_obj = None
 print_queue = queue.Queue()
@@ -199,6 +199,7 @@ def start_printloop(conditie):
 def printer_verwerk(printer_obj, obj):
     if "close" in obj:
         return False
+    '''	    
     try:
         #check of printer nog papier heeft
         #https://github.com/python-escpos/python-escpos/issues/143
@@ -207,14 +208,15 @@ def printer_verwerk(printer_obj, obj):
         ret = printer_obj.device.read(IN_END, 256, 5000)
     except Exception as e:
         print("Papiererror: ", e)
-    
+    '''
     try:
         #print en verwerk
         #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
         print("INFO:", obj['info'])
         print("BESTELLING: ", obj['BST'])
         print("OPM:", obj['opm'])
-        printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<13}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
+        printer_obj.text("TIJD: {}".format(obj.get('time', '')))
+        printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<14}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
         printer_obj.text("-"*32+"\n")
         for prod in obj['BST']:
             printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
