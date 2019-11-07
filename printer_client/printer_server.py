@@ -237,7 +237,21 @@ def printer_verwerk(printer_obj, obj):
 #https://github.com/python-escpos/python-escpos/tree/v2.2.0
 def print_kasticket(printer_obj, obj):
     try:
-        printer_obj.set(align="center", type="b")
+        printer_obj.set(align="center", type="b", invert=True)
+        printer_obj.text("MUSATE\n")
+        printer_obj.set(align="left", type="normal", invert=False)
+        printer_obj.text("-"*32+'\n')
+        printer_obj.text("{:<28}  ##\n".format("product"))
+        for prod in obj['BST']:
+            if obj['BST'] <= 0:
+                continue
+            else:
+               printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
+        printer_obj.text("_"*32+'\n')
+        printer_obj.text("TOTAAL {:>20}".format("€"+obj['totaal']))
+        
+        
+        printer_obj.qr("https://musate.be/")
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
