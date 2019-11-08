@@ -1467,10 +1467,13 @@ class BestelBar(GridLayout):
     
     def print_ticket(self, _):
         #run in een andere thread, of start een thread hier!
-        socket_server.print_kasticket(gui.DATA.get_bestelling(),
-                                      gui.DATA.get_info(),
-                                      gui.DATA.bereken_prijs())
-    
+        threading.Thread(target=socket_server.print_kasticket,
+                             args=(gui.DATA.get_bestelling(),
+                                   gui.DATA.get_info(),
+                                   gui.DATA.bereken_prijs()
+                                  ),
+                             daemon=True).start()
+        
     
     def verwijder_bevestigd(self, *_):
         db_io = database.OpenIO(global_vars.db)
@@ -1490,7 +1493,7 @@ class BestelBar(GridLayout):
         if not(isinstance(totaal, float)) or not(func.is_number(ontvangen)):
             self.twisselgeld.text = "ERROR"
         else:
-            self.twisselgeld.text = str(float(ontvangen)-totaal,3)
+            self.twisselgeld.text = str(float(ontvangen)-totaal)
         
 
     def afronden_bevestigd(self, *_):

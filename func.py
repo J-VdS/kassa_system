@@ -153,9 +153,9 @@ class Client_storage():
             if prod_prijs == "ERROR":
                 return prod_prijs
             totaal += prod_prijs * self.bestelling[product]
-        #TODO: live prijs update
         
-        return round(totaal, 2)
+        
+        return totaal #round(totaal, 2)
 
             
 
