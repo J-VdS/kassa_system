@@ -1054,7 +1054,10 @@ class PrinterBar(GridLayout):
     
     def test_printer(self, instance):
         ID = int(instance.id)
-        socket_server.printer_test(*self.printers[ID][:2])
+        threading.Thread(target=socket_server.printer_test,
+                         args=self.printers[ID][:2],
+                         daemon=True).start()
+        #socket_server.printer_test(*self.printers[ID][:2])
     
     
     def select_type(self, _):
@@ -1468,11 +1471,10 @@ class BestelBar(GridLayout):
     def print_ticket(self, _):
         #run in een andere thread, of start een thread hier!
         threading.Thread(target=socket_server.print_kasticket,
-                             args=(gui.DATA.get_bestelling(),
-                                   gui.DATA.get_info(),
-                                   gui.DATA.bereken_prijs()
-                                  ),
-                             daemon=True).start()
+                         args=(gui.DATA.get_bestelling(),
+                               gui.DATA.get_info(),
+                               gui.DATA.bereken_prijs()),
+                         daemon=True).start()
         
     
     def verwijder_bevestigd(self, *_):
