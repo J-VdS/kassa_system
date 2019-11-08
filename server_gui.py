@@ -1073,6 +1073,12 @@ class PrinterBar(GridLayout):
             self.checkboxes[cb] = type[0]
             layout.add_widget(cb)
             layout.add_widget(Label(text=type[0], font_size=18))
+        #rekening
+        cb = CheckBox(size_hint_x=None, width=60)
+        self.checkboxes[cb] = "rekening"
+        layout.add_widget(cb)
+        layout.add_widget(Label(text="rekening", font_size=18))
+        
         
         layout.add_widget(Label(size_hint_x=None, width=60))
         knop = Button(text="sluit", size_hint_y=None, height=40)
@@ -1440,7 +1446,7 @@ class BestelBar(GridLayout):
         layout.add_widget(self.blabel)
         #TODO: naar printer sturen
         knop = Button(text="Ticket afdrukken", size_hint_y=0.75, font_size=20)
-        #knop.bind(on_press=)
+        knop.bind(on_press=self.print_ticket)
         layout.add_widget(knop)
 
         knoplayout = BoxLayout(orientation="horizontal")
@@ -1457,6 +1463,13 @@ class BestelBar(GridLayout):
         
         self.afpopup.add_widget(layout)                        
         self.afpopup.open()
+    
+    
+    def print_ticket(self, _):
+        #run in een andere thread, of start een thread hier!
+        socket_server.print_kasticket(gui.DATA.get_bestelling(),
+                                      gui.DATA.get_info(),
+                                      gui.DATA.bereken_prijs())
     
     
     def verwijder_bevestigd(self, *_):

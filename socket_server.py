@@ -65,11 +65,13 @@ def printer_bestelling(bestelling, h):
     info = bestelling['info']
     opm = bestelling['opm']
     for ip, poort, types in PRINTERS:
+        if types == ["rekening"]:
+            continue
         b = {}
         for t in types:
             b.update(producten.get(t, {}))
         tijd = datetime.datetime.now().strftime("%H:%M:%S")
-        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd})
+        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'type':1})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((ip, poort))
@@ -81,6 +83,28 @@ def printer_bestelling(bestelling, h):
             print(f"[ERR!]Printer line {line}: {str(e)}")
         finally:
             s.close()
+            
+
+def print_kasticket(bestelling, info, prijs):
+    msg = makeMsg({'info': info,
+                   'BST': bestelling,
+                   'totaal': prijs,
+                   'type': 0}) #type voor rekening
+    for ip, poort, types in PRINTERS:
+        if not('rekening' in types):
+            continue
+        else:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.connect((ip, poort))
+                s.send(msg)
+            except Exception as e:
+                #verwijder de printer uit de lijst van connecties, en geef popup
+                trace_back = sys.exc_info()[2]
+                line = trace_back.tb_lineno
+                print(f"[ERR!]Printer line {line}: {str(e)}")
+            finally:
+                s.close()
             
 
 def printer_test(ip, poort):

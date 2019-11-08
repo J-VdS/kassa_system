@@ -212,18 +212,23 @@ def printer_verwerk(printer_obj, obj):
     try:
         #print en verwerk
         #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
-        print("INFO:", obj['info'])
-        print("BESTELLING: ", obj['BST'])
-        print("OPM:", obj['opm'])
-        printer_obj.text("TIJD: {}\n".format(obj.get('time', '')))
-        printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<14}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
-        printer_obj.text("-"*32+"\n")
-        for prod in obj['BST']:
-            printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
-        if obj["opm"].strip():
-            printer_obj.text("-"*32+'\n'+obj["opm"]+'\n')
-        printer_obj.text("*"*32)
-        printer_obj.cut() #noodzakelijk anders wordt er niets geprint
+        #
+        if obj['type'] == 1:
+            print("INFO:", obj['info'])
+            print("BESTELLING: ", obj['BST'])
+            print("OPM:", obj['opm'])
+            printer_obj.text("TIJD: {}\n".format(obj.get('time', '')))
+            printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<14}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
+            printer_obj.text("-"*32+"\n")
+            for prod in obj['BST']:
+                printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
+            if obj["opm"].strip():
+                printer_obj.text("-"*32+'\n'+obj["opm"]+'\n')
+            printer_obj.text("*"*32)
+            printer_obj.cut() #noodzakelijk anders wordt er niets geprint
+        elif obj['type'] == 0:
+            print_kasticket(printer_obj, obj)
+
         print("geprint")
     except Exception as e:
         trace_back = sys.exc_info()[2]
@@ -237,19 +242,19 @@ def printer_verwerk(printer_obj, obj):
 #https://github.com/python-escpos/python-escpos/tree/v2.2.0
 def print_kasticket(printer_obj, obj):
     try:
-        printer_obj.set(align="center", type="b", invert=True)
+        printer_obj.set(align="center", text_type="b", invert=True)
         printer_obj.text("MUSATE\n")
-        printer_obj.set(align="left", type="normal", invert=False)
+        printer_obj.set(align="left", text_type="normal", invert=False)
         printer_obj.text("-"*32+'\n')
         printer_obj.text("{:<28}  ##\n".format("product"))
         for prod in obj['BST']:
-            if obj['BST'] <= 0:
+            if obj[prod] <= 0:
                 continue
             else:
                printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
         printer_obj.text("_"*32+'\n')
-        printer_obj.text("TOTAAL {:>20}".format("€"+obj['totaal']))
-        
+        printer_obj.text("TOTAAL {:>20}".format("€"+str(obj['totaal'])))
+        printer_obj.text("_"*32+'\n')
         
         printer_obj.qr("https://musate.be/")
     except Exception as e:
