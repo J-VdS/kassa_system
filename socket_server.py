@@ -111,7 +111,8 @@ def printer_test(ip, poort):
     msg = makeMsg({'info':{'id':0, 'tafel':-1, 'naam':'KASSA', 'verkoper':'KASSA'},
                    'opm':"DIT is een test, geen actie nodig...",
                    'BST':{},
-                   'hash':"0000"})
+                   'hash':"0000",
+                   'type':0})
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ip, poort))

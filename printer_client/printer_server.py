@@ -20,6 +20,8 @@ IP = "0.0.0.0"
 POORT = 1741
 HEADERLENGTH = 10
 
+QR = True
+
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
 #breedte is 32 wss
@@ -262,11 +264,15 @@ def print_kasticket(printer_obj, obj):
             else:
                printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
         printer_obj.text("_"*32+'\n')
-        printer_obj.text("TOTAAL {:>18} EUR/n".format(+str(obj['totaal'])))
+        printer_obj.text("TOTAAL {:>18} EUR\n".format(str(obj['totaal'])))
         printer_obj.text("_"*32+'\n')
         
-        printer_obj.qr("https://musate.be/", size=8)
+        if QR:
+            printer_obj.qr("https://musate.be/", size=8)
+        time.sleep(0.5)
+        printer_obj.text("Meer info over onze volgende evenementen op musate.be")
         printer_obj.text("\n"*5)
+        printer_obj.cut()
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
