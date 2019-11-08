@@ -23,10 +23,19 @@ HEADERLENGTH = 10
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
 #breedte is 32 wss
-ID_VENDOR = 0x04b8 #0x0456  #hex 0xabcd
-ID_PRODUCT = 0x0202 #0x0808 #hex 0xabcd
-OUT_END = 0x01  #0x03 #hex
-IN_END = 0x82 #0x81 #hex
+
+#epson printer
+'''
+ID_VENDOR = 0x04b8 #hex 0xabcd
+ID_PRODUCT = 0x0202 #hex 0xabcd
+OUT_END = 0x01  #hex
+IN_END = 0x82 #hex
+'''
+#hoin printer
+ID_VENDOR = 0x0456  #hex 0xabcd
+ID_PRODUCT = 0x0808 #hex 0xabcd
+OUT_END = 0x03 #hex
+IN_END = 0x81 #hex
 
 #printer_obj = None
 print_queue = queue.Queue()
@@ -242,21 +251,22 @@ def printer_verwerk(printer_obj, obj):
 #https://github.com/python-escpos/python-escpos/tree/v2.2.0
 def print_kasticket(printer_obj, obj):
     try:
-        printer_obj.set(align="center", text_type="b", invert=True)
+        printer_obj.set(align="center", text_type="b", width=4, height=4)
         printer_obj.text("MUSATE\n")
-        printer_obj.set(align="left", text_type="normal", invert=False)
+        printer_obj.set(align="left", text_type="normal", width=1, height=1)
         printer_obj.text("-"*32+'\n')
         printer_obj.text("{:<28}  ##\n".format("product"))
         for prod in obj['BST']:
-            if obj[prod] <= 0:
+            if obj['BST'][prod] <= 0:
                 continue
             else:
                printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
         printer_obj.text("_"*32+'\n')
-        printer_obj.text("TOTAAL {:>20}".format("€"+str(obj['totaal'])))
+        printer_obj.text("TOTAAL {:>18} EUR/n".format(+str(obj['totaal'])))
         printer_obj.text("_"*32+'\n')
         
-        printer_obj.qr("https://musate.be/")
+        printer_obj.qr("https://musate.be/", size=8)
+        printer_obj.text("\n"*5)
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
