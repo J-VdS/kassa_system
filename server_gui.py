@@ -1,8 +1,9 @@
-from functools import partial #instead of lamda functions
-from collections import deque
 import threading
 import os
 import pickle
+import datetime
+from functools import partial #instead of lamda functions
+from collections import deque
 
 #kivy
 import kivy
@@ -1470,6 +1471,8 @@ class BestelBar(GridLayout):
     
     def print_ticket(self, _):
         #run in een andere thread, of start een thread hier!
+        ex_info = gui.DATA.get_info()
+        ex_info["tijd"] = datetime.datetime.now().strftime("%H:%M:%S")
         threading.Thread(target=socket_server.print_kasticket,
                          args=(gui.DATA.get_bestelling(),
                                gui.DATA.get_info(),

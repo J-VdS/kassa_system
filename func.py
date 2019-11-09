@@ -90,6 +90,7 @@ class Client_storage():
     
     
     def get_info(self):
+        print(self.info)
         return self.info
     
     #bestelling

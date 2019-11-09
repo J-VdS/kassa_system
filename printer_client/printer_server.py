@@ -20,8 +20,6 @@ IP = "0.0.0.0"
 POORT = 1741
 HEADERLENGTH = 10
 
-QR = True
-
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
 #breedte is 32 wss
@@ -254,24 +252,22 @@ def printer_verwerk(printer_obj, obj):
 def print_kasticket(printer_obj, obj):
     try:
         printer_obj.set(align="center", text_type="b", width=4, height=4)
-        printer_obj.text("MUSATE\n")
-        printer_obj.set(align="left", text_type="normal", width=1, height=1)
-        printer_obj.text("-"*32+'\n')
+        printer_obj.text("MUSATE")
+        #printer_obj.writelines("MUSATE", align="center", text_type="b", width=4, height=4)
+        #printer_obj.set(align="left", text_type="normal", width=1, height=1)
+        printer_obj.text(str(obj["info"]["ID"]))
+        printer_obj.writelines("{}\nTijd: {}".format("*"*32, obj['info']['tijd']))
         printer_obj.text("{:<28}  ##\n".format("product"))
         for prod in obj['BST']:
-            if obj['BST'][prod] <= 0:
+            if obj["BST"][prod] <= 0:
                 continue
             else:
                printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
-        printer_obj.text("_"*32+'\n')
-        printer_obj.text("TOTAAL {:>18} EUR\n".format(str(obj['totaal'])))
-        printer_obj.text("_"*32+'\n')
+        printer_obj.writelines("{}\nTOTAAL {:>22} EUR\n".format("_"*32,str(obj['totaal'])), text_type="b")
+        #printer_obj.text("TOTAAL {:>22} EUR\n".format(str(obj['totaal'])))
+        #printer_obj.text("_"*32+'\n')
         
-        if QR:
-            printer_obj.qr("https://musate.be/", size=8)
-        time.sleep(0.5)
-        printer_obj.text("Meer info over onze volgende evenementen op musate.be")
-        printer_obj.text("\n"*5)
+        printer_obj.writelines("*****\nBedankt voor uw steun\n*****\nMeer evenementen op musate.be", text_type="b", align="center")
         printer_obj.cut()
     except Exception as e:
         trace_back = sys.exc_info()[2]
