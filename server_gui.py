@@ -1471,11 +1471,12 @@ class BestelBar(GridLayout):
     
     def print_ticket(self, _):
         #run in een andere thread, of start een thread hier!
-        ex_info = gui.DATA.get_info()
-        ex_info["tijd"] = datetime.datetime.now().strftime("%H:%M:%S")
+        ex_info, p_art = gui.DATA.get_info_ticket()
+        ex_info["tijd"] = datetime.datetime.now().strftime("%d/%m/%y - %H:%M:%S")
         threading.Thread(target=socket_server.print_kasticket,
                          args=(gui.DATA.get_bestelling(),
-                               gui.DATA.get_info(),
+                               ex_info,
+                               p_art,
                                gui.DATA.bereken_prijs()),
                          daemon=True).start()
         

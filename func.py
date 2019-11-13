@@ -32,7 +32,7 @@ def print_dict(d):
 #gebruikt in client maar aangepast
 class Client_storage():
     def __init__(self):
-        self._prod = {}
+        self._prod = {} #{ prod:(type, prod, prijs)}
         self._prod_list = []
         
         #bevat alle info voor de server en de kassa
@@ -90,8 +90,13 @@ class Client_storage():
     
     
     def get_info(self):
-        print(self.info)
         return self.info
+    
+    
+    def get_info_ticket(self):
+        p_art = {prod: self._prod[prod][2] for prod in self._prod} #{prod: prijs}
+        return (self.info, p_art)
+    
     
     #bestelling
     def edit_reset(self):
@@ -147,10 +152,12 @@ class Client_storage():
 
     def bereken_prijs(self):
         totaal = 0
+        print(self._prod)
         for product in self.bestelling:
             #probleem wanneer product verwijdert wordt uit de DB!
             #prijs moet laatste vlag blijven!
             prod_prijs = self._prod.get(product, ["ERROR"])[-1]
+            print("pp", prod_prijs)
             if prod_prijs == "ERROR":
                 return prod_prijs
             totaal += prod_prijs * self.bestelling[product]

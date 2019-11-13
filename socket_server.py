@@ -85,8 +85,9 @@ def printer_bestelling(bestelling, h):
             s.close()
             
 
-def print_kasticket(bestelling, info, prijs):
+def print_kasticket(bestelling, info, p_art, prijs):
     msg = makeMsg({'info': info,
+                   'p_art': p_art,
                    'BST': bestelling,
                    'totaal': prijs,
                    'type': 0}) #type voor rekening
