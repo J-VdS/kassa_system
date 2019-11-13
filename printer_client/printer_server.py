@@ -9,11 +9,18 @@ import socket #communicatie met de kassa
 import queue  #bestellingen
 import pickle #decode data
 import select #socket verkeer
-from escpos import *
+#from escpos import *
 from threading import Thread, Condition
 
 #error handling
 import sys 
+
+try:
+    from escpos.printer import Usb
+    LIB = True
+except:
+    print("escpos module isn't installed on this system\n We will print everything in the console instead.\nThe prefix is [EP]")
+    LIB = False    
 
 #network constants
 IP = "0.0.0.0"
@@ -172,8 +179,15 @@ def start_listening():
 
 
 def open_printer():
-    test = printer.Usb(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
-    return test 
+    try:
+        if LIB:
+            test = Usb(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
+        else:
+            test = fakePrinter(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
+    except Exception as e:
+        print("[EP]", e, "using a fake printer instead")
+        test = fakePrinter(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
+    return test
     
 
 def close_printer(printer):
@@ -256,7 +270,7 @@ def print_kasticket(printer_obj, obj):
         #printer_obj.writelines("MUSATE", align="center", text_type="b", width=4, height=4)
         #printer_obj.set(align="left", text_type="normal", width=1, height=1)
         printer_obj.text(str(obj["info"]["ID"]))
-        printer_obj.writelines("{}\n{}\n".format("*"*32, obj['info']['tijd']))
+        printer_obj.writelines("{}\n{}\n\n".format("*"*32, obj['info']['tijd']))
         printer_obj.text("{:<22}  ##  pps \n".format("product")) #max lengte van het product is 22, indien langer dan eerst product en op volgende lijn aantal
         
         for prod in obj['BST']:
@@ -279,6 +293,40 @@ def print_kasticket(printer_obj, obj):
         print("line {}: {}".format(str(line), str(e)))
     finally:
         return True
+
+class fakePrinter(object):
+    PREFIX = "[EP]"
+    STANDAARD = {"align":'left', "font":'a', "text_type":'normal', "width":1, "height":1,
+                 "density":9, "invert":False, "smooth":False, "flip":False}
+    
+    def __init__(self, id_vendor, id_product, c, in_end, out_end):
+        print(self.PREFIX, "V:{} P:{} I:{} O:{}".format(id_vendor, id_product, c, in_end, out_end))
+        print(6*"*")
+        self.settings = {}
+    
+    
+    def text(self, _text):
+        print(self.PREFIX, _text)
+    
+    
+    def writelines(self, _text, align='left', font='a', text_type='normal', width=1, height=1,
+                   density=9, invert=False, smooth=False, flip=False):
+        print("{}\n# lijnen: {}".format(self.PREFIX, _text.count("\n")))
+        print(_text)
+    
+    
+    def set(self, align='left', font='a', text_type='normal', width=1, height=1,
+            density=9, invert=False, smooth=False, flip=False):
+        pass
+    
+    
+    @staticmethod
+    def close(self):
+        print(fakePrinter.PREFIX, "CLOSED")
+
+    
+    def cut(self, **kwargs):
+        print(self.PREFIX + "****************************")
 
 if __name__ == "__main__":
     start_listening()
