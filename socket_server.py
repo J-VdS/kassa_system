@@ -109,7 +109,7 @@ def print_kasticket(bestelling, info, p_art, prijs):
             
 
 def printer_test(ip, poort):
-    msg = makeMsg({'info':{'id':0, 'tafel':-1, 'naam':'KASSA', 'verkoper':'KASSA'},
+    msg = makeMsg({'info':{'ID':0, 'tafel':-1, 'naam':'KASSA', 'verkoper':'KASSA'},
                    'opm':"DIT is een test, geen actie nodig...",
                    'BST':{},
                    'hash':"0000",
