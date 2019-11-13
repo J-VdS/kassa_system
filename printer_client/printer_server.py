@@ -266,10 +266,10 @@ def printer_verwerk(printer_obj, obj):
 def print_kasticket(printer_obj, obj):
     try:
         printer_obj.set(align="center", text_type="b", width=4, height=4)
-        printer_obj.text("MUSATE")
+        printer_obj.text("MUSATE\n")
         
         #printer_obj.set(align="left", text_type="normal", width=1, height=1)
-        printer_obj.text(str(obj["info"]["ID"]))
+        printer_obj.text(str(obj["info"]["ID"])+"\n")
         printer_obj.set()
         printer_obj.text("{}\n{}\n\n".format("*"*32, obj['info']['tijd']))
         printer_obj.text("{:<22}  ##  pps \n".format("product")) #max lengte van het product is 22, indien langer dan eerst product en op volgende lijn aantal
@@ -310,13 +310,7 @@ class fakePrinter(object):
     
     def text(self, _text):
         print(self.PREFIX, _text)
-    
-    
-    def writelines(self, _text, align='left', font='a', text_type='normal', width=1, height=1,
-                   density=9, invert=False, smooth=False, flip=False):
-        print("{}\n# lijnen: {}".format(self.PREFIX, _text.count("\n")))
-        print(_text)
-    
+        
     
     def set(self, align='left', font='a', text_type='normal', width=1, height=1,
             density=9, invert=False, smooth=False, flip=False):
