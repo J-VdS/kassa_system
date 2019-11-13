@@ -267,10 +267,11 @@ def print_kasticket(printer_obj, obj):
     try:
         printer_obj.set(align="center", text_type="b", width=4, height=4)
         printer_obj.text("MUSATE")
-        #printer_obj.writelines("MUSATE", align="center", text_type="b", width=4, height=4)
+        
         #printer_obj.set(align="left", text_type="normal", width=1, height=1)
         printer_obj.text(str(obj["info"]["ID"]))
-        printer_obj.writelines("{}\n{}\n\n".format("*"*32, obj['info']['tijd']))
+        printer_obj.set()
+        printer_obj.text("{}\n{}\n\n".format("*"*32, obj['info']['tijd']))
         printer_obj.text("{:<22}  ##  pps \n".format("product")) #max lengte van het product is 22, indien langer dan eerst product en op volgende lijn aantal
         
         for prod in obj['BST']:
@@ -281,12 +282,14 @@ def print_kasticket(printer_obj, obj):
                 printer_obj.text("{}{:<2}X{:>5}\n".format(24*" ", obj['BST'][prod], obj['p_art'].get(prod, "ERR")))
             else:
                 printer_obj.text("{:<22}  {:<2}X{:>5}\n".format(prod, obj['BST'][prod], obj['p_art'].get(prod, "ERR")))
-        printer_obj.writelines("{}\nTOTAAL {:>22} EUR\n".format("_"*32,str(obj['totaal'])), text_type="b")
+        printer_obj.set(text_type="b")
+        printer_obj.text("{}\nTOTAAL {:>22} EUR\n".format("_"*32,str(obj['totaal'])))
         #printer_obj.text("TOTAAL {:>22} EUR\n".format(str(obj['totaal'])))
         #printer_obj.text("_"*32+'\n')
-        
-        printer_obj.writelines("*****\nBedankt voor uw steun\n*****\nMeer evenementen op musate.be", text_type="b", align="center")
+        printer_obj.set(align="center", text_type="b")
+        printer_obj.text("*****\nBedankt voor uw steun\n*****\nMeer evenementen op musate.be")
         printer_obj.cut()
+        printer_obj.set()
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno

@@ -90,7 +90,8 @@ def print_kasticket(bestelling, info, p_art, prijs):
                    'p_art': p_art,
                    'BST': bestelling,
                    'totaal': prijs,
-                   'type': 0}) #type voor rekening
+                   'type': 0,
+                   'tijd':"een uur ofzo"}) #type voor rekening
     for ip, poort, types in PRINTERS:
         if not('rekening' in types):
             continue
@@ -109,11 +110,11 @@ def print_kasticket(bestelling, info, p_art, prijs):
             
 
 def printer_test(ip, poort):
-    msg = makeMsg({'info':{'ID':0, 'tafel':-1, 'naam':'KASSA', 'verkoper':'KASSA'},
+    msg = makeMsg({'info':{'id':0, 'tafel':-1, 'naam':'KASSA', 'verkoper':'KASSA'},
                    'opm':"DIT is een test, geen actie nodig...",
                    'BST':{},
                    'hash':"0000",
-                   'type':0})
+                   'type':1})
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ip, poort))

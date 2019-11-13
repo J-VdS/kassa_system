@@ -152,12 +152,11 @@ class Client_storage():
 
     def bereken_prijs(self):
         totaal = 0
-        print(self._prod)
+        #print(self._prod)
         for product in self.bestelling:
             #probleem wanneer product verwijdert wordt uit de DB!
             #prijs moet laatste vlag blijven!
             prod_prijs = self._prod.get(product, ["ERROR"])[-1]
-            print("pp", prod_prijs)
             if prod_prijs == "ERROR":
                 return prod_prijs
             totaal += prod_prijs * self.bestelling[product]
