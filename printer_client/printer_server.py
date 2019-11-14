@@ -270,22 +270,22 @@ def print_kasticket(printer_obj, obj):
     try:
         printer_obj.set(align="center", text_type="b", width=4, height=4)
         printer_obj.text("MUSATE\n")
-        printer_obj.text(str(obj["info"]["ID"])+"\n")
+        printer_obj.text("ID: {}\n".format(obj["info"]["ID"]))
         
         printer_obj.set(align="left", text_type="normal", width=1, height=1)
         printer_obj.text("{}\n{}\n\n".format("*"*32, obj['info']['tijd']))
-        printer_obj.text("{:<22}  ##  pps \n".format("product")) #max lengte van het product is 22, indien langer dan eerst product en op volgende lijn aantal
+        printer_obj.text("{:<22}  ##  pps \n{}".format("product", "."*32)) #max lengte van het product is 22, indien langer dan eerst product en op volgende lijn aantal
         
         for prod in obj['BST']:
             if obj["BST"][prod] <= 0:
                 continue
             elif len(prod)>22:
-                printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
-                printer_obj.text("{}{:<2}X{:>5}\n".format(24*" ", obj['BST'][prod], obj['p_art'].get(prod, "ERR")))
+                printer_obj.text("{:<28} ...\n".format(prod, obj['BST'][prod]))
+                printer_obj.text("{:^24}{:<2}X{:>5}\n".format("........", obj['BST'][prod], obj['p_art'].get(prod, "ERR")))
             else:
                 printer_obj.text("{:<22}  {:<2}X{:>5}\n".format(prod, obj['BST'][prod], obj['p_art'].get(prod, "ERR")))
         printer_obj.set(text_type="b")
-        printer_obj.text("{}\nTOTAAL {:>22} EUR\n".format("_"*32,str(obj['totaal'])))
+        printer_obj.text("{}\nTOTAAL {:>21} EUR\n".format("-"*32,str(obj['totaal'])))
         #printer_obj.text("TOTAAL {:>22} EUR\n".format(str(obj['totaal'])))
         #printer_obj.text("_"*32+'\n')
         printer_obj.set(align="center", text_type="b")
