@@ -22,6 +22,9 @@ PRINTERS = [] #(ip, poort, [type,])
 
 EDIT_ID = None
 
+#bestelling --> type:'b'
+#rekening --> type:'r'
+
 #verwerkt de data
 def handles_message(client_socket):
     try:
@@ -71,7 +74,7 @@ def printer_bestelling(bestelling, h):
         for t in types:
             b.update(producten.get(t, {}))
         tijd = datetime.datetime.now().strftime("%H:%M:%S")
-        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'type':1})
+        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'type':'b'})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((ip, poort))
@@ -90,8 +93,7 @@ def print_kasticket(bestelling, info, p_art, prijs):
                    'p_art': p_art,
                    'BST': bestelling,
                    'totaal': prijs,
-                   'type': 0,
-                   'tijd':"een uur ofzo"}) #type voor rekening
+                   'type': 'r'}) #type voor rekening
     for ip, poort, types in PRINTERS:
         if not('rekening' in types):
             continue
@@ -114,7 +116,7 @@ def printer_test(ip, poort):
                    'opm':"DIT is een test, geen actie nodig...",
                    'BST':{},
                    'hash':"0000",
-                   'type':1})
+                   'type':'b'})
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ip, poort))

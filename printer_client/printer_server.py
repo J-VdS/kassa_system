@@ -236,7 +236,7 @@ def printer_verwerk(printer_obj, obj):
         #print en verwerk
         #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
         #
-        if obj['type'] == 1:
+        if obj['type'] == "b":
             print("INFO:", obj['info'])
             print("BESTELLING: ", obj['BST'])
             print("OPM:", obj['opm'])
@@ -249,10 +249,13 @@ def printer_verwerk(printer_obj, obj):
                 printer_obj.text("-"*32+'\n'+obj["opm"]+'\n')
             printer_obj.text("*"*32)
             printer_obj.cut() #noodzakelijk anders wordt er niets geprint
-        elif obj['type'] == 0:
+            print("geprint")
+        elif obj['type'] == "r":
             print_kasticket(printer_obj, obj)
+            print("geprint")
+        else:
+            print("wrong type!")
 
-        print("geprint")
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
@@ -267,10 +270,9 @@ def print_kasticket(printer_obj, obj):
     try:
         printer_obj.set(align="center", text_type="b", width=4, height=4)
         printer_obj.text("MUSATE\n")
-        
-        #printer_obj.set(align="left", text_type="normal", width=1, height=1)
         printer_obj.text(str(obj["info"]["ID"])+"\n")
-        printer_obj.set()
+        
+        printer_obj.set(align="left", text_type="normal", width=1, height=1)
         printer_obj.text("{}\n{}\n\n".format("*"*32, obj['info']['tijd']))
         printer_obj.text("{:<22}  ##  pps \n".format("product")) #max lengte van het product is 22, indien langer dan eerst product en op volgende lijn aantal
         
@@ -288,8 +290,8 @@ def print_kasticket(printer_obj, obj):
         #printer_obj.text("_"*32+'\n')
         printer_obj.set(align="center", text_type="b")
         printer_obj.text("*****\nBedankt voor uw steun\n*****\nMeer evenementen op musate.be")
+        printer_obj.set(align="left", text_type="normal")
         printer_obj.cut()
-        printer_obj.set()
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
