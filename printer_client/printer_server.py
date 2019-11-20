@@ -320,7 +320,7 @@ class fakePrinter(object):
     
     
     @staticmethod
-    def close(self):
+    def close():
         print(fakePrinter.PREFIX, "CLOSED")
 
     

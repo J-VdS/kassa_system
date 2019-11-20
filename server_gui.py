@@ -4,6 +4,7 @@ import pickle
 import datetime
 from functools import partial #instead of lamda functions
 from collections import deque
+from decimal import Decimal
 
 #kivy
 import kivy
@@ -1499,7 +1500,8 @@ class BestelBar(GridLayout):
         if not(isinstance(totaal, float)) or not(func.is_number(ontvangen)):
             self.twisselgeld.text = "ERROR"
         else:
-            self.twisselgeld.text = str(float(ontvangen)-totaal)
+            #ERROR fix: https://docs.python.org/2/library/decimal.html
+            self.twisselgeld.text = "{0:.2f}".format(float(ontvangen)-totaal) #analoog aan round(x, 2)
         
 
     def afronden_bevestigd(self, *_):
