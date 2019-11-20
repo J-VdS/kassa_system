@@ -9,17 +9,17 @@ Om de kassa te gebruiken heb je momenteel python (> 3.6) nodig. En start server_
  - [ ] meerdere gangen implementatie
  - [x] bestelling aanpassen
  - [ ] netcode herschrijven
- - [ ] Vermijd versturen bestelling als de server gesloten is
- - [ ] back-ups
+ - [x] Vermijd versturen bestelling als de server gesloten is
+ - [x] back-ups
  - [ ] (buildozer android release + optimalisatie)
  ### servergui:
  - [ ] settings
- - [ ] ticketprinter bij kassa
+ - [x] ticketprinter bij kassa
  - [x] statistieken
  - [ ] oplossingen meerdere jaren --> database herschrijven
  - [x] aanpassen rekening
- - [ ] visuele aanpassing
-	 - [ ] kleur in label
+ - [x] visuele aanpassing
+	 - [x] kleur in label
 	 - [x] popups 
 - [ ] popups wanneer de server sluit
 - [ ] popups wannneer errors
