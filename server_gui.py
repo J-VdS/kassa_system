@@ -1260,7 +1260,7 @@ class BestelBar(GridLayout):
         Clock.schedule_once(self.refill, 0.5)
         
         #vul totaal in
-        self.totaal_label.text = "{:<25}€{:>6}".format("TOTAAL:", gui.DATA.bereken_prijs())
+        self.totaal_label.text = "{:<25}€{:>6}".format("TOTAAL:", round(gui.DATA.bereken_prijs(),2))
         
     
     def vul_in(self):
