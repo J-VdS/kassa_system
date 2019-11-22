@@ -143,7 +143,13 @@ def sluit_printers():
             s.close()
 
 
-def start_listening(db, crash_func, update_func, password=None, get_items=None, store_order=None):
+def start_listening(db, crash_func, update_func, order_list=None, get_items=None, password=None):
+    '''
+        <STR> db: naam v/d databse
+        <func> crash_func: funtiecall als server crasht
+        <func> update_func: functiecall als er een nieuw ID is
+        <func> store_order: functiecall als er een bestelling binnenkomt
+    '''
     #we zullen een connectie proberen te openen met de db om daar de producten op te vragen,
     #en de bestellingen in op te slaan.
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -275,6 +281,14 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                         #stuur naar printer
                         printer_bestelling(message['bestelling'], message['hash'])
                         #stuur succes, gelukt naar kassa
+                        
+                        #voeg toe aan een tabel
+                        ret = database.addOrder(db_io, message)
+                        if ret == -1:
+                            print("DATABASE ERROR: addOrder")
+                        else:
+                            order_list(ret)
+                            
                     elif message['req'] == "MSG":
                         pass
                     elif message['req'] == "CHK":

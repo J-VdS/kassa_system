@@ -39,7 +39,7 @@ def InitTabels(db_io):
     #producten tabel
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs DECIMAL(10,2), active INTEGER)")
     c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs DECIMAL(10,2), naam TEXT, betaalwijze TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelid INTEGER PRIMARY KEY, bestelling BLOB, printerid INTEGER, ip TEXT, status TEXT, times_send INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelnr INTEGER PRIMARY KEY, klantid INTEGER, bestelling BLOB, tijd TEXT, hash TEXT, opm TEXT)")
     #print("---Product Table Loaded ---")
     conn.commit()
    
@@ -169,7 +169,22 @@ def addBestellingID(db_io, ID, naam):
     else:
         #err ID was al in de DB
         return -1
-      
+    
+
+def addOrder(db_io, message):
+    conn, c = db_io
+    tijd = datetime.datetime.now().strftime("%H:%M:%S")
+    ID = message["bestelling"]["info"]["id"]
+    BST = message["bestelling"]["BST"]
+    OPM = message["bestelling"]["opm"]
+    try:
+        c.execute("INSERT INTO orders (klantid, bestelling, tijd, hash, opm) VALUES (?,?,?,?,?)", (ID, pickle.dumps(BST), tijd, message['hash'], OPM))
+        conn.commit()
+        return {"id": ID, "BST": BST, "tijd":tijd, "hash": message['hash']}
+    except Exception as e:
+        print(e)
+        return -1
+    
 
 def getBestelling(db_io, ID):
     conn, c = db_io
