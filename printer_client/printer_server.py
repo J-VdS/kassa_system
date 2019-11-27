@@ -26,6 +26,7 @@ except:
 IP = "0.0.0.0"
 POORT = 1741
 HEADERLENGTH = 10
+NAAM = "printer" #TODO extra veld moet doorgestuurd worden en na de eerste verbinding wordt de naam vastgelegd
 
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
@@ -111,6 +112,7 @@ def start_listening():
                     # The other returned object is ip/port set
                     print("accept")
                     client_socket, client_address = s.accept()
+                    #terug toevoegen want zal direct een bericht sturen
                     read_sockets.append(client_socket)
         
                     '''#ontvang
@@ -216,6 +218,7 @@ def start_printloop(conditie):
         print(e)
         #schrijf ook alle error naar een file want programma loopt wss in een lus
     finally:
+        #als dit mogelijk is
         close_printer(printer)
          
         
@@ -236,21 +239,25 @@ def printer_verwerk(printer_obj, obj):
         #print en verwerk
         #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
         #
-        if obj['type'] == "b":
+        print_type = obj.get("print_type", None)
+        
+        if print_type is None:
+            print("no print_type field")
+        elif print_type == "b":
             print("INFO:", obj['info'])
             print("BESTELLING: ", obj['BST'])
-            print("OPM:", obj['opm'])
             printer_obj.text("TIJD: {}\n".format(obj.get('time', '')))
             printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<14}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
             printer_obj.text("-"*32+"\n")
             for prod in obj['BST']:
                 printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
             if obj["opm"].strip():
+                print("OPM:", obj['opm'])
                 printer_obj.text("-"*32+'\n'+obj["opm"]+'\n')
             printer_obj.text("*"*32)
             printer_obj.cut() #noodzakelijk anders wordt er niets geprint
             print("geprint")
-        elif obj['type'] == "r":
+        elif print_type == "r":
             print_kasticket(printer_obj, obj)
             print("geprint")
         else:
@@ -299,6 +306,7 @@ def print_kasticket(printer_obj, obj):
         print("line {}: {}".format(str(line), str(e)))
     finally:
         return True
+
 
 class fakePrinter(object):
     PREFIX = "[EP]"

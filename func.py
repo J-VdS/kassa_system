@@ -162,12 +162,6 @@ class Client_storage():
             totaal += prod_prijs * self.bestelling[product]
         
         
-        return round(totaal, 2)
-
-            
-
-
-
-
-
-            
+        return round(totaal, 2) #TODO vermijd de rounding errors door decimal te gebruiken
+    
+    

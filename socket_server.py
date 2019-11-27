@@ -5,6 +5,7 @@ import socket
 import select
 import pickle
 import datetime
+from threading import Thread, Condition
 #zelf geschreven
 import database
 import func
@@ -22,8 +23,9 @@ PRINTERS = [] #(ip, poort, [type,])
 
 EDIT_ID = None
 
-#bestelling --> type:'b'
-#rekening --> type:'r'
+## print_type
+#bestelling --> b
+#rekening --> r
 
 #verwerkt de data
 def handles_message(client_socket):
@@ -62,8 +64,13 @@ def makeMsg(msg):
     msg_header = f"{len(msg):<{HEADERLENGTH}}".encode('utf-8')  
     return msg_header + msg
     
-
+#moet in een thread lopen
+#geef error wanneer we de printer niet kunnen bereiken
 def printer_bestelling(bestelling, h):
+    '''
+        dict: bestelling 
+        str: h  (hash)
+    '''
     producten = bestelling['BST']
     info = bestelling['info']
     opm = bestelling['opm']
@@ -74,7 +81,7 @@ def printer_bestelling(bestelling, h):
         for t in types:
             b.update(producten.get(t, {}))
         tijd = datetime.datetime.now().strftime("%H:%M:%S")
-        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'type':'b'})
+        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'print_type':'b'})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((ip, poort))
@@ -93,7 +100,7 @@ def print_kasticket(bestelling, info, p_art, prijs):
                    'p_art': p_art,
                    'BST': bestelling,
                    'totaal': prijs,
-                   'type': 'r'}) #type voor rekening
+                   'print_type': 'r'}) #type voor rekening
     for ip, poort, types in PRINTERS:
         if not('rekening' in types):
             continue
@@ -116,7 +123,7 @@ def printer_test(ip, poort):
                    'opm':"DIT is een test, geen actie nodig...",
                    'BST':{},
                    'hash':"0000",
-                   'type':'b'})
+                   'print_type':'b'})
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ip, poort))
@@ -166,6 +173,9 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
     
     db_io = database.OpenIO(db)
     
+    #start bestellingsender Thread
+    Thread(target=)
+    
     try:
         #print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
         while RUN:
@@ -190,7 +200,8 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         # That gives us new socket - client socket, connected to this given client only, it's unique for that client
                         # The other returned object is ip/port set
                         client_socket, client_address = server_socket.accept()
-                        print(client_socket, client_address)
+                        #print(client_socket, client_address)
+                        
                         #ontvang
                         lengte = int(client_socket.recv(HEADERLENGTH).decode("utf-8"))
                         if not lengte:
@@ -278,7 +289,8 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                             #notified_socket.send(makeMsg({"status":"closed"}))#, "info":message['bestelling']['info']}))
                         
                         
-                        #stuur naar printer
+                        #stuur naar printer --> best in andere thread want kan voor bottleneck zorgen
+                        
                         printer_bestelling(message['bestelling'], message['hash'])
                         #stuur succes, gelukt naar kassa
                         
@@ -303,7 +315,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                             notified_socket.send(makeMsg({"status":-1})) #key error/onbekend
                         print("verzonden")
                         print("Na:", best_status)
-                    elif message['req'] == "PNG":
+                    elif message['req'] == "PING":
                         print("Pinged by {}".format(user))
                         
         

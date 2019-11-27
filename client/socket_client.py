@@ -32,7 +32,7 @@ def connect(ip, port, my_username, pwd, error_callback):
     # We need to encode username to bytes, then count number of bytes and prepare header of fixed size, that we encode to bytes as well
     #msg = pickle.dumps({"naam":my_username, "pwd":pwd})
     #msg_header = f"{len(msg):<{HEADER_LENGTH}}".encode('utf-8')
-    client_socket.send(makeMsg({"naam":my_username, "pwd":pwd}))
+    client_socket.send(makeMsg({"naam":my_username}))
     return True
 
 
