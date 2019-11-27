@@ -162,7 +162,7 @@ class Client_storage():
             totaal += prod_prijs * self.bestelling[product]
         
         
-        return totaal #round(totaal, 2)
+        return round(totaal, 2)
 
             
 
