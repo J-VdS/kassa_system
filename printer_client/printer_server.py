@@ -32,7 +32,7 @@ HEADERLENGTH = 10
 #breedte is 32 wss
 
 #epson printer
-'''
+
 ID_VENDOR = 0x04b8 #hex 0xabcd
 ID_PRODUCT = 0x0202 #hex 0xabcd
 OUT_END = 0x01  #hex
@@ -43,7 +43,7 @@ ID_VENDOR = 0x0456  #hex 0xabcd
 ID_PRODUCT = 0x0808 #hex 0xabcd
 OUT_END = 0x03 #hex
 IN_END = 0x81 #hex
-
+'''
 #printer_obj = None
 print_queue = queue.Queue()
 
@@ -260,6 +260,7 @@ def printer_verwerk(printer_obj, obj):
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
         print("line {}: {}".format(str(line), str(e)))
+        printer_obj.cut()
     
     finally:    
         return True
