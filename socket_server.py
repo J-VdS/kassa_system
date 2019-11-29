@@ -271,9 +271,9 @@ def start_listening(db, crash_func, update_func, password=None, get_items=None, 
                             continue
                             #notified_socket.send(makeMsg({"status":"closed"}))#, "info":message['bestelling']['info']}))
                         
-                        
                         #stuur naar printer
                         printer_bestelling(message['bestelling'], message['hash'])
+                        
                         #stuur succes, gelukt naar kassa
                     elif message['req'] == "MSG":
                         pass
