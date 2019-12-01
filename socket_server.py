@@ -5,6 +5,7 @@ import socket
 import select
 import pickle
 import datetime
+import queue
 from threading import Thread, Condition
 #zelf geschreven
 import database
@@ -17,13 +18,15 @@ import sys
 HEADERLENGTH = 10 #10
 IP = "0.0.0.0"
 POORT = 1740
+#argument dat de server en de bestellingsender afsluit
 RUN = True
 ACCEPT = True
 PRINTERS = [] #(ip, poort, [type,])
+PRINT_QUEUE = queue.Queue() 
 
 EDIT_ID = None
 
-## print_type
+## ticket_type
 #bestelling --> b
 #rekening --> r
 
@@ -64,12 +67,34 @@ def makeMsg(msg):
     msg_header = f"{len(msg):<{HEADERLENGTH}}".encode('utf-8')  
     return msg_header + msg
     
+
+def printer_loop(cond):
+    '''
+        <Condition> cond 
+    '''
+    global RUN
+    global PRINT_QUEUE
+    
+    while RUN or not(PRINT_QUEUE.empty()):
+        with cond:
+            while PRINT_QUEUE.empty():
+                cond.wait()
+        #de cond is enkel nodig om te wachten, deze indentatie is nodig anders blockt hij ergens
+        #krijg data
+        waarden = PRINT_QUEUE.get()
+        #sluit voorwaarde
+        if "close" in waarden[0]:
+            return
+        
+        printer_bestelling(*waarden)
+        
+        
 #moet in een thread lopen
 #geef error wanneer we de printer niet kunnen bereiken
 def printer_bestelling(bestelling, h):
     '''
-        dict: bestelling 
-        str: h  (hash)
+        <dict> bestelling 
+        <str> h: hash
     '''
     producten = bestelling['BST']
     info = bestelling['info']
@@ -81,11 +106,12 @@ def printer_bestelling(bestelling, h):
         for t in types:
             b.update(producten.get(t, {}))
         tijd = datetime.datetime.now().strftime("%H:%M:%S")
-        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'print_type':'b'})
+        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'ticket_type':'b'})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((ip, poort))
             s.send(msg)
+            print("msg send: ", info)
         except Exception as e:
             #verwijder de printer uit de lijst van connecties, en geef popup
             trace_back = sys.exc_info()[2]
@@ -94,13 +120,13 @@ def printer_bestelling(bestelling, h):
         finally:
             s.close()
             
-
+                 
 def print_kasticket(bestelling, info, p_art, prijs):
     msg = makeMsg({'info': info,
                    'p_art': p_art,
                    'BST': bestelling,
                    'totaal': prijs,
-                   'print_type': 'r'}) #type voor rekening
+                   'ticket_type': 'r'}) #type voor rekening
     for ip, poort, types in PRINTERS:
         if not('rekening' in types):
             continue
@@ -123,7 +149,7 @@ def printer_test(ip, poort):
                    'opm':"DIT is een test, geen actie nodig...",
                    'BST':{},
                    'hash':"0000",
-                   'print_type':'b'})
+                   'ticket_type':'b'})
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ip, poort))
@@ -157,6 +183,12 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
         <func> update_func: functiecall als er een nieuw ID is
         <func> store_order: functiecall als er een bestelling binnenkomt
     '''
+    global RUN
+    global PRINT_QUEUE
+    #start bestellingsender Thread
+    cond = Condition()
+    Thread(target=printer_loop, args=(cond,), daemon=True).start() #verander de deamon nog naar False
+    
     #we zullen een connectie proberen te openen met de db om daar de producten op te vragen,
     #en de bestellingen in op te slaan.
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -173,8 +205,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
     
     db_io = database.OpenIO(db)
     
-    #start bestellingsender Thread
-    Thread(target=)
+
     
     try:
         #print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
@@ -274,7 +305,6 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                             #herlaad de rekeningen
                             update_func(db_io)
                             #notified_socket.send(makeMsg({"status":"succes"}))
-                            print("Succes")
                             best_status[message['hash']] = 1 #succes
                         #oude bestelling
                         elif ret == 0:
@@ -290,17 +320,20 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         
                         
                         #stuur naar printer --> best in andere thread want kan voor bottleneck zorgen
-                        
-                        printer_bestelling(message['bestelling'], message['hash'])
+                        with cond:
+                            PRINT_QUEUE.put((message['bestelling'], message['hash']))
+                            cond.notify()
+                        #printer_bestelling(message['bestelling'], message['hash'])
                         #stuur succes, gelukt naar kassa
                         
-                        #voeg toe aan een tabel
+                        #voeg toe aan een tabel -- TODO: verplaatsen naar de printloop
                         ret = database.addOrder(db_io, message)
                         if ret == -1:
                             print("DATABASE ERROR: addOrder")
                         else:
                             order_list(ret)
-                            
+                        print("klaar met order")                        
+                        
                     elif message['req'] == "MSG":
                         pass
                     elif message['req'] == "CHK":
@@ -318,7 +351,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                     elif message['req'] == "PING":
                         print("Pinged by {}".format(user))
                         
-        
+                        
             # It's not really necessary to have this, but will handle some socket exceptions just in case
             for notified_socket in exception_sockets:
         
@@ -327,6 +360,11 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
         
                 # Remove from our list of users
                 #del connecties[notified_socket]
+        
+        #sluit de printloop
+        with cond:
+            PRINT_QUEUE.put({"close":None}, "0000")
+        
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno

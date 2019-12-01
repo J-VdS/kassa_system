@@ -74,7 +74,7 @@ def start_listening():
     global STOP_LOOP
     global print_queue
     cond = Condition()
-    Thread(target=start_printloop, args=(cond,)).start() #geen deamon!
+    Thread(target=start_printloop, args=(cond,), daemon=False).start() #geen deamon!
     
     
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP
@@ -209,11 +209,11 @@ def start_printloop(conditie):
             with conditie:
                 while print_queue.empty():
                     conditie.wait()
-                #stuur naar de printer
-                ret = printer_verwerk(printer, print_queue.get())
-                if not(ret):
-                    break
-                time.sleep(5)
+            #stuur naar de printer
+            ret = printer_verwerk(printer, print_queue.get())
+            if not(ret):
+                break
+            time.sleep(5)
     except Exception as e:
         print(e)
         #schrijf ook alle error naar een file want programma loopt wss in een lus
@@ -238,11 +238,14 @@ def printer_verwerk(printer_obj, obj):
     try:
         #print en verwerk
         #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
-        #
-        print_type = obj.get("print_type", None)
+        
+        print(obj)        
+        print_type = obj.get("ticket_type", None)
         
         if print_type is None:
-            print("no print_type field")
+            print("no ticket_type field")
+            print("ERROR")
+        #hij crashte op deze lijn
         elif print_type == "b":
             print("INFO:", obj['info'])
             print("BESTELLING: ", obj['BST'])
@@ -262,6 +265,7 @@ def printer_verwerk(printer_obj, obj):
             print("geprint")
         else:
             print("wrong type!")
+        print("\n\n")
 
     except Exception as e:
         trace_back = sys.exc_info()[2]
