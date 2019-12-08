@@ -32,6 +32,9 @@ EDIT_ID = None
 
 #verwerkt de data
 def handles_message(client_socket):
+    '''
+        <Socket> client_socket
+    '''
     try:
         message_header = client_socket.recv(HEADERLENGTH)
         
@@ -46,6 +49,9 @@ def handles_message(client_socket):
     
 
 def get_products(db_io):
+    '''
+        <tuple/list> db_io: bevat de cursor en connection 
+    '''
     products = pickle.dumps(func.sort_by_type(database.getAllProductClient(db_io)))
     msg = f"{len(products):<{HEADERLENGTH}}".encode("utf-8") + products
     return msg
@@ -63,6 +69,9 @@ def TriggerSD():
     
 
 def makeMsg(msg):
+    '''
+        <dict> msg
+    '''
     msg = pickle.dumps(msg)
     msg_header = f"{len(msg):<{HEADERLENGTH}}".encode('utf-8')  
     return msg_header + msg
@@ -78,6 +87,7 @@ def printer_loop(cond):
     while RUN or not(PRINT_QUEUE.empty()):
         with cond:
             while PRINT_QUEUE.empty():
+                print("--- wait ---")
                 cond.wait()
         #de cond is enkel nodig om te wachten, deze indentatie is nodig anders blockt hij ergens
         #krijg data
@@ -98,13 +108,17 @@ def printer_bestelling(bestelling, h):
     '''
     producten = bestelling['BST']
     info = bestelling['info']
-    opm = bestelling['opm']
+    opm = bestelling['opm'].strip()
     for ip, poort, types in PRINTERS:
         if types == ["rekening"]:
             continue
         b = {}
         for t in types:
             b.update(producten.get(t, {}))
+        if not(b) and not(opm): # b == {} and opm == ""
+            print("printer skipped")
+            continue
+        
         tijd = datetime.datetime.now().strftime("%H:%M:%S")
         msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'ticket_type':'b'})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -122,6 +136,11 @@ def printer_bestelling(bestelling, h):
             
                  
 def print_kasticket(bestelling, info, p_art, prijs):
+    '''
+        <dict> bestelling
+        <dict> info
+        
+    '''
     msg = makeMsg({'info': info,
                    'p_art': p_art,
                    'BST': bestelling,

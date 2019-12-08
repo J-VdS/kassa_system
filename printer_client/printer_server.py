@@ -62,9 +62,9 @@ def handles_message(client_socket):
             return 0
         
         lengte = int(message_header.decode("utf-8"))
-        print("lengte:", lengte)
+        #print("lengte:", lengte)
         data = client_socket.recv(lengte) #pickled-data
-        print("unpickled:", pickle.loads(data))
+        #print("unpickled:", pickle.loads(data))
         return pickle.loads(data) #dict bevat request en eventuele data
     except:
         return 0
@@ -208,6 +208,7 @@ def start_printloop(conditie):
         while not(STOP_LOOP) or not(print_queue.empty()):
             with conditie:
                 while print_queue.empty():
+                    print(" --- wait --- ")
                     conditie.wait()
             #stuur naar de printer
             ret = printer_verwerk(printer, print_queue.get())
@@ -338,7 +339,7 @@ class fakePrinter(object):
 
     
     def cut(self, **kwargs):
-        print(self.PREFIX + "****************************")
+        print(self.PREFIX + "********* CUT *********")
 
 if __name__ == "__main__":
     start_listening()
