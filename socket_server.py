@@ -77,9 +77,10 @@ def makeMsg(msg):
     return msg_header + msg
     
 
-def printer_loop(cond):
+def printer_loop(cond, order_list):
     '''
         <Condition> cond 
+        <func> order_list: verandert visuele elementen in de gui 
     '''
     global RUN
     global PRINT_QUEUE
@@ -96,16 +97,18 @@ def printer_loop(cond):
         if "close" in waarden[0]:
             return
         
-        printer_bestelling(*waarden)
+        printer_bestelling(*waarden, order_list)
         
         
 #moet in een thread lopen
 #geef error wanneer we de printer niet kunnen bereiken
-def printer_bestelling(bestelling, h):
+def printer_bestelling(bestelling, h, order_list):
     '''
         <dict> bestelling 
         <str> h: hash
+        <func> order_list: update functie gui
     '''
+    #maak verschillende calls naar de db
     producten = bestelling['BST']
     info = bestelling['info']
     opm = bestelling['opm'].strip()
@@ -206,7 +209,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
     global PRINT_QUEUE
     #start bestellingsender Thread
     cond = Condition()
-    Thread(target=printer_loop, args=(cond,), daemon=True).start() #verander de deamon nog naar False
+    Thread(target=printer_loop, args=(cond, order_list), daemon=True).start() #verander de deamon nog naar False
     
     #we zullen een connectie proberen te openen met de db om daar de producten op te vragen,
     #en de bestellingen in op te slaan.

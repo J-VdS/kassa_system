@@ -2039,7 +2039,7 @@ class BListBar(GridLayout):
         #scroll label
         listgrid = GridLayout(cols=1, rows=2, size_hint_x=1.8)
         listgrid.add_widget(Label(
-                text="{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^14}".format("TIJD", "ID", "HASH", "INFO"),
+                text="{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^10}\t\t{:^4}".format("TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"),
                 size_hint_y=None,
                 height=50,
                 font_name="RobotoMono-Regular"))
@@ -2084,8 +2084,8 @@ class BListBar(GridLayout):
         
         
     def update_list(self, info):
-        #"{:^10}\t{:^6}\t{:^8}\t{:^8}".format("TIJD", "ID", "HASH", "INFO")
-        lijn = "{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^14}".format(info["tijd"], info["id"], info["hash"], "")
+        #"TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"
+        lijn = "{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^10}\t\t{:^4}".format(*info)
         self.blist.update_bestelling(lijn)
 
     

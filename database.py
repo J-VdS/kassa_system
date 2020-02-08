@@ -37,9 +37,9 @@ def InitTabels(db_io):
     conn, c = db_io
     #tables_check aanwezig
     #producten tabel
-    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, naam TEXT, prijs DECIMAL(10,2), active INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs DECIMAL(10,2), active INTEGER)")
     c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs DECIMAL(10,2), naam TEXT, betaalwijze TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelnr INTEGER PRIMARY KEY AUTOINCREMENT, klantid INTEGER, bestelling BLOB, tijd TEXT, hash TEXT, opm TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelnr INTEGER PRIMARY KEY, klantid INTEGER, bestelling BLOB, tijd TEXT, hash TEXT, ip_poort TEXT, types TEXT, status TEXT)")
     #print("---Product Table Loaded ---")
     conn.commit()
    
@@ -171,20 +171,29 @@ def addBestellingID(db_io, ID, naam):
         return -1
     
 
-def addOrder(db_io, message):
+def addOrder(db_io, message, ip_poort="DB", types=None, status="OK"):
+    """
+        <> db_io
+        <dict> message
+        <str> ip_poort: "ip:poort" van de printer
+        <str> types: types in verzonden bericht
+    
+    """
     conn, c = db_io
     tijd = datetime.datetime.now().strftime("%H:%M:%S")
     ID = message["bestelling"]["info"]["id"]
-    BST = message["bestelling"]["BST"]
-    OPM = message["bestelling"]["opm"]
+    if types is None:
+        raw_types = [str(i)[0] for i in message["bestelling"]["BST"].keys()] #ga naar 1 letter types
+        types = "".join(raw_types)
     try:
-        c.execute("INSERT INTO orders (klantid, bestelling, tijd, hash, opm) VALUES (?,?,?,?,?)", (ID, pickle.dumps(BST), tijd, message['hash'], OPM))
+        c.execute("INSERT INTO orders (klantid, bestelling, tijd, hash, ip_poort, types, status) VALUES (?,?,?,?,?,?,?)", (ID, pickle.dumps(message["bestelling"]), tijd, message['hash'], ip_poort, types, status))
         conn.commit()
-        return {"id": ID, "BST": BST, "tijd":tijd, "hash": message['hash']}
+        #["TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"]
+        return [tijd, ID, message['hash'], ip_poort, types, status]
     except Exception as e:
         print(e)
         return -1
-    
+
 
 def getBestelling(db_io, ID):
     conn, c = db_io
