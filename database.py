@@ -37,15 +37,16 @@ def InitTabels(db_io):
     conn, c = db_io
     #tables_check aanwezig
     #producten tabel
-    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs DECIMAL(10,2), active INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs DECIMAL(10,2), naam TEXT, betaalwijze TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs INTEGER, active INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs INTEGER, naam TEXT, betaalwijze TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS orders(bestelid INTEGER PRIMARY KEY, bestelling BLOB, printerid INTEGER, ip TEXT, status TEXT, times_send INTEGER)")
     #print("---Product Table Loaded ---")
     conn.commit()
    
     
 def AddProduct(db_io, type, naam, prijs, active):
-    ''' 
+    '''
+        
         voegt een product toe aan de producten tabel
         return values:
             0: succes

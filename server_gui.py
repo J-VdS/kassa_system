@@ -648,7 +648,8 @@ class ProductBar(BoxLayout):
                 #TODO: remove
                 db_io = database.OpenIO(global_vars.db)
                 azicht = global_vars.zichtbaar_int.index(azicht)
-                ret = database.AddProduct(db_io, atype, anaam, float(aprijs), azicht)
+                ret = database.AddProduct(db_io, atype, anaam, int(float(aprijs)*100), azicht)
+                print(int(float(aprijs)*100))
                 if  ret == 0:
                     #popup succes
                     self.makePopup("Product met naam: %s en prijs: €%s toegevoegd." %(anaam,aprijs),
@@ -688,7 +689,7 @@ class ProductBar(BoxLayout):
             #TODO: remove
             db_io = database.OpenIO(global_vars.db)
             bzicht = global_vars.zichtbaar_int.index(bzicht)
-            ret =  database.editProduct(db_io, bnaam, btype, float(bprijs), bzicht)
+            ret =  database.editProduct(db_io, bnaam, btype, int(float(bprijs)*100), bzicht)
             if ret == 0:
                 self.makePopup("Product met naam %s bewerkt." %(bnaam,),
                                    "Succes!")
@@ -2109,7 +2110,10 @@ class ProductLijstLabel(ScrollView):
         # First add new line and message itself
         self.naam.text += '\n' + product.get('naam','***')
         self.type.text += '\n' + product.get('type','***')
-        self.prijs.text += '\n' + str(product.get('prijs','***'))
+        prijs = product.get("prijs", "***")
+        if prijs != "***" and prijs != "[b][u]PRIJS:[/b][/u]":
+            prijs = "{}.{}".format(str(prijs)[:-2], str(prijs)[-2:])
+        self.prijs.text += '\n' + prijs
         if product.get('zichtbaar','***') == "[b][u]ZICHTBAAR:[/b][/u]":
             self.zichtbaar.text += '\n' + "[b][u]ZICHTBAAR:[/b][/u]"
         else:
