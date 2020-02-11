@@ -94,7 +94,7 @@ class Client_storage():
     
     
     def get_info_ticket(self):
-        p_art = {prod: self._prod[prod][2] for prod in self._prod} #{prod: prijs}
+        p_art = {prod: self._prod[prod][2]/100 for prod in self._prod} #{prod: prijs} #mss de /100 weglaten
         return (self.info, p_art)
     
     
@@ -162,7 +162,7 @@ class Client_storage():
             totaal += prod_prijs * self.bestelling[product]
         
         
-        return round(totaal, 2)
+        return totaal/100
 
             
 

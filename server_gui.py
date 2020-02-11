@@ -4,7 +4,6 @@ import pickle
 import datetime
 from functools import partial #instead of lamda functions
 from collections import deque
-from decimal import Decimal
 
 #kivy
 import kivy
@@ -648,14 +647,15 @@ class ProductBar(BoxLayout):
                 #TODO: remove
                 db_io = database.OpenIO(global_vars.db)
                 azicht = global_vars.zichtbaar_int.index(azicht)
-                ret = database.AddProduct(db_io, atype, anaam, int(float(aprijs)*100), azicht)
-                print(int(float(aprijs)*100))
+                db_prijs = int(float(aprijs)*100)
+                ret = database.AddProduct(db_io, atype, anaam, db_prijs, azicht)
+                
                 if  ret == 0:
                     #popup succes
-                    self.makePopup("Product met naam: %s en prijs: €%s toegevoegd." %(anaam,aprijs),
+                    self.makePopup("Product met naam: %s en prijs: €%.2f toegevoegd." %(anaam, db_prijs/100),
                                    "Succes!")
                     #print ook bij op het scherm
-                    self.lijst_bar.add_queue(func.to_dict(atype, anaam, aprijs, azicht))
+                    self.lijst_bar.add_queue(func.to_dict(atype, anaam, db_prijs, azicht))
                 elif ret == -1:
                     self.makePopup("Er bestaat reeds een product met dezelfde naam!",
                                    "Naam Error")
@@ -2111,7 +2111,7 @@ class ProductLijstLabel(ScrollView):
         self.naam.text += '\n' + product.get('naam','***')
         self.type.text += '\n' + product.get('type','***')
         prijs = product.get("prijs", "***")
-        if prijs != "***" and prijs != "[b][u]PRIJS:[/b][/u]":
+        if isinstance(prijs, int):
             prijs = "{}.{}".format(str(prijs)[:-2], str(prijs)[-2:])
         self.prijs.text += '\n' + prijs
         if product.get('zichtbaar','***') == "[b][u]ZICHTBAAR:[/b][/u]":
