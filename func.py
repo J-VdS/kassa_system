@@ -165,6 +165,6 @@ class Client_storage():
             if prod_prijs == "ERROR":
                 return prod_prijs
             totaal += prod_prijs * self.bestelling[product]
+
         return totaal
 
-                     

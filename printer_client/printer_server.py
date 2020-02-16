@@ -28,6 +28,7 @@ except:
 IP = "0.0.0.0"
 POORT = 1741
 HEADERLENGTH = 10
+NAAM = "printer" #TODO extra veld moet doorgestuurd worden en na de eerste verbinding wordt de naam vastgelegd
 
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
@@ -63,9 +64,9 @@ def handles_message(client_socket):
             return 0
         
         lengte = int(message_header.decode("utf-8"))
-        print("lengte:", lengte)
+        #print("lengte:", lengte)
         data = client_socket.recv(lengte) #pickled-data
-        print("unpickled:", pickle.loads(data))
+        #print("unpickled:", pickle.loads(data))
         return pickle.loads(data) #dict bevat request en eventuele data
     except:
         return 0
@@ -75,7 +76,7 @@ def start_listening():
     global STOP_LOOP
     global print_queue
     cond = Condition()
-    Thread(target=start_printloop, args=(cond,)).start() #geen deamon!
+    Thread(target=start_printloop, args=(cond,), daemon=False).start() #geen deamon!
     
     
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP
@@ -113,6 +114,7 @@ def start_listening():
                     # The other returned object is ip/port set
                     print("accept")
                     client_socket, client_address = s.accept()
+                    #terug toevoegen want zal direct een bericht sturen
                     read_sockets.append(client_socket)
         
                     '''#ontvang
@@ -208,16 +210,18 @@ def start_printloop(conditie):
         while not(STOP_LOOP) or not(print_queue.empty()):
             with conditie:
                 while print_queue.empty():
+                    print(" --- wait --- ")
                     conditie.wait()
-                #stuur naar de printer
-                ret = printer_verwerk(printer, print_queue.get())
-                if not(ret):
-                    break
-                time.sleep(5)
+            #stuur naar de printer
+            ret = printer_verwerk(printer, print_queue.get())
+            if not(ret):
+                break
+            time.sleep(5)
     except Exception as e:
         print(e)
         #schrijf ook alle error naar een file want programma loopt wss in een lus
     finally:
+        #als dit mogelijk is
         close_printer(printer)
          
         
@@ -237,26 +241,34 @@ def printer_verwerk(printer_obj, obj):
     try:
         #print en verwerk
         #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
-        #
-        if obj['type'] == "b":
+        
+        print(obj)        
+        print_type = obj.get("ticket_type", None)
+        
+        if print_type is None:
+            print("no ticket_type field")
+            print("ERROR")
+        #hij crashte op deze lijn
+        elif print_type == "b":
             print("INFO:", obj['info'])
             print("BESTELLING: ", obj['BST'])
-            print("OPM:", obj['opm'])
             printer_obj.text("TIJD: {}\n".format(obj.get('time', '')))
             printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<14}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
             printer_obj.text("-"*32+"\n")
             for prod in obj['BST']:
                 printer_obj.text("{:<28}  {}\n".format(prod, obj['BST'][prod]))
             if obj["opm"].strip():
+                print("OPM:", obj['opm'])
                 printer_obj.text("-"*32+'\n'+obj["opm"]+'\n')
             printer_obj.text("*"*32)
             printer_obj.cut() #noodzakelijk anders wordt er niets geprint
             print("geprint")
-        elif obj['type'] == "r":
+        elif print_type == "r":
             print_kasticket(printer_obj, obj)
             print("geprint")
         else:
             print("wrong type!")
+        print("\n\n")
 
     except Exception as e:
         trace_back = sys.exc_info()[2]
@@ -302,6 +314,7 @@ def print_kasticket(printer_obj, obj):
     finally:
         return True
 
+
 class fakePrinter(object):
     PREFIX = "[EP]"
     STANDAARD = {"align":'left', "font":'a', "text_type":'normal', "width":1, "height":1,
@@ -328,7 +341,7 @@ class fakePrinter(object):
 
     
     def cut(self, **kwargs):
-        print(self.PREFIX + "****************************")
+        print(self.PREFIX + "********* CUT *********")
 
 if __name__ == "__main__":
     start_listening()
