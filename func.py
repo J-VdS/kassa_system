@@ -151,6 +151,11 @@ class Client_storage():
 
 
     def bereken_prijs(self):
+        prijs = self.bereken_prijs_raw()
+        return prijs/100 if (prijs != "ERROR") else prijs
+    
+    
+    def bereken_prijs_raw(self):
         totaal = 0
         #print(self._prod)
         for product in self.bestelling:
@@ -160,14 +165,6 @@ class Client_storage():
             if prod_prijs == "ERROR":
                 return prod_prijs
             totaal += prod_prijs * self.bestelling[product]
-        
-        
-        return totaal/100
+        return totaal
 
-            
-
-
-
-
-
-            
+                     
