@@ -13,7 +13,7 @@ Om de kassa te gebruiken heb je momenteel python (> 3.6) nodig. En start server_
  - [x] back-ups
  - [ ] (buildozer android release + optimalisatie)
  ### servergui:
- - [ ] settings
+ - ~~[ ] settings~~
  - [x] ticketprinter bij kassa
  - [x] statistieken
  - [ ] oplossingen meerdere jaren --> database herschrijven
