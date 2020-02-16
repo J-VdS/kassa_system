@@ -668,13 +668,15 @@ class ProductBar(BoxLayout):
                 #TODO: remove
                 db_io = database.OpenIO(global_vars.db)
                 azicht = global_vars.zichtbaar_int.index(azicht)
-                ret = database.AddProduct(db_io, atype, anaam, float(aprijs), azicht)
+                db_prijs = int(float(aprijs)*100)
+                ret = database.AddProduct(db_io, atype, anaam, db_prijs, azicht)
+                
                 if  ret == 0:
                     #popup succes
-                    self.makePopup("Product met naam: %s en prijs: €%s toegevoegd." %(anaam,aprijs),
+                    self.makePopup("Product met naam: %s en prijs: €%.2f toegevoegd." %(anaam, db_prijs/100),
                                    "Succes!")
                     #print ook bij op het scherm
-                    self.lijst_bar.add_queue(func.to_dict(atype, anaam, aprijs, azicht))
+                    self.lijst_bar.add_queue(func.to_dict(atype, anaam, db_prijs, azicht))
                 elif ret == -1:
                     self.makePopup("Er bestaat reeds een product met dezelfde naam!",
                                    "Naam Error")
@@ -708,7 +710,7 @@ class ProductBar(BoxLayout):
             #TODO: remove
             db_io = database.OpenIO(global_vars.db)
             bzicht = global_vars.zichtbaar_int.index(bzicht)
-            ret =  database.editProduct(db_io, bnaam, btype, float(bprijs), bzicht)
+            ret =  database.editProduct(db_io, bnaam, btype, int(float(bprijs)*100), bzicht)
             if ret == 0:
                 self.makePopup("Product met naam %s bewerkt." %(bnaam,),
                                    "Succes!")
@@ -1281,7 +1283,7 @@ class BestelBar(GridLayout):
         Clock.schedule_once(self.refill, 0.5)
         
         #vul totaal in
-        self.totaal_label.text = "{:<25}€{:>6}".format("TOTAAL:", round(gui.DATA.bereken_prijs(),2))
+        self.totaal_label.text = "{:<25}€{:>6}".format("TOTAAL:", gui.DATA.bereken_prijs())
         
     
     def vul_in(self):
@@ -1452,9 +1454,9 @@ class BestelBar(GridLayout):
         self.twisselgeld = Label(text="---", font_size=20)
         toplayout.add_widget(self.twisselgeld)
         
-        toplayout.add_widget(Label(text="Fooi:", font_size=20))
-        self.tfooi = TextInput(text="0", multiline=False, font_size=20)
-        toplayout.add_widget(self.tfooi)
+#        toplayout.add_widget(Label(text="Fooi:", font_size=20))
+#        self.tfooi = TextInput(text="0", multiline=False, font_size=20)
+#        toplayout.add_widget(self.tfooi)
     
         
         toplayout.add_widget(Label(text="Betaalwijze:", font_size=20))
@@ -1530,26 +1532,26 @@ class BestelBar(GridLayout):
         if betaalwijze == "---":
             self.blabel.text="[color=#ff0000]Selecteer een betaal methode![/color]"
             return
-        elif not(func.is_number(self.tfooi.text)):
-            self.blabel.text = "[color=#ff0000]Fooi is geen getal![/color]"
-            return
+#        elif not(func.is_number(self.tfooi.text)):
+#            self.blabel.text = "[color=#ff0000]Fooi is geen getal![/color]"
+#            return
         
-        fooi = float(self.tfooi.text)
+#        fooi = float(self.tfooi.text)
         
-        if fooi < 0:
-            self.blabel.text = "[color=#ff0000]Een negatieve fooi kan niet![/color]"
-            return
+#        if fooi < 0:
+#            self.blabel.text = "[color=#ff0000]Een negatieve fooi kan niet![/color]"
+#            return
         
         
         db_io = database.OpenIO(global_vars.db)
-        totaal = gui.DATA.bereken_prijs()
+        totaal = gui.DATA.bereken_prijs_raw()
         
         if totaal == "ERROR":
             self.blabel.text="[color=#ff0000]De bestelling bevat een product waarvan we de prijs niet kennen.[/color]"
             database.CloseIO(db_io)
             return
-        #TODO: afronden onmogelijk als totaal = ERROR
-        database.sluitById(db_io, self.ID_klant, totaal + fooi, betaalwijze)        
+        
+        database.sluitById(db_io, self.ID_klant, totaal, betaalwijze) #totaal + fooi
         
         #ga terug naar het hoofdscherm en update het scherm
         gui.hoofdscherm.hoofdbar.update_rekeningen(db_io)
@@ -2214,7 +2216,10 @@ class ProductLijstLabel(ScrollView):
         # First add new line and message itself
         self.naam.text += '\n' + product.get('naam','***')
         self.type.text += '\n' + product.get('type','***')
-        self.prijs.text += '\n' + str(product.get('prijs','***'))
+        prijs = product.get("prijs", "***")
+        if isinstance(prijs, int):
+            prijs = "{}.{}".format(str(prijs)[:-2], str(prijs)[-2:])
+        self.prijs.text += '\n' + prijs
         if product.get('zichtbaar','***') == "[b][u]ZICHTBAAR:[/b][/u]":
             self.zichtbaar.text += '\n' + "[b][u]ZICHTBAAR:[/b][/u]"
         else:

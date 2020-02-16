@@ -339,13 +339,13 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                             
                             continue
                             #notified_socket.send(makeMsg({"status":"closed"}))#, "info":message['bestelling']['info']}))
-                        
-                        
+                          
                         #stuur naar printer --> best in andere thread want kan voor bottleneck zorgen
                         with cond:
                             PRINT_QUEUE.put((message['bestelling'], message['hash']))
                             cond.notify()
                         #printer_bestelling(message['bestelling'], message['hash'])
+
                         #stuur succes, gelukt naar kassa
                         
                         #voeg toe aan een tabel -- TODO: verplaatsen naar de printloop

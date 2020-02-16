@@ -37,15 +37,17 @@ def InitTabels(db_io):
     conn, c = db_io
     #tables_check aanwezig
     #producten tabel
-    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs DECIMAL(10,2), active INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs DECIMAL(10,2), naam TEXT, betaalwijze TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelnr INTEGER PRIMARY KEY, klantid INTEGER, bestelling BLOB, tijd TEXT, hash TEXT, ip_poort TEXT, types TEXT, status TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs INTEGER, active INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs INTEGER, naam TEXT, betaalwijze TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelid INTEGER PRIMARY KEY, bestelling BLOB, printerid INTEGER, ip TEXT, status TEXT, times_send INTEGER)")
+
     #print("---Product Table Loaded ---")
     conn.commit()
    
     
 def AddProduct(db_io, type, naam, prijs, active):
-    ''' 
+    '''
+        
         voegt een product toe aan de producten tabel
         return values:
             0: succes
@@ -285,7 +287,7 @@ def exportCSV(db_io):#, filename="test.csv"):
     bedragen = {}
     
     for T, N, P, A in list(c.fetchall()):
-        producten.append([T, N, str(P).replace(".",","), str(A)])
+        producten.append([T, N, str(P/100), str(A)])
         dict_prod[N] = 0
 
     with open(PATH+"productdump.csv", "w", newline='') as f:
@@ -306,16 +308,17 @@ def exportCSV(db_io):#, filename="test.csv"):
         for ID, N, O, P, B, best in data:
             best = update_dict(dict_prod.copy(), pickle.loads(best))
             #https://stackoverflow.com/questions/35694303/convert-array-of-int-to-array-of-chars-python
-            writer.writerow([ID, N, str(O), str(P), B, "#", *list(map(str, best.values()))])
             if P:
+                writer.writerow([ID, N, str(O), str(P/100), B, "#", *list(map(str, best.values()))])
                 bedragen[B] = bedragen.get(B, 0) + P
-    
+            else:
+                writer.writerow([ID, N, str(O), str(P), B, "#", *list(map(str, best.values()))])
     #ontvangen bedragen
     with open(PATH+"bedragen.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow(["methode", "bedrag (in €)"])
         for key in bedragen:
-            writer.writerow([key, str(bedragen[key]).replace('.',',')])
+            writer.writerow([key, str(bedragen[key]/100).replace('.',',')])
             
     #resume
     data = update_dict(dict_prod, getTotaalProd(db_io)) #alle gesloten 
@@ -344,8 +347,9 @@ def exportXLSX(db_io):
     ws.append(("type", "naam", "prijs", "zichtbaar"))
     for T, N, P, A in list(c.fetchall()):
         dict_prod[N] = 0
-        ws.append((T, N, P, A))
+        ws.append((T, N, P/100, A))
     
+    print("bestellingen")
     #bestellingen
     ws2 = wb.create_sheet(title="bestellingen")
     
@@ -355,18 +359,22 @@ def exportXLSX(db_io):
     ws2.append(("ID", "naam", "open", "prijs", "betaalwijze",  " ", *dict_prod.keys()))
     for ID, N, O, P, B, best in data:
         best = update_dict(dict_prod.copy(), pickle.loads(best))
-        ws2.append((ID, N, O, P, B, " ", *best.values()))
         if P:
+            ws2.append((ID, N, O, P/100, B, " ", *best.values()))
             bedragen[B] = bedragen.get(B, 0) + P
+        else:
+            ws2.append((ID, N, O, P, B, " ", *best.values())) #P == None
+            
     
+    print("onvang")
     #ontvangen bedragen
     ws3 = wb.create_sheet(title="bedragen")
     
     ws3.append(("methode", "bedrag (in €)"))
     for key in bedragen:
-        ws3.append((key, bedragen[key]))
+        ws3.append((key, bedragen[key]/100))
         
-    # #resume
+    #resume
     ws4 = wb.create_sheet(title="verkochte aantallen")
     
     data = update_dict(dict_prod, getTotaalProd(db_io)) #alle gesloten 

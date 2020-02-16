@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #TODO; stuur bevestiging aangekomen en geprint
+#TODO: sluit connectie met de printer indien de queue leeg is, heropen indien er terug een bestelling is
+
 
 #stresstest
 import time
