@@ -80,7 +80,7 @@ def makeMsg(msg):
 def printer_loop(cond, order_list):
     '''
         <Condition> cond 
-        <func> order_list: verandert visuele elementen in de gui 
+        <func> order_list: verandert visuele elementen in de gui over de status van bestellingen
     '''
     global RUN
     global PRINT_QUEUE
@@ -112,6 +112,10 @@ def printer_bestelling(bestelling, h, order_list):
     producten = bestelling['BST']
     info = bestelling['info']
     opm = bestelling['opm'].strip()
+    
+    #start send pr
+    order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, "", "", "STSD"])
+    
     for ip, poort, types in PRINTERS:
         if types == ["rekening"]:
             continue
@@ -125,15 +129,23 @@ def printer_bestelling(bestelling, h, order_list):
         tijd = datetime.datetime.now().strftime("%H:%M:%S")
         msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'ticket_type':'b'})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        adres = "{}:{}".format(ip, poort)
+        types_short = "".join(["{:<2}".format(str(i)[:2]) for i in types])
         try:
             s.connect((ip, poort))
             s.send(msg)
             print("msg send: ", info)
+            order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, adres, types_short, "SD"], "#00ed30")
+            
         except Exception as e:
             #verwijder de printer uit de lijst van connecties, en geef popup
             trace_back = sys.exc_info()[2]
             line = trace_back.tb_lineno
             print(f"[ERR!]Printer line {line}: {str(e)}")
+            
+            #send error
+            order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, adres, types_short, "ERSD"], "#ff0000")
+            
         finally:
             s.close()
             
@@ -318,7 +330,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         #vermijd dat er 2 acties tegelijk bezig zijn met een id
                         global EDIT_ID
                         while EDIT_ID == message['bestelling']['info']['id']:
-                            pass
+                            pass #mogelijkheid om bestellingen te verliezen?
                         EDIT_ID = message['bestelling']['info']['id']
                         ret = database.addBestelling(db_io, message['bestelling']['info'], best)
                         EDIT_ID = None
@@ -339,7 +351,18 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                             
                             continue
                             #notified_socket.send(makeMsg({"status":"closed"}))#, "info":message['bestelling']['info']}))
-                          
+                        
+                        #TODO: wanneer dat een client een bestelling aan het plaatsen is EN men bij de kassa de rekening aan het afsluiten is
+                        
+                        
+                        #voeg toe aan order tabel
+                        ret = database.addOrder(db_io, message, status="INDB")
+                        if ret == -1:
+                            print("DATABASE ERROR: addOrder")
+                            #TODO: print error
+                        else:
+                            order_list(ret, "0000ff")
+                            
                         #stuur naar printer --> best in andere thread want kan voor bottleneck zorgen
                         with cond:
                             PRINT_QUEUE.put((message['bestelling'], message['hash']))
@@ -347,14 +370,6 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         #printer_bestelling(message['bestelling'], message['hash'])
 
                         #stuur succes, gelukt naar kassa
-                        
-                        #voeg toe aan een tabel -- TODO: verplaatsen naar de printloop
-                        ret = database.addOrder(db_io, message)
-                        if ret == -1:
-                            print("DATABASE ERROR: addOrder")
-                        else:
-                            order_list(ret)
-                        print("klaar met order")                        
                         
                     elif message['req'] == "MSG":
                         pass

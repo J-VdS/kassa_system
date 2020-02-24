@@ -2041,13 +2041,13 @@ class BListBar(GridLayout):
         #scroll label
         listgrid = GridLayout(cols=1, rows=2, size_hint_x=1.8)
         listgrid.add_widget(Label(
-                text="{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^10}\t\t{:^4}".format("TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"),
+                text="{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^14}\t\t{:^10}".format("TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"),
                 size_hint_y=None,
                 height=50,
                 font_name="RobotoMono-Regular"))
         
         self.blist = LijstLabel()
-        self.blist.set_down_scrolling(True)
+        self.blist.set_down_scrolling(False) #True
         listgrid.add_widget(self.blist)
         
         self.add_widget(listgrid)
@@ -2083,14 +2083,18 @@ class BListBar(GridLayout):
         smaingrid.add_widget(Label())
         
         self.add_widget(smaingrid)
-        
-        
-    def update_list(self, info):
+
+
+    def update_list(self, info, statcolor=None):
+        if statcolor is None:
         #"TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"
-        lijn = "{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^10}\t\t{:^4}".format(*info)
+            lijn = "{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^14}\t\t{:^10}".format(*info)
+        else:
+            info.insert(-1, "[color={}]".format(statcolor))
+            lijn = "{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^14}\t\t{}{:^10}[/color]".format(*info)
         self.blist.update_bestelling(lijn)
 
-    
+
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
     def __init__(self, **kwargs):
@@ -2105,7 +2109,7 @@ class LijstLabel(ScrollView):
         self.bind(size=self._update_rect, pos=self._update_rect)
 
         #Scrollview attributen
-        self.bar_width = 5
+        self.bar_width = 10
         
         self.layout = GridLayout(size_hint_y=None, cols=1)
         self.add_widget(self.layout)
@@ -2136,15 +2140,14 @@ class LijstLabel(ScrollView):
         # Set layout height to whatever height of self.naam text is + 15 pixels
         # (adds a bit of space at the bottom)
         # Set chat history label to whatever height of chat history text is
-        # Set width of chat history text to 98 of the label width (adds small margins)
         self.layout.height = self.bestelling.texture_size[1] + 15
         self.bestelling.height = self.bestelling.texture_size[1]
             #el.text_size = (el.width * 0.98, None) #kan later problemen geven
             
         if self._dscrolling:
             self.scroll_to(self.scroll_to_point)
-            
-    
+
+
     def verklein_bestelling(self, aantal=-1, _=None):
         if (aantal == -1):
             aantal = self.bestelling.text.count('\n')
@@ -2177,7 +2180,7 @@ class ProductLijstLabel(ScrollView):
         self.bind(size=self._update_rect, pos=self._update_rect)
 
         #Scrollview attributen
-        self.bar_width = 5
+        self.bar_width = 10
         
         # ScrollView does not allow us to add more than one widget, so we need to trick it
         # by creating a layout and placing two widgets inside it
@@ -2287,6 +2290,7 @@ class ProductLijstLabel(ScrollView):
         for i in database.getAllProduct(db_io):
             self.add_queue(func.to_dict(*i))
         database.CloseIO(db_io)
+    
     
     def reload_from_db(self):
         Clock.schedule_once(partial(self.verklein_update_list,-1), 0.5) #all
