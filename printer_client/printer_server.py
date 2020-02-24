@@ -30,8 +30,14 @@ NAAM = "printer" #TODO extra veld moet doorgestuurd worden en na de eerste verbi
 TBT = 5 #tijd tussen 2 tickets (in seconden)
 #debug
 DYNCON = True #dynamische seriële connectie
-
-
+LOGGING = True
+if LOGGING:
+    import os
+    if not(os.path.isdir("logs")):
+        os.mkdir("logs")
+    FILENAME = os.path.join("logs", "errlog{}.log".format(int(time.time()))) #https://www.unixtimestamp.com/index.php
+else:
+    FILENAME = None
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
 #breedte is 32 wss
@@ -50,7 +56,8 @@ OUT_END = 0x03 #hex
 IN_END = 0x81 #hex
 '''
 #printer_obj = None
-print_queue = queue.Queue()
+print_queue = queue.Queue()  # bevat alle bestellingen die moeten worden afgedrukt
+print_status = queue.Queue() # bevat alle statusberichten over de bestellingen (succes/gefaald/bezig)
 
 #STOP LOOP
 STOP_LOOP = False
@@ -214,7 +221,7 @@ def start_printloop(conditie):
         #hij zal enkel afsluiten indien de print_queue leeg is en de connectie gesloten is!
         while not(STOP_LOOP) or not(print_queue.empty()):
             #close connection with the printer if there is no queue
-            if print_queue.empty() and DYNCON:
+            if print_queue.empty() and DYNCON and not(printer is None):
                 close_printer(printer)
                 printer = None
 
@@ -225,7 +232,8 @@ def start_printloop(conditie):
             #reopen connectie met printer
             if DYNCON and printer is None:
                 printer = open_printer()
-                #TODO: laat weten als het een fake printer is
+                if isinstance(printer, fakePrinter):
+                    print_status.put(("alg", "FAKE"))
             #stuur naar de printer
             ret = printer_verwerk(printer, print_queue.get())
             if not(ret):
@@ -255,13 +263,14 @@ def printer_verwerk(printer_obj, obj):
     try:
         #print en verwerk
         #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
-        
+        1/0
         print(obj)        
         print_type = obj.get("ticket_type", None)
         
         if print_type is None:
             print("no ticket_type field")
             print("ERROR")
+            print_status.put(("alg", "PTYP"))
         #hij crashte op deze lijn
         elif print_type == "b":
             print("INFO:", obj['info'])
@@ -288,6 +297,9 @@ def printer_verwerk(printer_obj, obj):
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
         print("line {}: {}".format(str(line), str(e)))
+        if LOGGING and not(FILENAME is None):
+            with open(FILENAME, "a") as fn:
+                fn.write("{}\nline {}: {}\n{}\n\n".format(int(time.time()), line, e, trace_back))        
         printer_obj.cut()
     
     finally:    
