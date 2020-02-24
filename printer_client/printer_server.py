@@ -3,8 +3,6 @@
 #TODO; stuur bevestiging aangekomen en geprint
 #TODO: sluit connectie met de printer indien de queue leeg is, heropen indien er terug een bestelling is
 
-
-#stresstest
 import time
 
 import socket #communicatie met de kassa
@@ -29,6 +27,10 @@ IP = "0.0.0.0"
 POORT = 1741
 HEADERLENGTH = 10
 NAAM = "printer" #TODO extra veld moet doorgestuurd worden en na de eerste verbinding wordt de naam vastgelegd
+TBT = 5 #tijd tussen 2 tickets (in seconden)
+#debug
+DYNCON = True #dynamische seriële connectie
+
 
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
@@ -77,7 +79,6 @@ def start_listening():
     global print_queue
     cond = Condition()
     Thread(target=start_printloop, args=(cond,), daemon=False).start() #geen deamon!
-    
     
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -185,13 +186,13 @@ def start_listening():
 def open_printer():
     try:
         if LIB:
-            test = Usb(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
+            p = Usb(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
         else:
-            test = fakePrinter(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
+            p = fakePrinter(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
     except Exception as e:
         print("[EP]", e, "using a fake printer instead")
-        test = fakePrinter(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
-    return test
+        p = fakePrinter(ID_VENDOR,ID_PRODUCT,0,IN_END,OUT_END)
+    return p
     
 
 def close_printer(printer):
@@ -203,20 +204,33 @@ def start_printloop(conditie):
     global print_queue
     
     print("start loop")
-    printer = open_printer()
+    
+    if DYNCON:
+        printer = None
+    else:
+        printer = open_printer()
     
     try:
         #hij zal enkel afsluiten indien de print_queue leeg is en de connectie gesloten is!
         while not(STOP_LOOP) or not(print_queue.empty()):
+            #close connection with the printer if there is no queue
+            if print_queue.empty() and DYNCON:
+                close_printer(printer)
+                printer = None
+
             with conditie:
                 while print_queue.empty():
                     print(" --- wait --- ")
                     conditie.wait()
+            #reopen connectie met printer
+            if DYNCON and printer is None:
+                printer = open_printer()
+                #TODO: laat weten als het een fake printer is
             #stuur naar de printer
             ret = printer_verwerk(printer, print_queue.get())
             if not(ret):
                 break
-            time.sleep(5)
+            time.sleep(TBT)
     except Exception as e:
         print(e)
         #schrijf ook alle error naar een file want programma loopt wss in een lus
