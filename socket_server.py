@@ -4,6 +4,7 @@
 import socket
 import select
 import pickle
+import time
 import datetime
 import queue
 from threading import Thread, Condition
@@ -13,11 +14,15 @@ import func
 #error handling
 import sys
 
+
 #RUN_SERVER = True
 
 HEADERLENGTH = 10 #10
 IP = "0.0.0.0"
 POORT = 1740
+
+CTRLCHECKCOUNTER = 10
+
 #argument dat de server en de bestellingsender afsluit
 RUN = True
 ACCEPT = True
@@ -85,6 +90,8 @@ def printer_loop(cond, order_list):
     global RUN
     global PRINT_QUEUE
     
+    checkCounter = 0
+    
     while RUN or not(PRINT_QUEUE.empty()):
         with cond:
             while PRINT_QUEUE.empty():
@@ -98,7 +105,10 @@ def printer_loop(cond, order_list):
             return
         
         printer_bestelling(*waarden, order_list)
-        
+        checkCounter += 1
+        if checkCounter == CTRLCHECKCOUNTER:
+            send_check(order_list)
+            checkCounter = 0
         
 #moet in een thread lopen
 #geef error wanneer we de printer niet kunnen bereiken
@@ -150,6 +160,23 @@ def printer_bestelling(bestelling, h, order_list):
             s.close()
             
                  
+def send_check(order_list):
+    basemsg = {'ticket_type':'c', 'poort':POORT, 'hash':str(int(time.time()))[-4:]}
+    for ip, poort, types in PRINTERS:
+        basemsg['types'] = "".join(["{:<2}".format(str(i)[:2]) for i in types])
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect((ip, poort))
+            s.send(makeMsg(basemsg))
+        except Exception as e:
+            trace_back = sys.exc_info()[2]
+            line = trace_back.tb_lineno
+            print(f"[ERR!]Printer line {line}: {str(e)}")
+        finally:
+            s.close()
+    order_list([datetime.datetime.now().strftime("%H:%M:%S"), "", basemsg['hash'], "all", "", "CHEC"], "#ff1493")
+            
+            
 def print_kasticket(bestelling, info, p_art, prijs):
     '''
         <dict> bestelling
@@ -387,6 +414,9 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         print("Na:", best_status)
                     elif message['req'] == "PING":
                         print("Pinged by {}".format(user))
+                    elif message['req'] == "PINFO":
+                        print("[SERVER] printer geeft printinfo")
+                        
                         
                         
             # It's not really necessary to have this, but will handle some socket exceptions just in case

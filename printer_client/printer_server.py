@@ -263,7 +263,6 @@ def printer_verwerk(printer_obj, obj):
     try:
         #print en verwerk
         #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
-        1/0
         print(obj)        
         print_type = obj.get("ticket_type", None)
         
@@ -285,10 +284,16 @@ def printer_verwerk(printer_obj, obj):
                 printer_obj.text("-"*32+'\n'+obj["opm"]+'\n')
             printer_obj.text("*"*32)
             printer_obj.cut() #noodzakelijk anders wordt er niets geprint
-            print("geprint")
+            
+            print_status.put((obj['info']['id'], obj['hash'], 0))
+            
         elif print_type == "r":
             print_kasticket(printer_obj, obj)
             print("geprint")
+        elif print_type == "c":
+            #send the queue
+            print("check")
+            
         else:
             print("wrong type!")
         print("\n\n")
@@ -300,6 +305,10 @@ def printer_verwerk(printer_obj, obj):
         if LOGGING and not(FILENAME is None):
             with open(FILENAME, "a") as fn:
                 fn.write("{}\nline {}: {}\n{}\n\n".format(int(time.time()), line, e, trace_back))        
+        
+        print_status.put((obj['info']['id'], obj['hash'], -1)) #print error
+        
+        #could crash
         printer_obj.cut()
     
     finally:    
