@@ -111,6 +111,7 @@ def start_listening():
             # This is a blocking call, code execution will "wait" here and "get" notified in case any action should be taken
             read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
             
+            addr_info = [] #(socket, addr)
             # Iterate over notified sockets
             for notified_socket in read_sockets:
         
@@ -122,6 +123,8 @@ def start_listening():
                     # The other returned object is ip/port set
                     print("accept")
                     client_socket, client_address = s.accept()
+                    print(client_address)
+                    addr_info.append((client_socket, client_address))
                     #terug toevoegen want zal direct een bericht sturen
                     read_sockets.append(client_socket)
         
@@ -158,12 +161,17 @@ def start_listening():
                         #gebruik conn.close() om de connectie te sluiten!
                         # Remove from list for socket.socket()
                         sockets_list.remove(notified_socket)
+                        
+                        if notified_socket in addr_info:
+                            addr_info.remove(notified_socket)
         
                         # Remove from our list of users
                         #del connecties[notified_socket]
                         notified_socket.close() #mss ni nodig - close connection
                         
                         continue
+                    
+                    message["addr"] = addr_info[notified_socket]
                     
                     with cond:
                             print_queue.put(message)
@@ -293,7 +301,10 @@ def printer_verwerk(printer_obj, obj):
         elif print_type == "c":
             #send the queue
             print("check")
-            
+            #socket operaties gebeuren in een andere thread!
+            #via obj["addr"] bekomen we het ip en de poort vinden we gewoon as KV
+            #haal eerst x aantal elementen uit de queue(via qsize proberen we ze leeg te maken)
+            #daarna picklen we alles en sturen we het door met req="pinfo"
         else:
             print("wrong type!")
         print("\n\n")
