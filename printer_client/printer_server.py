@@ -350,6 +350,7 @@ def send_pinfo(obj):
         msg["stats"].append(temp[-1])
     try:
         s.connect((obj["addr"][0], obj["poort"]))
+        s.send(makeMsg({'naam':NAAM}))
         s.send(makeMsg(msg))
     except Exception as e:
         trace_back = sys.exc_info()[2]
