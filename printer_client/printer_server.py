@@ -81,6 +81,16 @@ def handles_message(client_socket):
         return 0
 
 
+#vorm data om
+def makeMsg(msg):
+    '''
+        <dict> msg
+    '''
+    msg = pickle.dumps(msg)
+    msg_header = f"{len(msg):<{HEADERLENGTH}}".encode('utf-8')  
+    return msg_header + msg
+
+
 def start_listening():
     global STOP_LOOP
     global print_queue
@@ -96,6 +106,8 @@ def start_listening():
     
     #lijst met sockets
     sockets_list = [s]
+    addr_info_sock = []
+    addr_info_ip = []
     
     try:
         print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
@@ -111,7 +123,6 @@ def start_listening():
             # This is a blocking call, code execution will "wait" here and "get" notified in case any action should be taken
             read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
             
-            addr_info = [] #(socket, addr)
             # Iterate over notified sockets
             for notified_socket in read_sockets:
         
@@ -124,7 +135,8 @@ def start_listening():
                     print("accept")
                     client_socket, client_address = s.accept()
                     print(client_address)
-                    addr_info.append((client_socket, client_address))
+                    addr_info_sock.append(client_socket)
+                    addr_info_ip.append(client_address)
                     #terug toevoegen want zal direct een bericht sturen
                     read_sockets.append(client_socket)
         
@@ -162,8 +174,10 @@ def start_listening():
                         # Remove from list for socket.socket()
                         sockets_list.remove(notified_socket)
                         
-                        if notified_socket in addr_info:
-                            addr_info.remove(notified_socket)
+                        if notified_socket in addr_info_sock:
+                            index = addr_info_ip.index(notified_socket)
+                            del addr_info_sock[index]
+                            del addr_info_ip[index]
         
                         # Remove from our list of users
                         #del connecties[notified_socket]
@@ -171,7 +185,7 @@ def start_listening():
                         
                         continue
                     
-                    message["addr"] = addr_info[notified_socket]
+                    message["addr"] = addr_info_ip[addr_info_sock.index(notified_socket)]
                     
                     with cond:
                             print_queue.put(message)
@@ -241,7 +255,7 @@ def start_printloop(conditie):
             if DYNCON and printer is None:
                 printer = open_printer()
                 if isinstance(printer, fakePrinter):
-                    print_status.put(("alg", "FAKE"))
+                    print_status.put(("alg", "FAKE", -2))
             #stuur naar de printer
             ret = printer_verwerk(printer, print_queue.get())
             if not(ret):
@@ -256,7 +270,7 @@ def start_printloop(conditie):
          
         
 def printer_verwerk(printer_obj, obj):
-    if "close" in obj:
+    if "STOP" in obj:
         return False
     '''	    
     try:
@@ -277,7 +291,7 @@ def printer_verwerk(printer_obj, obj):
         if print_type is None:
             print("no ticket_type field")
             print("ERROR")
-            print_status.put(("alg", "PTYP"))
+            print_status.put(("alg", "PTYP", "???", -2))
         #hij crashte op deze lijn
         elif print_type == "b":
             print("INFO:", obj['info'])
@@ -293,7 +307,7 @@ def printer_verwerk(printer_obj, obj):
             printer_obj.text("*"*32)
             printer_obj.cut() #noodzakelijk anders wordt er niets geprint
             
-            print_status.put((obj['info']['id'], obj['hash'], 0))
+            print_status.put((obj['info']['id'], obj['hash'], obj['ptypes'], 0))
             
         elif print_type == "r":
             print_kasticket(printer_obj, obj)
@@ -305,6 +319,7 @@ def printer_verwerk(printer_obj, obj):
             #via obj["addr"] bekomen we het ip en de poort vinden we gewoon as KV
             #haal eerst x aantal elementen uit de queue(via qsize proberen we ze leeg te maken)
             #daarna picklen we alles en sturen we het door met req="pinfo"
+            Thread(target=send_pinfo, args=(obj,), daemon=True).start()
         else:
             print("wrong type!")
         print("\n\n")
@@ -317,14 +332,34 @@ def printer_verwerk(printer_obj, obj):
             with open(FILENAME, "a") as fn:
                 fn.write("{}\nline {}: {}\n{}\n\n".format(int(time.time()), line, e, trace_back))        
         
-        print_status.put((obj['info']['id'], obj['hash'], -1)) #print error
+        print_status.put((obj['info']['id'], obj['hash'], obj['ptypes'], -1)) #print error
         
         #could crash
         printer_obj.cut()
     
     finally:    
         return True
-    
+
+
+def send_pinfo(obj):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    msg = {'req':"PINFO", "stats":[]}
+    temp = []
+    for _ in range(print_status.qsize):
+        temp.append(print_status.get())
+        msg["stats"].append(temp[-1])
+    try:
+        s.connect(obj["addr"][0], obj["poort"])
+        s.send(makeMsg(msg))
+    except Exception as e:
+        trace_back = sys.exc_info()[2]
+        line = trace_back.tb_lineno
+        print("line {}: {}".format(str(line), str(e)))
+        for i in temp:
+            print_status.put(i)
+    finally:
+        s.close()
+
 
 #https://github.com/python-escpos/python-escpos/tree/v2.2.0
 def print_kasticket(printer_obj, obj):
@@ -389,8 +424,7 @@ class fakePrinter(object):
     def cut(self, **kwargs):
         print(self.PREFIX + "********* CUT *********")
 
+
 if __name__ == "__main__":
     start_listening()
     
-
-

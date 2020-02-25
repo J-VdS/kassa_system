@@ -28,6 +28,7 @@ RUN = True
 ACCEPT = True
 PRINTERS = [] #(ip, poort, [type,])
 PRINT_QUEUE = queue.Queue() 
+BEST_OK = True #False
 
 EDIT_ID = None
 
@@ -137,10 +138,10 @@ def printer_bestelling(bestelling, h, order_list):
             continue
         
         tijd = datetime.datetime.now().strftime("%H:%M:%S")
-        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'ticket_type':'b'})
+        types_short = "".join(["{:<2}".format(str(i)[:2]) for i in types])
+        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'ticket_type':'b', 'ptypes': types_short})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         adres = "{}:{}".format(ip, poort)
-        types_short = "".join(["{:<2}".format(str(i)[:2]) for i in types])
         try:
             s.connect((ip, poort))
             s.send(msg)
@@ -246,6 +247,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
     '''
     global RUN
     global PRINT_QUEUE
+    global BEST_OK
     #start bestellingsender Thread
     cond = Condition()
     Thread(target=printer_loop, args=(cond, order_list), daemon=True).start() #verander de deamon nog naar False
@@ -265,8 +267,6 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
     best_status = {}
     
     db_io = database.OpenIO(db)
-    
-
     
     try:
         #print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
@@ -416,8 +416,17 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         print("Pinged by {}".format(user))
                     elif message['req'] == "PINFO":
                         print("[SERVER] printer geeft printinfo")
-                        
-                        
+                        notified_socket.send(makeMsg({"status":-1}))
+                        for i in message["stats"]:
+                            if len(i) != 4:
+                                continue
+                            #"TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"
+                            elif i[-1] == -1:
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], i[1], "", i[2], "PERR"], "ff0000")
+                            elif i[-1] == -2:
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], "", "", i[2], i[1]], "ff9900")
+                            elif BEST_OK:
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], i[1], "", i[2], "PRTD"], "#00ed30")
                         
             # It's not really necessary to have this, but will handle some socket exceptions just in case
             for notified_socket in exception_sockets:
