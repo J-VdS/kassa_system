@@ -21,7 +21,7 @@ HEADERLENGTH = 10 #10
 IP = "0.0.0.0"
 POORT = 1740
 
-CTRLCHECKCOUNTER = 10
+CTRLCHECKCOUNTER = 2 #10
 
 #argument dat de server en de bestellingsender afsluit
 RUN = True
@@ -90,6 +90,7 @@ def printer_loop(cond, order_list):
     '''
     global RUN
     global PRINT_QUEUE
+    global CTRLCHECKCOUNTER
     
     checkCounter = 0
     
@@ -307,11 +308,13 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                                 client_socket.close()
                                 continue #skipt de rest 
                         '''
-                        # Add accepted socket to select.select() list
-                        sockets_list.append(client_socket)
-                                
+                        
+                        
                         # Also save username and username header
                         connecties[client_socket] = data['naam']
+                        
+                        # Add accepted socket to select.select() list
+                        sockets_list.append(client_socket)
                         
                         #print mss ook de naam
                         print('Accepted new connection from {}:{}'.format(client_address, data['naam']))

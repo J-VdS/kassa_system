@@ -2115,7 +2115,7 @@ class LijstLabel(ScrollView):
         self.add_widget(self.layout)
 
         self.bestelling = Label(
-                text="\n", markup=True,
+                text="\n\n", markup=True,
                 size_hint_y=None,
                 color=(0,0,0,1),
                 font_name="RobotoMono-Regular") #noodzakelijk voor spacing
@@ -2125,7 +2125,7 @@ class LijstLabel(ScrollView):
         
         #scroll
         self._dscrolling = False
-        self.scroll_to_point = Label()
+        self.scroll_to_point = Label(size_hint_y=None, height=30)
         self.layout.add_widget(self.scroll_to_point)
             
     
@@ -2140,7 +2140,7 @@ class LijstLabel(ScrollView):
         # Set layout height to whatever height of self.naam text is + 15 pixels
         # (adds a bit of space at the bottom)
         # Set chat history label to whatever height of chat history text is
-        self.layout.height = self.bestelling.texture_size[1] + 15
+        self.layout.height = self.bestelling.texture_size[1] + global_vars.expand_size
         self.bestelling.height = self.bestelling.texture_size[1]
             #el.text_size = (el.width * 0.98, None) #kan later problemen geven
             

@@ -345,11 +345,11 @@ def send_pinfo(obj):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     msg = {'req':"PINFO", "stats":[]}
     temp = []
-    for _ in range(print_status.qsize):
+    for _ in range(print_status.qsize()):
         temp.append(print_status.get())
         msg["stats"].append(temp[-1])
     try:
-        s.connect(obj["addr"][0], obj["poort"])
+        s.connect((obj["addr"][0], obj["poort"]))
         s.send(makeMsg(msg))
     except Exception as e:
         trace_back = sys.exc_info()[2]
