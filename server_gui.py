@@ -2054,7 +2054,20 @@ class BListBar(GridLayout):
         
         #selectie menu
         smaingrid = GridLayout(cols=1)
-        sgrid = GridLayout(cols=2, rows=3, size_hint_y=0.4)
+        sgrid = GridLayout(cols=2, rows=5, size_hint_y=0.5)
+        
+        sgrid.add_widget(Label(text="all checks", font_size=20))
+        self.check_switch = Switch(active=False)
+        self.check_switch.bind(active=self.check_switch_active)
+        sgrid.add_widget(self.check_switch)
+        
+        sgrid.add_widget(Label(text="checkinterval", font_size=20))
+        self.check_counter = Spinner(
+            text=str(socket_server.CTRLCHECKCOUNTER), 
+            values=('3', '5', '10', '15', '20', '50', '100'), 
+            font_size=18)
+        self.check_counter.bind(text=self.check_counter_select)
+        sgrid.add_widget(self.check_counter)
         
         sgrid.add_widget(Label(text="ID: ", font_size=20))
         self.select_id = TextInput(multiline=False, font_size=18)
@@ -2093,6 +2106,14 @@ class BListBar(GridLayout):
             info.insert(-1, "[color={}]".format(statcolor))
             lijn = "{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^14}\t\t{}{:^10}[/color]".format(*info)
         self.blist.update_bestelling(lijn)
+        
+    
+    def check_switch_active(self, _, value):
+        socket_server.BEST_OK = value
+        
+    
+    def check_counter_select(self, _, value):
+        socket_server.CTRLCHECKCOUNTER = int(value)
 
 
 #scrolllabel -> gekopieerd van client.py

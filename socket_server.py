@@ -21,14 +21,14 @@ HEADERLENGTH = 10 #10
 IP = "0.0.0.0"
 POORT = 1740
 
-CTRLCHECKCOUNTER = 2 #10
+CTRLCHECKCOUNTER = 10
 
 #argument dat de server en de bestellingsender afsluit
 RUN = True
 ACCEPT = True
 PRINTERS = [] #(ip, poort, [type,])
 PRINT_QUEUE = queue.Queue() 
-BEST_OK = True #False
+BEST_OK = False
 
 EDIT_ID = None
 
@@ -108,7 +108,7 @@ def printer_loop(cond, order_list):
         
         printer_bestelling(*waarden, order_list)
         checkCounter += 1
-        if checkCounter == CTRLCHECKCOUNTER:
+        if checkCounter >= CTRLCHECKCOUNTER:
             send_check(order_list)
             checkCounter = 0
         
