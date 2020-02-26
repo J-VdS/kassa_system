@@ -176,6 +176,19 @@ class OptieScherm(GridLayout):
         self.add_widget(self.navbar)
         self.add_widget(Label(text="scherm1"))
         
+
+class BListScherm(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        self.rows = 2
+        
+        self.navbar = NavigatieBar(huidig="blist")
+        self.add_widget(self.navbar)
+        
+        self.blist = BListBar()
+        self.add_widget(self.blist)
+        
         
 #bars
 class NavigatieBar(BoxLayout):
@@ -219,13 +232,21 @@ class NavigatieBar(BoxLayout):
         connect_knop.bind(on_press=self.switch)
         self.add_widget(connect_knop)
         
-        settings_knop = Button(
-                text="SETTINGS",
+        bestellings_knop = Button(
+                text="BESTELLINGEN",
                 font_size=20,
-                background_color = (1,0,0,1) if (huidig == "setting") else (1,1,1,1)
+                background_color = (1,0,0,1) if (huidig == "blist") else (1,1,1,1)
                 )
-        settings_knop.bind(on_press=self.switch)
-        self.add_widget(settings_knop)
+        bestellings_knop.bind(on_press=self.switch)
+        self.add_widget(bestellings_knop)
+        
+#        settings_knop = Button(
+#                text="SETTINGS",
+#                font_size=20,
+#                background_color = (1,0,0,1) if (huidig == "setting") else (1,1,1,1)
+#                )
+#        settings_knop.bind(on_press=self.switch)
+#        self.add_widget(settings_knop)
         
         
     def switch(self, instance):
@@ -817,7 +838,8 @@ class ConnectBar(GridLayout):
             threading.Thread(target=socket_server.start_listening,
                              args=(global_vars.db, 
                                    self.switch_server_off,
-                                   gui.hoofdscherm.hoofdbar.update_rekeningen),
+                                   gui.hoofdscherm.hoofdbar.update_rekeningen,
+                                   gui.blistscherm.blist.update_list),
                              daemon=True).start()
         else:
             
@@ -1996,7 +2018,78 @@ class StatistiekBar(GridLayout):
         self.rect.pos = instance.pos
         self.rect.size = instance.size
 
-    
+
+class BListBar(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 2
+        self.rows = 2
+        
+        self.add_widget(Label(
+                text="Bestellingen", 
+                size_hint_y = None,
+                height = 35,
+                font_size = 18))
+        
+        self.add_widget(Label(
+                text="Selecteer/zie een bestelling",
+                size_hint_y = None,
+                height = 35,
+                font_size = 18))
+        
+        
+        #scroll label
+        listgrid = GridLayout(cols=1, rows=2, size_hint_x=1.8)
+        listgrid.add_widget(Label(
+                text="{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^10}\t\t{:^4}".format("TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"),
+                size_hint_y=None,
+                height=50,
+                font_name="RobotoMono-Regular"))
+        
+        self.blist = LijstLabel()
+        self.blist.set_down_scrolling(True)
+        listgrid.add_widget(self.blist)
+        
+        self.add_widget(listgrid)
+        
+        #selectie menu
+        smaingrid = GridLayout(cols=1)
+        sgrid = GridLayout(cols=2, rows=3, size_hint_y=0.4)
+        
+        sgrid.add_widget(Label(text="ID: ", font_size=20))
+        self.select_id = TextInput(multiline=False, font_size=18)
+        sgrid.add_widget(self.select_id)
+        
+        sgrid.add_widget(Label(text="HASH: ", font_size=20))
+        self.select_hash = TextInput(multiline=False, font_size=18)
+        sgrid.add_widget(self.select_hash)
+        
+        knop = Button(text="opvragen", font_size=20)
+        #knop.bind(on_press=)
+        sgrid.add_widget(knop)
+        
+        knop = Button(text="resend", font_size="20")
+        #knop.bind(on_press=)
+        sgrid.add_widget(knop)
+        
+        smaingrid.add_widget(sgrid)
+        self.select_error = Label(
+                markup=True, 
+                font_size=20,
+                size_hint_y = None,
+                height = 50)
+        smaingrid.add_widget(self.select_error)
+        
+        smaingrid.add_widget(Label())
+        
+        self.add_widget(smaingrid)
+        
+        
+    def update_list(self, info):
+        #"TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"
+        lijn = "{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^10}\t\t{:^4}".format(*info)
+        self.blist.update_bestelling(lijn)
+
     
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
@@ -2025,6 +2118,11 @@ class LijstLabel(ScrollView):
         #oproepen via een andere functie/later is enige opl, op een zeer kleininterval
         #een andere optie is om het te samen te doen en eerste de volledigetekste te maken
         self.layout.add_widget(self.bestelling)
+        
+        #scroll
+        self._dscrolling = False
+        self.scroll_to_point = Label()
+        self.layout.add_widget(self.scroll_to_point)
             
     
     # Methos called externally to add new message to the chat history  
@@ -2042,6 +2140,10 @@ class LijstLabel(ScrollView):
         self.layout.height = self.bestelling.texture_size[1] + 15
         self.bestelling.height = self.bestelling.texture_size[1]
             #el.text_size = (el.width * 0.98, None) #kan later problemen geven
+            
+        if self._dscrolling:
+            self.scroll_to(self.scroll_to_point)
+            
     
     def verklein_bestelling(self, aantal=-1, _=None):
         if (aantal == -1):
@@ -2055,6 +2157,10 @@ class LijstLabel(ScrollView):
     def _update_rect(self, instance, value):
         self.rect.pos = instance.pos
         self.rect.size = instance.size
+        
+    
+    def set_down_scrolling(self, value):
+        self._dscrolling = value
         
 
 #gebruikt bij productscherm
@@ -2220,6 +2326,11 @@ class ServerGui(App):
         self.rekeningscherm = BestelScherm()
         scherm = Screen(name="BESTEL")
         scherm.add_widget(self.rekeningscherm)
+        self.screen_manager.add_widget(scherm)
+        
+        self.blistscherm = BListScherm()
+        scherm = Screen(name="BESTELLINGEN")
+        scherm.add_widget(self.blistscherm)
         self.screen_manager.add_widget(scherm)
         
         return self.screen_manager
