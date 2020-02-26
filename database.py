@@ -41,8 +41,11 @@ def InitTabels(db_io):
     c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs INTEGER, naam TEXT, betaalwijze TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS orders(bestelid INTEGER PRIMARY KEY, bestelling BLOB, printerid INTEGER, ip TEXT, status TEXT, times_send INTEGER)")
 <<<<<<< HEAD
+<<<<<<< HEAD
     #print("--- db loaded ---")
 =======
+=======
+>>>>>>> 82c4ba44e523f0bf2f59b85835cf7952a0f8f3b8
 
     #print("---Product Table Loaded ---")
 >>>>>>> 82c4ba44e523f0bf2f59b85835cf7952a0f8f3b8
