@@ -243,8 +243,9 @@ def getOmzet(db_io, start=None, end=None):
         
     data = c.fetchall()
     for B, P in data:
-        result[B] = P
+        result[B] = P/100
         result["omzet"] += P
+    result["omzet"] /= 100
     return result
 
 # export csv
