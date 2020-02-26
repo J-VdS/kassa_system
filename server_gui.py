@@ -661,7 +661,7 @@ class ProductBar(BoxLayout):
             self.makePopup("Vul alle velden in !")
         elif not func.is_number(aprijs):
             self.makePopup("Vul een geldige prijs in! Voor een komma moet je een punt gebruiken!")
-        elif len(anaam)>26:
+        elif len(anaam)>global_vars.product_name_max:
             self.makePopup("De naam %s is te lang (max 26 letters)"%(anaam))
         else:
             try:
@@ -704,8 +704,8 @@ class ProductBar(BoxLayout):
             self.makePopup("Vul alle velden in !")
         elif not func.is_number(bprijs):
             self.makePopup("Vul een geldige prijs in! Voor een komma moet je een punt gebruiken!")
-        elif len(bnaam)>26:
-            self.makePopup("De naam %s is te lang (max 26 letters)"%(bnaam))
+        elif len(bnaam)>global_vars.product_name_max:
+            self.makePopup("De naam {} is te lang (max {} letters)".format(bnaam, global_vars.product_name_max))
         else:
             #TODO: remove
             db_io = database.OpenIO(global_vars.db)
@@ -2117,10 +2117,48 @@ class BListBar(GridLayout):
         
     
     def view_order(self, _):
+        _id = self.select_id.text.strip()
+        _hash = self.select_hash.text.strip()
+        if not(_id) or not(_hash):
+            self.select_error.text = "[color=#ff0000]Vul het ID en hash veld in![/color]"
+            return
+        elif not(_id.isdigit()):
+            self.select_error.text = "[color=#ff0000]Het ID veld moet een getal zijn![/color]"
+        elif self.select_error.text != "":
+            self.select_error.text = ""
+        
         #open een popup!
-        db_io = database.OpenIO()
-        database.getOrder(db_io, int(self.select_id.text), int(self.select_id.text))
+        db_io = database.OpenIO(global_vars.db)
+        info = database.getOrder(db_io, int(_id), _hash)
         database.CloseIO(db_io)
+        bst = info[0]
+        
+        order_popup = Popup(title="Order:", size_hint=(0.4, 0.8))
+        main_grid = GridLayout(cols=1)
+        
+        order_info = GridLayout(cols=1)
+        for key in bst['info']:
+            order_info.add_widget(Label(text="{}: {}".format(key, bst['info'][key]), font_size=20))
+            
+        order_info.add_widget(Label(text="besteld op: {}".format(info[2])))
+        order_info.add_widget(Label(text="types: {}".format(info[1])))
+        order_info.add_widget(Label(text="hash: {}".format(_hash), font_size=20))
+        main_grid.add_widget(order_info)
+        
+        aantal_grid = GridLayout(cols=1, spacing=5, size_hint_y=None)
+        maxlen = global_vars.product_name_max
+        for t in bst['BST']:
+            aantal_grid.add_widget(Label(text="\n[b][color=#20ab40]{:^{}}[/color][/b]".format(t, maxlen+5), font_size=22, height=40, size_hint_y=None, markup=True))
+            type_dict = bst['BST'][t]
+            for prod in type_dict:
+                aantal_grid.add_widget(Label(text="{:<{}}: {}".format(prod, maxlen, type_dict[prod]), font_size=18, height=30, size_hint_y=None))
+        
+        aantal_grid_scroll = ScrollView()
+        aantal_grid_scroll.add_widget(aantal_grid)
+        main_grid.add_widget(aantal_grid_scroll)
+        
+        order_popup.add_widget(main_grid)
+        order_popup.open()
         
 
 #scrolllabel -> gekopieerd van client.py

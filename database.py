@@ -39,7 +39,7 @@ def InitTabels(db_io):
     #producten tabel
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs INTEGER, active INTEGER)")
     c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs INTEGER, naam TEXT, betaalwijze TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelid INTEGER PRIMARY KEY, klantid INTEGER, bestelling BLOB, types TEXT, status TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS orders(klantid INTEGER, bestelling BLOB, tijd TEXT, hash TEXT, types TEXT)")
 
     #print("---Product Table Loaded ---")
     conn.commit()
@@ -173,7 +173,7 @@ def addBestellingID(db_io, ID, naam):
         return -1
     
 
-def addOrder(db_io, message, ip_poort="DB", types=None, status="???"):
+def addOrder(db_io, message, types=None, status="???"):
     """
         <> db_io
         <dict> message
@@ -188,39 +188,10 @@ def addOrder(db_io, message, ip_poort="DB", types=None, status="???"):
         raw_types = ["{:<2}".format(str(i)[:2]) for i in message["bestelling"]["BST"].keys()] #ga naar 1 letter types
         types = "".join(raw_types)
     try:
-        c.execute("INSERT INTO orders (klantid, bestelling, tijd, hash, ip_poort, types, status) VALUES (?,?,?,?,?,?,?)", (ID, pickle.dumps(message["bestelling"]), tijd, message['hash'], ip_poort, types, status))
+        c.execute("INSERT INTO orders (klantid, bestelling, tijd, hash, types) VALUES (?,?,?,?,?)", (ID, pickle.dumps(message["bestelling"]), tijd, message['hash'], types))
         conn.commit()
         #["TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"]
-        return [tijd, ID, message['hash'], ip_poort, types, status]
-    except Exception as e:
-        print(e)
-        return -1
-    
-
-def editOrder(db_io, message, bestelid, status="OK"):
-    pass
-    
-    
-def changeOrder(db_io, message, ip_poort, printType, bestelid, status="OK"):
-    """
-        <> db_io
-        <dict> message
-        <str> ip:poort
-        <str> printType: types dat door de printer werden geprint (2 chars/type)
-        <int> bestelid: komt overeen met het bestelid in de tabel
-        <str> status
-    """
-    conn, c = db_io
-    ID = message["bestelling"]["info"]["id"]
-    c.execute("SELECT * FROM orders WHERE bestelid = ? AND id = ?", (bestelid, ID))
-    data = c.fetchone()
-    if not data:
-        #er was geen bestelling met dit ID!
-        return -2
-    try:
-        c.execute("UPDATE orders SET status = ? WHERE bestelid = ?", (status, bestelid))
-        conn.commit()
-    
+        return [tijd, ID, message['hash'], "DB", types, status]
     except Exception as e:
         print(e)
         return -1
@@ -228,15 +199,13 @@ def changeOrder(db_io, message, ip_poort, printType, bestelid, status="OK"):
 
 def getOrder(db_io, _id, _hash):
     conn, c = db_io
-    c.execute("SELECT * FROM orders WHERE klantid = ? AND hash = ?", (_id, _hash))
+    c.execute("SELECT bestelling, types, tijd FROM orders WHERE klantid = ? AND hash = ?", (_id, _hash))
     data = c.fetchone()
     if not data:
         #er was geen bestelling met dit klantid en/of hash
         return -2
     else:
-        #TODO
-        print(pickle.loads(data[2]))
-        return "data"
+        return [pickle.loads(data[0])] + list(data[1:])
 
 
 def getBestelling(db_io, ID):

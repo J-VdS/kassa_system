@@ -8,6 +8,7 @@ kassa_rows = 5
 
 product_cols = 4
 product_rows = 5
+product_name_max = 26
 COLOURS = {}
 
 bewerk_NT = "Bewerken is niet toegelaten.\nJe moet eerst bewerken activeren!"
