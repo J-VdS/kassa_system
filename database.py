@@ -226,6 +226,19 @@ def changeOrder(db_io, message, ip_poort, printType, bestelid, status="OK"):
         return -1
 
 
+def getOrder(db_io, _id, _hash):
+    conn, c = db_io
+    c.execute("SELECT * FROM orders WHERE klantid = ? AND hash = ?", (_id, _hash))
+    data = c.fetchone()
+    if not data:
+        #er was geen bestelling met dit klantid en/of hash
+        return -2
+    else:
+        #TODO
+        print(pickle.loads(data[2]))
+        return "data"
+
+
 def getBestelling(db_io, ID):
     conn, c = db_io
     c.execute("SELECT bestelling FROM totalen WHERE id = ?", (ID,))

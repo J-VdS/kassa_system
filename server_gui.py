@@ -2078,7 +2078,7 @@ class BListBar(GridLayout):
         sgrid.add_widget(self.select_hash)
         
         knop = Button(text="opvragen", font_size=20)
-        #knop.bind(on_press=)
+        knop.bind(on_press=self.view_order)
         sgrid.add_widget(knop)
         
         knop = Button(text="resend", font_size="20")
@@ -2114,7 +2114,14 @@ class BListBar(GridLayout):
     
     def check_counter_select(self, _, value):
         socket_server.CTRLCHECKCOUNTER = int(value)
-
+        
+    
+    def view_order(self, _):
+        #open een popup!
+        db_io = database.OpenIO()
+        database.getOrder(db_io, int(self.select_id.text), int(self.select_id.text))
+        database.CloseIO(db_io)
+        
 
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
