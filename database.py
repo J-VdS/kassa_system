@@ -40,7 +40,7 @@ def InitTabels(db_io):
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs INTEGER, active INTEGER)")
     c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs INTEGER, naam TEXT, betaalwijze TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS orders(bestelid INTEGER PRIMARY KEY, bestelling BLOB, printerid INTEGER, ip TEXT, status TEXT, times_send INTEGER)")
-    #print("---Product Table Loaded ---")
+    #print("--- db loaded ---")
     conn.commit()
    
     
@@ -325,7 +325,6 @@ def exportXLSX(db_io):
         dict_prod[N] = 0
         ws.append((T, N, P/100, A))
     
-    print("bestellingen")
     #bestellingen
     ws2 = wb.create_sheet(title="bestellingen")
     
@@ -341,8 +340,6 @@ def exportXLSX(db_io):
         else:
             ws2.append((ID, N, O, P, B, " ", *best.values())) #P == None
             
-    
-    print("onvang")
     #ontvangen bedragen
     ws3 = wb.create_sheet(title="bedragen")
     

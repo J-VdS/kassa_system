@@ -1963,7 +1963,7 @@ class StatistiekBar(GridLayout):
         db_io = database.OpenIO(global_vars.db)
         ret = database.getOmzet(db_io, *self.omzet_mode)
         for key in self.rmethodes:
-            self.rmethodes[key].text = "€ {:>9}".format(round(ret.get(key,0),2))
+            self.rmethodes[key].text = "€ {:>9}".format(ret.get(key, 0))
         database.CloseIO(db_io)
         self.rerror.text = ""
             
