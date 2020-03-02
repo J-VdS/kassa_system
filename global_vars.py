@@ -32,3 +32,5 @@ selectie_niets = "[color=#ff0000]Vul een start ID en/of Eind ID in. Je kan ook g
 selectie_neg = "[color=#ff0000]Enkel positieve getallen (0 inbegrepen), vul je niets in kiest men het grootste/kleinste ID[/color]"   
 
 betaal_methodes = ("cash", "bancontact", "QR-code")
+
+save_log_file = "BST.log"

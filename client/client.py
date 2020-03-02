@@ -31,7 +31,7 @@ kivy.require("1.10.1") #vw voor de versie
 
 DATA = None#Client_storage()
 COLOURS = {"drank":(0.8,0.2,0,1),
-           "gerecht":(0,0.2,1,1),} #type:color_tuple 
+           "gerecht":(0,0.2,1,1),} # type: color_tuple 
 
 #debug
 from kivy.logger import LoggerHistory

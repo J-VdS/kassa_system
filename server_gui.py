@@ -189,6 +189,10 @@ class BListScherm(GridLayout):
         self.blist = BListBar()
         self.add_widget(self.blist)
         
+    
+    def save_log(self):
+        self.blist.save_log()
+        
         
 #bars
 class NavigatieBar(BoxLayout):
@@ -444,6 +448,7 @@ class ProductBar(BoxLayout):
         
     def set_lijst_bar(self, disp):
         self.lijst_bar = disp
+    
     
     def _add_product_blok(self):
         grid = GridLayout(cols=1, spacing=[5,15])
@@ -2020,10 +2025,14 @@ class StatistiekBar(GridLayout):
 
 
 class BListBar(GridLayout):
+    safe_dir = "logs"
+    backup_best = ""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 2
         self.rows = 2
+        
+        self.save_log_file = global_vars.save_log_file
         
         self.add_widget(Label(
                 text="Bestellingen", 
@@ -2054,7 +2063,7 @@ class BListBar(GridLayout):
         
         #selectie menu
         smaingrid = GridLayout(cols=1)
-        sgrid = GridLayout(cols=2, rows=5, size_hint_y=0.5)
+        sgrid = GridLayout(cols=2, rows=6, size_hint_y=1.2)
         
         sgrid.add_widget(Label(text="all checks", font_size=20))
         self.check_switch = Switch(active=False)
@@ -2081,9 +2090,19 @@ class BListBar(GridLayout):
         knop.bind(on_press=self.view_order)
         sgrid.add_widget(knop)
         
-        knop = Button(text="resend", font_size="20")
-        #knop.bind(on_press=)
+        knop = Button(text="resend", font_size=20)
+        knop.bind(on_press=self.resend)
         sgrid.add_widget(knop)
+        
+        knop = Button(text="clear scherm", font_size=20)
+        knop.bind(on_press=self.clear_best)
+        sgrid.add_widget(knop)
+        
+        knop = Button(text="clear scherm + verwijder", font_size=17, id="del")
+        knop.bind(on_press=self.clear_best)
+        sgrid.add_widget(knop)
+        
+        
         
         smaingrid.add_widget(sgrid)
         self.select_error = Label(
@@ -2095,7 +2114,47 @@ class BListBar(GridLayout):
         
         smaingrid.add_widget(Label())
         
+        #TODO gray background
+        log_grid = GridLayout(cols=2, rows=2, size_hint_y=0.5)
+        knop = Button(text="open log", font_size=20)
+        knop.bind(on_press=self.open_log)
+        log_grid.add_widget(knop)
+        knop = Button(text="opslaan", font_size=20)
+        knop.bind(on_press=self.opslaan_log)
+        log_grid.add_widget(knop)
+        knop = Button(text="verwijder log", font_size=20)
+        knop.bind(on_press=self.verwijder_log)
+        log_grid.add_widget(knop)
+        knop = Button(text="", font_size=20)
+        #knop.bind()
+        log_grid.add_widget(knop)
+
+        
+        smaingrid.add_widget(log_grid)
+        self.log_info = Label(
+                markup=True, 
+                font_size=20,
+                size_hint_y = None,
+                height = 50)
+        smaingrid.add_widget(self.log_info)
+        
         self.add_widget(smaingrid)
+
+        if not(os.path.isdir(self.safe_dir)):
+            os.mkdir(self.safe_dir)
+        
+    #called when app closes
+    def save_log(self, name=None):
+        if self.backup_best == "" and self.blist.get_text().strip() == "":
+            return -1
+        if name is None:
+            name = global_vars.save_log_file
+            
+        with open(os.path.join(self.safe_dir, name), 'w') as log_file:
+            log_file.write("{}\n".format(datetime.datetime.now()))
+            log_file.write(self.backup_best)
+            log_file.write(self.blist.get_text())
+        return 0
 
 
     def update_list(self, info, statcolor=None):
@@ -2131,35 +2190,101 @@ class BListBar(GridLayout):
         db_io = database.OpenIO(global_vars.db)
         info = database.getOrder(db_io, int(_id), _hash)
         database.CloseIO(db_io)
+        
+        if isinstance(info, int):
+            self.select_error.text = "[color=#ff0000]Er bestaat geen bestelling met deze combinatie.[/color]"
+            return
         bst = info[0]
         
-        order_popup = Popup(title="Order:", size_hint=(0.4, 0.8))
-        main_grid = GridLayout(cols=1)
+        self.order_popup = Popup(title="Order:", size_hint=(0.4, 0.8))
+        
+        main_grid = GridLayout(cols=1, padding=3, spacing=5)
         
         order_info = GridLayout(cols=1)
         for key in bst['info']:
             order_info.add_widget(Label(text="{}: {}".format(key, bst['info'][key]), font_size=20))
             
-        order_info.add_widget(Label(text="besteld op: {}".format(info[2])))
-        order_info.add_widget(Label(text="types: {}".format(info[1])))
+        order_info.add_widget(Label(text="besteld op: {}".format(info[2]), font_size=20))
+        order_info.add_widget(Label(text="types: {}".format(info[1]), font_size=20))
         order_info.add_widget(Label(text="hash: {}".format(_hash), font_size=20))
         main_grid.add_widget(order_info)
         
-        aantal_grid = GridLayout(cols=1, spacing=5, size_hint_y=None)
+        
         maxlen = global_vars.product_name_max
+        
+        self.update_list = [" {:*^{}} ".format("", maxlen)]
+        
         for t in bst['BST']:
-            aantal_grid.add_widget(Label(text="\n[b][color=#20ab40]{:^{}}[/color][/b]".format(t, maxlen+5), font_size=22, height=40, size_hint_y=None, markup=True))
+            self.update_list.append("[b][color=#20ab40]{:^{}}[/color][/b]".format(t, maxlen+5))
             type_dict = bst['BST'][t]
             for prod in type_dict:
-                aantal_grid.add_widget(Label(text="{:<{}}: {}".format(prod, maxlen, type_dict[prod]), font_size=18, height=30, size_hint_y=None))
+                self.update_list.append("{:<{}}: {}".format(prod, maxlen, type_dict[prod]))
         
-        aantal_grid_scroll = ScrollView()
-        aantal_grid_scroll.add_widget(aantal_grid)
-        main_grid.add_widget(aantal_grid_scroll)
+        self.aantal_prod = LijstLabel()
+        main_grid.add_widget(self.aantal_prod)
+        self.refill()
         
-        order_popup.add_widget(main_grid)
-        order_popup.open()
+        popup_knoppen = GridLayout(cols=2, rows=1, size_hint_y=.25, spacing=3)
+        knop = Button(text="resend", font_size=20, id="popup")
+        knop.bind(on_press=self.resend)
+        popup_knoppen.add_widget(knop)
+        knop = Button(text="sluit", font_size=20)
+        knop.bind(on_press=self.order_popup.dismiss)
+        popup_knoppen.add_widget(knop)
         
+        main_grid.add_widget(popup_knoppen)
+        
+        self.order_popup.add_widget(main_grid)
+        self.order_popup.open()
+        
+        
+    def refill(self, *_):
+        if len(self.update_list):
+            self.aantal_prod.update_bestelling(self.update_list.pop(0))
+            Clock.schedule_once(self.refill,0.01)
+            
+    
+    def resend(self, instance):
+        if instance.id == "popup":
+            self.order_popup.dismiss()
+        #TODO
+            
+    
+    def clear_best(self, instance):
+        if instance.id != "del":
+            self.backup_best = self.blist.get_text()
+        self.blist.verklein_bestelling()
+        
+    
+    def open_log(self, _):
+        fp = os.path.join(self.safe_dir, global_vars.save_log_file)
+        if not(os.path.isfile(fp)):
+            self.log_info.text = "[color=#ffff00]Geen logfile gevonden.[/color]"
+            return
+        with open(fp, 'r') as log_file:
+            data = log_file.readlines()
+        self.blist.set_bestelling_all("".join(data[1:]))
+        self.log_info.text = "[color=#00ff00]{} geopend en aan het inlezen.[/color]".format(fp)
+        
+    
+    def opslaan_log(self, _):
+        name = datetime.datetime.now().strftime("%d%m%y@%H-%M-%S_BST.log")
+        ret = self.save_log(name)
+        if ret == -1:
+            self.log_info.text = "[color=#ffff00]Er is geen data om op te slaan.[/color]"
+        elif ret == 0:
+            fp = os.path.join(self.safe_dir, name)
+            self.log_info.text = "[color=#00ff00]opgeslagen in: {}[/color]".format(fp)
+            
+    
+    def verwijder_log(self, _):
+        fp = os.path.join(self.safe_dir, global_vars.save_log_file)
+        if not(os.path.isfile(fp)):
+            self.log_info.text= "[color=#ffff00]Geen logfile gevonden.[/color]"
+        else:
+            os.remove(fp)
+            self.log_info.text = "{} verwijdert.".format(fp)
+            
 
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
@@ -2181,7 +2306,8 @@ class LijstLabel(ScrollView):
         self.add_widget(self.layout)
 
         self.bestelling = Label(
-                text="\n\n", markup=True,
+                text="\n\n",
+                markup=True,
                 size_hint_y=None,
                 color=(0,0,0,1),
                 font_name="RobotoMono-Regular") #noodzakelijk voor spacing
@@ -2193,10 +2319,13 @@ class LijstLabel(ScrollView):
         self._dscrolling = False
         self.scroll_to_point = Label(size_hint_y=None, height=30)
         self.layout.add_widget(self.scroll_to_point)
+        
+        self.dq = deque()
+        self.stopped_loop = True
             
     
     # Methos called externally to add new message to the chat history  
-    def update_bestelling(self, lijn):
+    def update_bestelling(self, lijn, _=None):
         #we kunnen geen nieuw label maken, dit zal voor problemen zorgen
         #ook kunnen we update_chat_history pas oproepen als het scherm getekent wordt
 
@@ -2212,6 +2341,14 @@ class LijstLabel(ScrollView):
             
         if self._dscrolling:
             self.scroll_to(self.scroll_to_point)
+            
+    
+    def set_bestelling_all(self, data):
+        self.verklein_bestelling()
+        for i in data.split("\n"):
+            if not(i):
+                continue
+            self.add_queue(i)
 
 
     def verklein_bestelling(self, aantal=-1, _=None):
@@ -2219,7 +2356,7 @@ class LijstLabel(ScrollView):
             aantal = self.bestelling.text.count('\n')
         self.bestelling.text = "".join([i+'\n' for i in self.bestelling.text.split('\n')][:-aantal])
 
-        self.layout.height = self.bestelling.texture_size[1] - 15*aantal
+        self.layout.height = self.bestelling.texture_size[1] - global_vars.expand_size*aantal
         self.bestelling.height = self.bestelling.texture_size[1]
                     
     
@@ -2230,6 +2367,26 @@ class LijstLabel(ScrollView):
     
     def set_down_scrolling(self, value):
         self._dscrolling = value
+        
+    
+    def get_text(self):
+        return self.bestelling.text
+    
+    
+    def add_queue(self, data):
+        self.dq.append(data)
+        if self.stopped_loop:
+            self.stopped_loop = False
+            Clock.schedule_once(self.add_loop_product, 0.5)
+        
+    
+    def add_loop_product(self, *_):
+        product = self.dq.popleft()
+        Clock.schedule_once(partial(self.update_bestelling, product), 0.0001)
+        if len(self.dq) != 0:
+            Clock.schedule_once(self.add_loop_product, 0.01)
+        else:
+            self.stopped_loop = True
         
 
 #gebruikt bij productscherm
@@ -2413,6 +2570,7 @@ class ServerGui(App):
     def on_stop(self):
         #mss sluit de overige db_io, socket connections
         try:
+            gui.blistscherm.save_log()
             database.CloseIO(self.hoofdscherm.hoofdbar.db_io)
             gui.connectscherm.connectbar.switch_server_off()
             
