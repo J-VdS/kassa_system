@@ -2071,12 +2071,12 @@ class BListBar(GridLayout):
         sgrid.add_widget(self.check_switch)
         
         sgrid.add_widget(Label(text="checkinterval", font_size=20))
-        self.check_counter = Spinner(
+        check_counter = Spinner(
             text=str(socket_server.CTRLCHECKCOUNTER), 
             values=('3', '5', '10', '15', '20', '50', '100'), 
             font_size=18)
-        self.check_counter.bind(text=self.check_counter_select)
-        sgrid.add_widget(self.check_counter)
+        check_counter.bind(text=self.check_counter_select)
+        sgrid.add_widget(check_counter)
         
         sgrid.add_widget(Label(text="ID: ", font_size=20))
         self.select_id = TextInput(multiline=False, font_size=18)
@@ -2183,6 +2183,7 @@ class BListBar(GridLayout):
             return
         elif not(_id.isdigit()):
             self.select_error.text = "[color=#ff0000]Het ID veld moet een getal zijn![/color]"
+            return
         elif self.select_error.text != "":
             self.select_error.text = ""
         
@@ -2247,8 +2248,105 @@ class BListBar(GridLayout):
     def resend(self, instance):
         if instance.id == "popup":
             self.order_popup.dismiss()
-        #TODO
-            
+        _id = self.select_id.text.strip()
+        _hash = self.select_hash.text.strip()
+        if not(_id) or not(_hash):
+            self.select_error.text = "[color=#ff0000]Vul het ID en hash veld in![/color]"
+            return
+        elif not(_id.isdigit()):
+            self.select_error.text = "[color=#ff0000]Het ID veld moet een getal zijn![/color]"
+            return
+        elif self.select_error.text != "":
+            self.select_error.text = ""
+        
+        db_io = database.OpenIO(global_vars.db)
+        info = database.getOrder(db_io, int(_id), _hash)
+        database.CloseIO(db_io)
+        
+        if isinstance(info, int):
+            self.select_error.text = "[color=#ff0000]Er bestaat geen bestelling met deze combinatie.[/color]"
+            return
+        self.resend_bst = info
+        bst = info[0]
+        types = tuple(bst['BST'].keys())
+        print(bst)
+        
+        self.resend_popup = Popup(title="Resend:", size_hint=(0.5, 0.7))
+        
+        main_grid = GridLayout(cols=1, padding=3)
+        
+        main_grid.add_widget(Label(text="naam: {}".format(bst['info']['naam']), font_size=18, size_hint_y=0.2))
+        order_info = GridLayout(cols=2)
+        
+        for key in bst['info']:
+            if key == 'naam':
+                continue
+            order_info.add_widget(Label(text="{}: {}".format(key, bst['info'][key]), font_size=18))
+        
+        order_info.add_widget(Label(text="besteld op: {}".format(info[2]), font_size=18))
+        order_info.add_widget(Label(text="types: {}".format(info[1]), font_size=18))
+        order_info.add_widget(Label(text="hash: {}".format(_hash), font_size=18))
+        main_grid.add_widget(order_info)
+        
+        main_grid.add_widget(Label(text="[b]Selecteer printer:[/b]".format(bst['info']['naam']), font_size=22, size_hint_y=0.2, markup=True))
+        
+        printer_grid = GridLayout(cols=2, rows=3)
+        printer_grid.add_widget(Label(text="IP:", font_size=18))
+        self.resend_ip = TextInput(font_size=18, multiline=False)
+        printer_grid.add_widget(self.resend_ip)
+        printer_grid.add_widget(Label(text="poort:", font_size=18))
+        self.resend_poort = TextInput(font_size=18, multiline=False)
+        printer_grid.add_widget(self.resend_poort)
+        
+        printer_grid.add_widget(Label(text="type:", font_size=18))
+        self.resend_type = Spinner(
+            text="",
+            values=types, 
+            font_size=16)
+        printer_grid.add_widget(self.resend_type)
+        main_grid.add_widget(printer_grid)
+        
+        self.resend_info = Label(text=" ", font_size=18, size_hint_y=0.2, markup=True)
+        main_grid.add_widget(self.resend_info)
+        
+        popup_knoppen = GridLayout(cols=2, rows=1, size_hint_y=.25, spacing=3)
+        knop = Button(text="resend", font_size=20, id="popup")
+        knop.bind(on_press=self.resend_bevestig)
+        popup_knoppen.add_widget(knop)
+        knop = Button(text="annuleer", font_size=20)
+        knop.bind(on_press=self.resend_popup.dismiss)
+        popup_knoppen.add_widget(knop)
+        
+        main_grid.add_widget(popup_knoppen)
+    
+        self.resend_popup.add_widget(main_grid)
+        self.resend_popup.open()
+        
+    
+    def resend_bevestig(self, _):
+        _ip = self.resend_ip.text.strip()
+        _poort = self.resend_poort.text.strip()
+        _type = self.resend_type.text.strip()
+        if not(_ip) or not(_poort):
+            self.resend_info.text = "[color=#ff0000]Vul een ip en een poort in![/color]"
+            return
+        elif not(_poort.isdigit()):
+            self.resend_info.text = "[color=#ff0000]Een poort is een getal![/color]"
+            return
+        elif _type == "":
+            self.resend_info.text = "[color=#ffff00]Selecteer een type.[/color]"
+            return
+        
+        #def printer_bestelling_resend(bestelling, h, order_list, ip, poort, _type):
+        threading.Thread(target=socket_server.printer_bestelling_resend,
+                         args=(self.resend_bst[0],
+                               self.select_hash.text.strip(),
+                               self.update_list, 
+                               _ip, int(_poort),
+                               _type),
+                         daemon=True).start()
+        self.resend_popup.dismiss()                 
+        
     
     def clear_best(self, instance):
         if instance.id != "del":

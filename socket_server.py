@@ -147,7 +147,7 @@ def printer_bestelling(bestelling, h, order_list):
             s.connect((ip, poort))
             s.send(msg)
             print("msg send: ", info)
-            order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, adres, types_short, "SD"], "#00ed30")
+            order_list([tijd, info["id"], h, adres, types_short, "SD"], "#00ed30")
             
         except Exception as e:
             #verwijder de printer uit de lijst van connecties, en geef popup
@@ -161,6 +161,37 @@ def printer_bestelling(bestelling, h, order_list):
         finally:
             s.close()
             
+
+def printer_bestelling_resend(bestelling, h, order_list, ip, poort, _type):
+    producten = bestelling['BST']
+    info = bestelling['info']
+    opm = bestelling['opm'].strip()
+    types_short = "{:<2}".format(str(_type)[:2])
+    tijd = datetime.datetime.now().strftime("%H:%M:%S")
+    msg = makeMsg({'info':info, 'opm':opm, 'BST':producten.get(_type, {}), 'hash':h, 'time':tijd, 'ticket_type':'b', 'ptypes': types_short, 'resend':True})
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    adres = "{}:{}".format(ip, poort)
+    
+    #start send pr
+    order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, "", "", "RESD"])
+    try:
+        s.connect((ip, poort))
+        s.send(msg)
+        print("msg send: ", info)
+        order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, adres, types_short, "SD"], "#00ed30")
+        
+    except Exception as e:
+        #verwijder de printer uit de lijst van connecties, en geef popup
+        trace_back = sys.exc_info()[2]
+        line = trace_back.tb_lineno
+        print(f"[ERR!]Printer line {line}: {str(e)}")
+        
+        #send error
+        order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, adres, types_short, "ERSD"], "#ff0000")
+        
+    finally:
+        s.close()      
+        
                  
 def send_check(order_list):
     basemsg = {'ticket_type':'c', 'poort':POORT, 'hash':str(int(time.time()))[-4:]}
@@ -387,6 +418,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         
                         #voeg toe aan order tabel
                         ret = database.addOrder(db_io, message, status="INDB")
+                        print(ret)
                         if ret == -1:
                             print("DATABASE ERROR: addOrder")
                             #TODO: print error

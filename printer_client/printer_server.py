@@ -296,6 +296,14 @@ def printer_verwerk(printer_obj, obj):
         elif print_type == "b":
             print("INFO:", obj['info'])
             print("BESTELLING: ", obj['BST'])
+            
+            if (obj.get('resend', False)):
+                printer_obj.text("+"*10+'\n')
+                printer_obj.set(align="center", text_type="b", width=4, height=4)
+                printer_obj.text("RESEND\n")
+                printer_obj.set(align="left", text_type="normal", width=1, height=1)
+                printer_obj.text("+"*10+'\n')
+                
             printer_obj.text("TIJD: {}\n".format(obj.get('time', '')))
             printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<14}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
             printer_obj.text("-"*32+"\n")
