@@ -3,6 +3,7 @@ import sqlite3
 import pickle
 import os
 import datetime
+import time
 #exports
 import csv
 import openpyxl
@@ -39,7 +40,7 @@ def InitTabels(db_io):
     #producten tabel
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs INTEGER, active INTEGER)")
     c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs INTEGER, naam TEXT, betaalwijze TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS orders(klantid INTEGER, bestelling BLOB, tijd TEXT, hash TEXT, types TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS orders(klantid INTEGER, bestelling BLOB, tijd TEXT, unixtijd INTEGER, hash TEXT, types TEXT)")
 
     #print("---Product Table Loaded ---")
     conn.commit()
@@ -188,7 +189,7 @@ def addOrder(db_io, message, types=None, status="???"):
         raw_types = ["{:<2}".format(str(i)[:2]) for i in message["bestelling"]["BST"].keys()] #ga naar 1 letter types
         types = "".join(raw_types)
     try:
-        c.execute("INSERT INTO orders (klantid, bestelling, tijd, hash, types) VALUES (?,?,?,?,?)", (ID, pickle.dumps(message["bestelling"]), tijd, message['hash'], types))
+        c.execute("INSERT INTO orders (klantid, bestelling, tijd, unixtijd, hash, types) VALUES (?,?,?,?,?,?)", (ID, pickle.dumps(message["bestelling"]), tijd, int(time.time()), message['hash'], types))
         conn.commit()
         #["TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"]
         return [tijd, ID, message['hash'], "DB", types, status]
@@ -206,6 +207,16 @@ def getOrder(db_io, _id, _hash):
         return -2
     else:
         return [pickle.loads(data[0])] + list(data[1:])
+    
+
+def getOrderLastInfo(db_io, _id):
+    conn, c = db_io
+    c.execute("SELECT tijd, hash FROM orders WHERE klantid = ? ORDER BY unixtijd DESC", (_id,))
+    data = c.fetchone()
+    if not data:
+        return ["N/A", "N/A"]
+    else:
+        return data
 
 
 def getBestelling(db_io, ID):
@@ -360,7 +371,6 @@ def exportXLSX(db_io):
         dict_prod[N] = 0
         ws.append((T, N, P/100, A))
     
-    print("bestellingen")
     #bestellingen
     ws2 = wb.create_sheet(title="bestellingen")
     
@@ -376,8 +386,7 @@ def exportXLSX(db_io):
         else:
             ws2.append((ID, N, O, P, B, " ", *best.values())) #P == None
             
-    
-    print("onvang")
+
     #ontvangen bedragen
     ws3 = wb.create_sheet(title="bedragen")
     

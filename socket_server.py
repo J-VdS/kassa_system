@@ -438,15 +438,12 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                     elif message['req'] == "CHK":
                         print(f"[SERVER][CHK]{user} vroeg check")
                         H = message['hash']
-                        print(H)
-                        print("Voor:", best_status)
+                        #print("Voor:", best_status)
                         if H in best_status:
                             notified_socket.send(makeMsg({"status":best_status[message['hash']]}))
                             del best_status[H]
                         else:
                             notified_socket.send(makeMsg({"status":-1})) #key error/onbekend
-                        print("verzonden")
-                        print("Na:", best_status)
                     elif message['req'] == "PING":
                         print("Pinged by {}".format(user))
                     elif message['req'] == "PINFO":

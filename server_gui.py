@@ -1212,7 +1212,15 @@ class BestelBar(GridLayout):
         
         #actie knoppen
         self.actie_grid = GridLayout(cols=1, size_hint_x=0.2)
-        for _ in range(global_vars.product_rows-3):
+        knop = Button(text="ALLE ORDERS", size_hint_y=0.5, font_size=20)
+        knop.bind(on_press=self.view_orders)
+        self.actie_grid.add_widget(knop)
+        
+        knop = Button(text="VERWIJDER ORDER", size_hint_y=0.5, font_size=20)
+        knop.bind(on_press=self.delete_order)
+        self.actie_grid.add_widget(knop)
+        
+        for _ in range(global_vars.product_rows-4):
             knop = Button(text=" ")
             knop.bind(on_press=self.actie)
             self.actie_grid.add_widget(knop)
@@ -1564,6 +1572,13 @@ class BestelBar(GridLayout):
         database.CloseIO(db_io)
         self.afpopup.dismiss()
         
+    
+    def view_orders(self, _):
+        pass
+    
+    
+    def delete_order(self, _):
+        pass
         
     #knoppen
     def _update_text_width(self, instance, _):
@@ -1601,14 +1616,17 @@ class BestelBar(GridLayout):
         
         db_io = database.OpenIO(global_vars.db)
         naam, betaald = database.getInfoByID(db_io, self.ID_klant)
+        _tijd, _hash = database.getOrderLastInfo(db_io, self.ID_klant)
         database.CloseIO(db_io)
         
         layout.add_widget(Label(text="ID:  {}".format(self.ID_klant), font_size=20))
         layout.add_widget(Label(text="Naam:  {}".format(naam), font_size=20))
         layout.add_widget(Label(text="Betaald: {}".format("Nee" if (betaald) else "JA"), font_size=20))
+        layout.add_widget(Label(text="tijd: {}".format(_tijd), font_size=20))
+        layout.add_widget(Label(text="hash: {}".format(_hash), font_size=20))
 
         
-        layout.add_widget(Label(size_hint_y=2.5))
+        layout.add_widget(Label(size_hint_y=2))
                 
         knop = Button(text="sluit", size_hint_y=None, height=40)
         knop.bind(on_press=popup.dismiss)
@@ -1893,7 +1911,6 @@ class StatistiekBar(GridLayout):
             self.ipopup.dismiss()
             return
         file = self.FS.selection[0]
-        print(file)
         ID = instance.id
         if file.split(".")[-1] != instance.id:
             self.mid_status.text = "[color=#ff0000]Dit is geen .{} bestand![/color]".format(ID)
@@ -2114,7 +2131,6 @@ class BListBar(GridLayout):
         
         smaingrid.add_widget(Label())
         
-        #TODO gray background
         log_grid = GridLayout(cols=2, rows=2, size_hint_y=0.5)
         knop = Button(text="open log", font_size=20)
         knop.bind(on_press=self.open_log)
@@ -2336,7 +2352,7 @@ class BListBar(GridLayout):
         elif _type == "":
             self.resend_info.text = "[color=#ffff00]Selecteer een type.[/color]"
             return
-        
+
         #def printer_bestelling_resend(bestelling, h, order_list, ip, poort, _type):
         threading.Thread(target=socket_server.printer_bestelling_resend,
                          args=(self.resend_bst[0],
@@ -2352,6 +2368,8 @@ class BListBar(GridLayout):
         if instance.id != "del":
             self.backup_best = self.blist.get_text()
         self.blist.verklein_bestelling()
+        if self.select_error.text != "":
+            self.select_error.text = ""
         
     
     def open_log(self, _):
