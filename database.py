@@ -13,10 +13,7 @@ import openpyxl
 
 def update_dict(oud, nieuw):
     for key in nieuw:
-        if key in oud:
-            oud[key] += nieuw[key]
-        else:
-            oud[key] = nieuw[key]    
+        oud[key] = oud.get(key, 0) + nieuw[key]
     return oud
 
 
@@ -174,7 +171,7 @@ def addBestellingID(db_io, ID, naam):
         return -1
     
 
-def addOrder(db_io, message, types=None, status="???"):
+def addOrder(db_io, message, ip_poort="DB", types=None, status="???"):
     """
         <> db_io
         <dict> message
@@ -192,11 +189,11 @@ def addOrder(db_io, message, types=None, status="???"):
         c.execute("INSERT INTO orders (klantid, bestelling, tijd, unixtijd, hash, types) VALUES (?,?,?,?,?,?)", (ID, pickle.dumps(message["bestelling"]), tijd, int(time.time()), message['hash'], types))
         conn.commit()
         #["TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"]
-        return [tijd, ID, message['hash'], "DB", types, status]
+        return [tijd, ID, message['hash'], ip_poort, types, status]
     except Exception as e:
         print(e)
         return -1
-
+    
 
 def getOrder(db_io, _id, _hash):
     conn, c = db_io
@@ -211,12 +208,14 @@ def getOrder(db_io, _id, _hash):
 
 def getOrderLastInfo(db_io, _id):
     conn, c = db_io
-    c.execute("SELECT tijd, hash FROM orders WHERE klantid = ? ORDER BY unixtijd DESC", (_id,))
+    c.execute("SELECT tijd, hash, bestelling FROM orders WHERE klantid = ? ORDER BY unixtijd DESC", (_id,))
     data = c.fetchone()
     if not data:
-        return ["N/A", "N/A"]
+        return ["N/A", "N/A", "N/A"]
     else:
-        return data
+        #bestelling
+        tafel = pickle.loads(data[2])['info'].get('tafel', 'N/A')
+        return data[:2]+(tafel,)
 
 
 def getBestelling(db_io, ID):

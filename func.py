@@ -38,6 +38,7 @@ class Client_storage():
         #bevat alle info voor de server en de kassa
         self.bestelling = {} #{prod:aantal}
         self.edit = {}
+        self.edit_order = {} # +-= self.edit maar incl types
         self.info = {}#ID, prijs, 
         
 
@@ -77,6 +78,10 @@ class Client_storage():
         return self.edit
     
     
+    def get_edit_order(self):
+        return self.edit_order
+    
+    
     #def get_sort_prod(self):
     #    return sorted(self._prod_list, key=lambda el: el[1])
     
@@ -101,6 +106,7 @@ class Client_storage():
     #bestelling
     def edit_reset(self):
         self.edit = {}
+        self.edit_order = {}
     
     
     def bestelling_add_prod(self, prod, aantal, opm=None):
@@ -123,15 +129,21 @@ class Client_storage():
                 self.edit[prod] = aantal
                 return 0
         '''
+        prod_type = self._prod[prod][0]
+        if not(prod_type in self.edit_order):
+            self.edit_order[prod_type] = {}
         if (aantal < 0):
             if self.edit.get(prod, 0) + self.bestelling.get(prod, 0) + aantal < 0:
                 return -1
             else:
                 self.edit[prod] = self.edit.get(prod, 0) + aantal
+                self.edit_order[prod_type][prod] = self.edit[prod]
                 return 0
         else:
             self.edit[prod] = self.edit.get(prod, 0) + aantal
+            self.edit_order[prod_type][prod] = self.edit[prod]
             return 0
+        
         
     def bestelling_del_prod(self, prod):
         if prod in self.bestelling:
@@ -165,6 +177,5 @@ class Client_storage():
             if prod_prijs == "ERROR":
                 return prod_prijs
             totaal += prod_prijs * self.bestelling[product]
-
         return totaal
 

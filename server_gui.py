@@ -36,7 +36,6 @@ import database
 import global_vars
 import func
 
-
 kivy.require("1.10.1")
 
 '''
@@ -192,6 +191,10 @@ class BListScherm(GridLayout):
     
     def save_log(self):
         self.blist.save_log()
+    
+    
+    def add(self, info, statcolor=None):
+        self.blist.update_list(info, statcolor)
         
         
 #bars
@@ -1404,6 +1407,22 @@ class BestelBar(GridLayout):
             socket_server.EDIT_ID = gui.DATA.get_info()["ID"]
             database.addBestelling(db_io, {"id":gui.DATA.get_info()["ID"]}, gui.DATA.get_edit())
             socket_server.EDIT_ID = None
+            # order table bewerken
+            msg = {
+                    "bestelling":{
+                            "info":{
+                                "id":gui.DATA.get_info()["ID"],
+                                "naam":"N/A",
+                                "tafel":"N/A",
+                                "verkoper":"KASSA",
+                                },
+                            "BST":gui.DATA.get_edit_order()
+                            },
+                    "hash": datetime.datetime.now().strftime("%M%S"),#random value
+            }
+            gui.blistscherm.add(database.addOrder(db_io, msg, ip_poort="KASSA:EDIT", status="EDIT"))
+            
+            
             gui.DATA.set_bestelling(database.getBestelling(db_io, gui.DATA.get_info()["ID"]))      
             database.CloseIO(db_io)
             
@@ -1416,6 +1435,7 @@ class BestelBar(GridLayout):
             self.edit_mode = 0
             for knop in self.edit_knoppen:
                 knop.background_color = (1,1,1,1)
+                
             
         elif knop == "VERWIJDER":
             self.vpopup = Popup(title="Verwijderen", size=(400,400), size_hint=(None,None))
@@ -1616,11 +1636,12 @@ class BestelBar(GridLayout):
         
         db_io = database.OpenIO(global_vars.db)
         naam, betaald = database.getInfoByID(db_io, self.ID_klant)
-        _tijd, _hash = database.getOrderLastInfo(db_io, self.ID_klant)
+        _tijd, _hash, _tafel = database.getOrderLastInfo(db_io, self.ID_klant)
         database.CloseIO(db_io)
         
         layout.add_widget(Label(text="ID:  {}".format(self.ID_klant), font_size=20))
         layout.add_widget(Label(text="Naam:  {}".format(naam), font_size=20))
+        layout.add_widget(Label(text="Tafel: {}".format(_tafel), font_size=20))
         layout.add_widget(Label(text="Betaald: {}".format("Nee" if (betaald) else "JA"), font_size=20))
         layout.add_widget(Label(text="tijd: {}".format(_tijd), font_size=20))
         layout.add_widget(Label(text="hash: {}".format(_hash), font_size=20))
