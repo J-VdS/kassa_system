@@ -31,13 +31,21 @@ TBT = 5 #tijd tussen 2 tickets (in seconden)
 #debug
 DYNCON = True #dynamische seriële connectie
 LOGGING = True
+ALLLOGGING = True
 if LOGGING:
-    import os
+    import os, traceback
     if not(os.path.isdir("logs")):
         os.mkdir("logs")
     FILENAME = os.path.join("logs", "errlog{}.log".format(int(time.time()))) #https://www.unixtimestamp.com/index.php
 else:
     FILENAME = None
+    
+if ALLLOGGING:
+    import os
+    if not(os.path.isdir("logs")):
+        os.mkdir("logs")
+    sys.stderr = open(os.path.join("logs", "log{}.log".format(int(time.time()))), 'w')
+    sys.stdout = sys.stderr
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
 #breedte is 32 wss
@@ -315,7 +323,7 @@ def printer_verwerk(printer_obj, obj):
             printer_obj.text("*"*32)
             printer_obj.cut() #noodzakelijk anders wordt er niets geprint
             
-            print_status.put((obj['info']['id'], obj['hash'], obj['ptypes'], 0))
+            print_status.put((obj['info']['id'], obj['hash'], obj.get('ptypes', 'no ptypes'), 0))
             
         elif print_type == "r":
             print_kasticket(printer_obj, obj)
@@ -338,7 +346,8 @@ def printer_verwerk(printer_obj, obj):
         print("line {}: {}".format(str(line), str(e)))
         if LOGGING and not(FILENAME is None):
             with open(FILENAME, "a") as fn:
-                fn.write("{}\nline {}: {}\n{}\n\n".format(int(time.time()), line, e, trace_back))        
+                fn.write("{}\nline {}: {}\n{}\n\n".format(int(time.time()), line, e, trace_back))
+                traceback.print_exc(file=fn)
         
         print_status.put((obj['info']['id'], obj['hash'], obj['ptypes'], -1)) #print error
         
