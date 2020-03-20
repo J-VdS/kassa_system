@@ -45,7 +45,7 @@ if ALLLOGGING:
     if not(os.path.isdir("logs")):
         os.mkdir("logs")
     sys.stderr = open(os.path.join("logs", "log{}.log".format(int(time.time()))), 'w')
-    sys.stdout = sys.stderrs
+    sys.stdout = sys.stderr
 #Printer contants
 #https://github.com/python-escpos/python-escpos/issues/230
 #breedte is 32 wss
