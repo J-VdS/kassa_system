@@ -243,7 +243,8 @@ def printer_test(ip, poort):
                    'opm':"DIT is een test, geen actie nodig...",
                    'BST':{},
                    'hash':"0000",
-                   'ticket_type':'b'})
+                   'ticket_type':'b',
+                   'ptypes':'test'})
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ip, poort))
