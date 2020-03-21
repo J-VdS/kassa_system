@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 db = "musate_app.db"
 zichtbaar_int = ["Nee", "Ja", "Enkel voor kassa"] #0,1,2
 
@@ -8,6 +9,7 @@ kassa_rows = 5
 
 product_cols = 4
 product_rows = 5
+product_name_max = 26
 COLOURS = {}
 
 bewerk_NT = "Bewerken is niet toegelaten.\nJe moet eerst bewerken activeren!"
@@ -31,3 +33,5 @@ selectie_niets = "[color=#ff0000]Vul een start ID en/of Eind ID in. Je kan ook g
 selectie_neg = "[color=#ff0000]Enkel positieve getallen (0 inbegrepen), vul je niets in kiest men het grootste/kleinste ID[/color]"   
 
 betaal_methodes = ("cash", "bancontact", "QR-code")
+
+save_log_file = "BST.log"

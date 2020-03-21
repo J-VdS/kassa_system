@@ -3,7 +3,8 @@ import sqlite3
 import pickle
 import os
 import datetime
-
+import time
+#exports
 import csv
 import openpyxl
 
@@ -12,10 +13,7 @@ import openpyxl
 
 def update_dict(oud, nieuw):
     for key in nieuw:
-        if key in oud:
-            oud[key] += nieuw[key]
-        else:
-            oud[key] = nieuw[key]    
+        oud[key] = oud.get(key, 0) + nieuw[key]
     return oud
 
 
@@ -39,7 +37,7 @@ def InitTabels(db_io):
     #producten tabel
     c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs INTEGER, active INTEGER)")
     c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs INTEGER, naam TEXT, betaalwijze TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS orders(bestelid INTEGER PRIMARY KEY, bestelling BLOB, printerid INTEGER, ip TEXT, status TEXT, times_send INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS orders(klantid INTEGER, bestelling BLOB, tijd TEXT, unixtijd INTEGER, hash TEXT, types TEXT)")
 
     #print("--- db loaded ---")
 
@@ -174,7 +172,7 @@ def addBestellingID(db_io, ID, naam):
         return -1
     
 
-def addOrder(db_io, message, ip_poort="DB", types=None, status="OK"):
+def addOrder(db_io, message, ip_poort="DB", types=None, status="???"):
     """
         <> db_io
         <dict> message
@@ -186,16 +184,39 @@ def addOrder(db_io, message, ip_poort="DB", types=None, status="OK"):
     tijd = datetime.datetime.now().strftime("%H:%M:%S")
     ID = message["bestelling"]["info"]["id"]
     if types is None:
-        raw_types = [str(i)[0] for i in message["bestelling"]["BST"].keys()] #ga naar 1 letter types
+        raw_types = ["{:<2}".format(str(i)[:2]) for i in message["bestelling"]["BST"].keys()] #ga naar 1 letter types
         types = "".join(raw_types)
     try:
-        c.execute("INSERT INTO orders (klantid, bestelling, tijd, hash, ip_poort, types, status) VALUES (?,?,?,?,?,?,?)", (ID, pickle.dumps(message["bestelling"]), tijd, message['hash'], ip_poort, types, status))
+        c.execute("INSERT INTO orders (klantid, bestelling, tijd, unixtijd, hash, types) VALUES (?,?,?,?,?,?)", (ID, pickle.dumps(message["bestelling"]), tijd, int(time.time()), message['hash'], types))
         conn.commit()
         #["TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"]
         return [tijd, ID, message['hash'], ip_poort, types, status]
     except Exception as e:
         print(e)
         return -1
+    
+
+def getOrder(db_io, _id, _hash):
+    conn, c = db_io
+    c.execute("SELECT bestelling, types, tijd FROM orders WHERE klantid = ? AND hash = ?", (_id, _hash))
+    data = c.fetchone()
+    if not data:
+        #er was geen bestelling met dit klantid en/of hash
+        return -2
+    else:
+        return [pickle.loads(data[0])] + list(data[1:])
+    
+
+def getOrderLastInfo(db_io, _id):
+    conn, c = db_io
+    c.execute("SELECT tijd, hash, bestelling FROM orders WHERE klantid = ? ORDER BY unixtijd DESC", (_id,))
+    data = c.fetchone()
+    if not data:
+        return ["N/A", "N/A", "N/A"]
+    else:
+        #bestelling
+        tafel = pickle.loads(data[2])['info'].get('tafel', 'N/A')
+        return data[:2]+(tafel,)
 
 
 def getBestelling(db_io, ID):
@@ -413,3 +434,4 @@ def importXLSX(file, ret_d):
         return 0
     except:
         return -1
+    

@@ -29,10 +29,11 @@ import socket_client
 
 kivy.require("1.10.1") #vw voor de versie
 
-DATA = None#Client_storage()
+DATA = None #Client_storage()
 COLOURS = {"drank":(0.8,0.2,0,1),
            "gerecht":(0,0.2,1,1),} #type:color_tuple 
 BACKUP = "datadump.json"
+
 
 #debug
 from kivy.logger import LoggerHistory
@@ -391,8 +392,27 @@ class HuidigeBestellingScreen(GridLayout):
         
     def send_bestelling(self, _):
         #TODO: popup indien de bestelling leeg is
-        #in principe zou dit geen gevolgen mogen geven.
-        #print("[BESTELLING] %s" %(DATA.get_bestelling()))
+        if DATA.is_empty() and not(DATA.has_opm()):
+            popup = Popup(title="Info")
+            layout = GridLayout(cols=1)
+            
+            info_label = Label(text="[color=#ffff00]Je bestelling is leeg![/color]\nEr wordt niets gestuurd!",
+                               height=Window.size[1]*.8,
+                               size_hint_y=None,
+                               font_size=30,
+                               halign="center",
+                               markup=True)
+            info_label.bind(width=self._update_text_width)
+            layout.add_widget(info_label)
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
+            return
+
         if not(DATA.get_status()[0]):
             H = "{}{}".format(DATA.get_info()['id'], randint(0,99))
             DATA.set_hash(H)
@@ -477,7 +497,7 @@ class HuidigeBestellingScreen(GridLayout):
                       font_size=30,
                       halign="center",
                       valign="middle")
-        label.bind(width=self._update_width)
+        label.bind(width=self._update_text_width)
         layout.add_widget(label)
         
         knoplayout = BoxLayout(orientation="horizontal")
@@ -496,7 +516,7 @@ class HuidigeBestellingScreen(GridLayout):
         self.popup.open()        
        
         
-    def _update_width(self, obj, _):
+    def _update_text_width(self, obj, _):
         obj.text_size = (obj.width * .9, None)
         
     
@@ -517,7 +537,7 @@ class HuidigeBestellingScreen(GridLayout):
                                    height=Window.size[1]*.8,
                                    size_hint_y=None,
                                    font_size=30)
-        self.opm_input.bind(width=self._update_width)
+        self.opm_input.bind(width=self._update_text_width)
         layout.add_widget(self.opm_input)
 
         self.popup.add_widget(layout)                        
@@ -541,7 +561,7 @@ class HuidigeBestellingScreen(GridLayout):
                                size_hint_y=None,
                                font_size=30,
                                halign="center")
-            info_label.bind(width=self._update_width)
+            info_label.bind(width=self._update_text_width)
             layout.add_widget(info_label)
             
             knop = Button(text="sluit",width=Window.size[0]*.75)
@@ -1079,6 +1099,10 @@ class Client_storage():
         
     #getters
     def get_bestelling(self):
+        keys = list(self.bestelling['BST'].keys()) #iter problem
+        for _type in keys:
+            if len(self.bestelling['BST'][_type]) == 0:
+                del self.bestelling['BST'][_type]
         return self.bestelling
     
     
@@ -1146,6 +1170,16 @@ class Client_storage():
     def is_started(self):
         return self.started
     
+    
+    def is_empty(self):
+        for _type in self.bestelling['BST']:
+            if len(self.bestelling['BST'][_type]):
+                return False
+        return True
+
+
+    def has_opm(self):
+        return bool(self.get_opm().strip())
     
     #bestelling
     def bestelling_add_prod(self, prod, type, aantal):

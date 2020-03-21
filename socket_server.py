@@ -4,6 +4,7 @@
 import socket
 import select
 import pickle
+import time
 import datetime
 import queue
 from threading import Thread, Condition
@@ -13,16 +14,21 @@ import func
 #error handling
 import sys
 
+
 #RUN_SERVER = True
 
 HEADERLENGTH = 10 #10
 IP = "0.0.0.0"
 POORT = 1740
+
+CTRLCHECKCOUNTER = 10
+
 #argument dat de server en de bestellingsender afsluit
 RUN = True
 ACCEPT = True
 PRINTERS = [] #(ip, poort, [type,])
 PRINT_QUEUE = queue.Queue() 
+BEST_OK = False
 
 EDIT_ID = None
 
@@ -80,10 +86,13 @@ def makeMsg(msg):
 def printer_loop(cond, order_list):
     '''
         <Condition> cond 
-        <func> order_list: verandert visuele elementen in de gui 
+        <func> order_list: verandert visuele elementen in de gui over de status van bestellingen
     '''
     global RUN
     global PRINT_QUEUE
+    global CTRLCHECKCOUNTER
+    
+    checkCounter = 0
     
     while RUN or not(PRINT_QUEUE.empty()):
         with cond:
@@ -98,7 +107,10 @@ def printer_loop(cond, order_list):
             return
         
         printer_bestelling(*waarden, order_list)
-        
+        checkCounter += 1
+        if checkCounter >= CTRLCHECKCOUNTER:
+            send_check(order_list)
+            checkCounter = 0
         
 #moet in een thread lopen
 #geef error wanneer we de printer niet kunnen bereiken
@@ -112,6 +124,10 @@ def printer_bestelling(bestelling, h, order_list):
     producten = bestelling['BST']
     info = bestelling['info']
     opm = bestelling['opm'].strip()
+    
+    #start send pr
+    order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, "", "", "STSD"])
+    
     for ip, poort, types in PRINTERS:
         if types == ["rekening"]:
             continue
@@ -123,21 +139,77 @@ def printer_bestelling(bestelling, h, order_list):
             continue
         
         tijd = datetime.datetime.now().strftime("%H:%M:%S")
-        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'ticket_type':'b'})
+        types_short = "".join(["{:<2}".format(str(i)[:2]) for i in types])
+        msg = makeMsg({'info':info, 'opm':opm, 'BST':b, 'hash':h, 'time':tijd, 'ticket_type':'b', 'ptypes': types_short})
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        adres = "{}:{}".format(ip, poort)
         try:
             s.connect((ip, poort))
             s.send(msg)
             print("msg send: ", info)
+            order_list([tijd, info["id"], h, adres, types_short, "SD"], "#00ed30")
+            
         except Exception as e:
             #verwijder de printer uit de lijst van connecties, en geef popup
             trace_back = sys.exc_info()[2]
             line = trace_back.tb_lineno
             print(f"[ERR!]Printer line {line}: {str(e)}")
+            
+            #send error
+            order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, adres, types_short, "ERSD"], "#ff0000")
+            
         finally:
             s.close()
             
+
+def printer_bestelling_resend(bestelling, h, order_list, ip, poort, _type):
+    producten = bestelling['BST']
+    info = bestelling['info']
+    opm = bestelling['opm'].strip()
+    types_short = "{:<2}".format(str(_type)[:2])
+    tijd = datetime.datetime.now().strftime("%H:%M:%S")
+    msg = makeMsg({'info':info, 'opm':opm, 'BST':producten.get(_type, {}), 'hash':h, 'time':tijd, 'ticket_type':'b', 'ptypes': types_short, 'resend':True})
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    adres = "{}:{}".format(ip, poort)
+    
+    #start send pr
+    order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, "", "", "RESD"])
+    try:
+        s.connect((ip, poort))
+        s.send(msg)
+        print("msg send: ", info)
+        order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, adres, types_short, "SD"], "#00ed30")
+        
+    except Exception as e:
+        #verwijder de printer uit de lijst van connecties, en geef popup
+        trace_back = sys.exc_info()[2]
+        line = trace_back.tb_lineno
+        print(f"[ERR!]Printer line {line}: {str(e)}")
+        
+        #send error
+        order_list([datetime.datetime.now().strftime("%H:%M:%S"), info["id"], h, adres, types_short, "ERSD"], "#ff0000")
+        
+    finally:
+        s.close()      
+        
                  
+def send_check(order_list):
+    basemsg = {'ticket_type':'c', 'poort':POORT, 'hash':str(int(time.time()))[-4:]}
+    for ip, poort, types in PRINTERS:
+        basemsg['types'] = "".join(["{:<2}".format(str(i)[:2]) for i in types])
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect((ip, poort))
+            s.send(makeMsg(basemsg))
+        except Exception as e:
+            trace_back = sys.exc_info()[2]
+            line = trace_back.tb_lineno
+            print(f"[ERR!]Printer line {line}: {str(e)}")
+        finally:
+            s.close()
+    order_list([datetime.datetime.now().strftime("%H:%M:%S"), "", basemsg['hash'], "all", "", "CHEC"], "#ff1493")
+            
+            
 def print_kasticket(bestelling, info, p_art, prijs):
     '''
         <dict> bestelling
@@ -171,7 +243,8 @@ def printer_test(ip, poort):
                    'opm':"DIT is een test, geen actie nodig...",
                    'BST':{},
                    'hash':"0000",
-                   'ticket_type':'b'})
+                   'ticket_type':'b',
+                   'ptypes':'test'})
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ip, poort))
@@ -207,6 +280,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
     '''
     global RUN
     global PRINT_QUEUE
+    global BEST_OK
     #start bestellingsender Thread
     cond = Condition()
     Thread(target=printer_loop, args=(cond, order_list), daemon=True).start() #verander de deamon nog naar False
@@ -226,8 +300,6 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
     best_status = {}
     
     db_io = database.OpenIO(db)
-    
-
     
     try:
         #print("Aan het luisteren voor connecties op: {0}:{1}".format(IP, POORT))
@@ -268,11 +340,13 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                                 client_socket.close()
                                 continue #skipt de rest 
                         '''
-                        # Add accepted socket to select.select() list
-                        sockets_list.append(client_socket)
-                                
+                        
+                        
                         # Also save username and username header
                         connecties[client_socket] = data['naam']
+                        
+                        # Add accepted socket to select.select() list
+                        sockets_list.append(client_socket)
                         
                         #print mss ook de naam
                         print('Accepted new connection from {}:{}'.format(client_address, data['naam']))
@@ -318,7 +392,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         #vermijd dat er 2 acties tegelijk bezig zijn met een id
                         global EDIT_ID
                         while EDIT_ID == message['bestelling']['info']['id']:
-                            pass
+                            pass #mogelijkheid om bestellingen te verliezen?
                         EDIT_ID = message['bestelling']['info']['id']
                         ret = database.addBestelling(db_io, message['bestelling']['info'], best)
                         EDIT_ID = None
@@ -339,7 +413,19 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                             
                             continue
                             #notified_socket.send(makeMsg({"status":"closed"}))#, "info":message['bestelling']['info']}))
-                          
+                        
+                        #TODO: wanneer dat een client een bestelling aan het plaatsen is EN men bij de kassa de rekening aan het afsluiten is
+                        
+                        
+                        #voeg toe aan order tabel
+                        ret = database.addOrder(db_io, message, status="INDB")
+                        print(ret)
+                        if ret == -1:
+                            print("DATABASE ERROR: addOrder")
+                            #TODO: print error
+                        else:
+                            order_list(ret, "0000ff")
+                            
                         #stuur naar printer --> best in andere thread want kan voor bottleneck zorgen
                         with cond:
                             PRINT_QUEUE.put((message['bestelling'], message['hash']))
@@ -348,31 +434,32 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
 
                         #stuur succes, gelukt naar kassa
                         
-                        #voeg toe aan een tabel -- TODO: verplaatsen naar de printloop
-                        ret = database.addOrder(db_io, message)
-                        if ret == -1:
-                            print("DATABASE ERROR: addOrder")
-                        else:
-                            order_list(ret)
-                        print("klaar met order")                        
-                        
                     elif message['req'] == "MSG":
                         pass
                     elif message['req'] == "CHK":
                         print(f"[SERVER][CHK]{user} vroeg check")
                         H = message['hash']
-                        print(H)
-                        print("Voor:", best_status)
+                        #print("Voor:", best_status)
                         if H in best_status:
                             notified_socket.send(makeMsg({"status":best_status[message['hash']]}))
                             del best_status[H]
                         else:
                             notified_socket.send(makeMsg({"status":-1})) #key error/onbekend
-                        print("verzonden")
-                        print("Na:", best_status)
                     elif message['req'] == "PING":
                         print("Pinged by {}".format(user))
-                        
+                    elif message['req'] == "PINFO":
+                        print("[SERVER] printer geeft printinfo")
+                        notified_socket.send(makeMsg({"status":-1}))
+                        for i in message["stats"]:
+                            if len(i) != 4:
+                                continue
+                            #"TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"
+                            elif i[-1] == -1:
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], i[1], "", i[2], "PERR"], "ff0000")
+                            elif i[-1] == -2:
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], "", "", i[2], i[1]], "ff9900")
+                            elif BEST_OK:
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], i[1], "", i[2], "PRTD"], "#00ed30")
                         
             # It's not really necessary to have this, but will handle some socket exceptions just in case
             for notified_socket in exception_sockets:
