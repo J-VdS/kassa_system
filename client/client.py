@@ -398,8 +398,7 @@ class HuidigeBestellingScreen(GridLayout):
             popup.add_widget(layout)                        
             popup.open()
             return
-        #in principe zou dit geen gevolgen mogen geven.
-        #print("[BESTELLING] %s" %(DATA.get_bestelling()))
+
         if not(DATA.get_status()[0]):
             H = "{}{}".format(DATA.get_info()['id'], randint(0,99))
             DATA.set_hash(H)
@@ -1085,6 +1084,10 @@ class Client_storage():
         
     #getters
     def get_bestelling(self):
+        keys = list(self.bestelling['BST'].keys()) #iter problem
+        for _type in keys:
+            if len(self.bestelling['BST'][_type]) == 0:
+                del self.bestelling['BST'][_type]
         return self.bestelling
     
     
