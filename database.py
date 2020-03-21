@@ -39,7 +39,8 @@ def InitTabels(db_io):
     c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs INTEGER, naam TEXT, betaalwijze TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS orders(klantid INTEGER, bestelling BLOB, tijd TEXT, unixtijd INTEGER, hash TEXT, types TEXT)")
 
-    #print("---Product Table Loaded ---")
+    #print("--- db loaded ---")
+
     conn.commit()
    
     
@@ -289,8 +290,9 @@ def getOmzet(db_io, start=None, end=None):
         
     data = c.fetchall()
     for B, P in data:
-        result[B] = P
+        result[B] = P/100
         result["omzet"] += P
+    result["omzet"] /= 100
     return result
 
 # export csv
@@ -385,7 +387,6 @@ def exportXLSX(db_io):
         else:
             ws2.append((ID, N, O, P, B, " ", *best.values())) #P == None
             
-
     #ontvangen bedragen
     ws3 = wb.create_sheet(title="bedragen")
     
