@@ -32,6 +32,7 @@ kivy.require("1.10.1") #vw voor de versie
 DATA = None#Client_storage()
 COLOURS = {"drank":(0.8,0.2,0,1),
            "gerecht":(0,0.2,1,1),} #type:color_tuple 
+BACKUP = "datadump.json"
 
 #debug
 from kivy.logger import LoggerHistory
@@ -169,6 +170,18 @@ class LoginScreen(GridLayout):
         m_app.make_prod_page()
         m_app.make_connect_pages()
         
+        #if there is a backup
+        if os.path.isfile(BACKUP):
+            #set message that there is a backup!
+            m_app.info_pagina.change_info("[color=#ffff00]Er is een BACKUP[/color]\nEr ging iets mis tijdens je laatste bestelling of je verliet/sloot de applicatie. Er werd een backup gemaakt. Deze kan je gebruiken zolang je geen [color=#00abab]nieuwe[/color] bestelling start!")
+            m_app.screen_manager.current = "info"
+            #and change to klaninfo after x seconds
+            Clock.schedule_once(self.goKlantInfo, 5)
+        else: 
+            m_app.screen_manager.current = "klantinfo"
+        
+    
+    def goKlantInfo(self, _=None):
         m_app.screen_manager.current = "klantinfo"
 
 
@@ -179,7 +192,7 @@ class InfoScreen(GridLayout):
         self.cols = 1
         self.rows = 1
         
-        self.label = Label(halign="center", valign="middle", font_size=FS)
+        self.label = Label(halign="center", valign="middle", font_size=FS, markup=True)
         
         self.label.bind(width=self._update_text_width)
         
@@ -290,12 +303,12 @@ class KlantInfoScreen(GridLayout):
     
     #TODO
     def check_backup(self, _):
-        if not(os.path.isfile("datadump.json")):
+        if not(os.path.isfile(BACKUP)):
             self.info_popup("Er is geen backup gevonden.\nJe bestelling is verzonden en aangekomen.")
             return
         #probeer de backup in te laden
         try:
-            store = JsonStore("datadump.json")
+            store = JsonStore(BACKUP)
             info = store.get("backup").get("info") #gebruiken voor popup met info
             data = store.get("backup").get("data")
             DATA.load_data(data)
@@ -417,8 +430,8 @@ class HuidigeBestellingScreen(GridLayout):
             Clock.schedule_once(self.goKlantinfo, 2)
             DATA.set_bevestigd(True)
             #verwijder de json file (moest die er zijn)
-            if os.path.isfile("datadump.json"):
-                os.remove("datadump.json")
+            if os.path.isfile(BACKUP):
+                os.remove(BACKUP)
             
         #closed
         elif ret["status"] == 0:
@@ -632,10 +645,11 @@ class ProductScreen(GridLayout):
     
     def reset(self):
         self.paginaNr = 0
-        self.vul_in()
-        self.paginaNr_label.text = "Pagina {}".format(self.paginaNr+1)
         self.mode = 1 #{-1:-, 1:+}
-        self.mode_type = -1
+        self.mode_type = -1 #all types
+        self.paginaNr_label.text = "Pagina {}".format(self.paginaNr+1)
+
+        self.vul_in()
         
         self.update_list = DATA.bestelling_list()
         Clock.schedule_once(self.refill, 0.5)
@@ -932,15 +946,15 @@ class KassaClientApp(App):
     
     
     def dump_data(self):
-        if os.path.isfile("datadump.json"):
-            os.remove("datadump.json")
+        if os.path.isfile(BACKUP):
+            os.remove(BACKUP)
         
         if DATA.get_status() == (True, True):
             return 
         #TODO: verwijder dit, was voor snel te scrollen
         data = DATA.dump_data()
         info = DATA.get_info()
-        store = JsonStore("datadump.json")
+        store = JsonStore(BACKUP)
         store.put("backup", data=data, info=info)
         store.put("viewer", url="http://jsonviewer.stack.hu/")
         
@@ -1139,7 +1153,7 @@ class Client_storage():
             voegt een product toe aan de bestelling        
         '''
         if ":" in prod:
-            prod = prod.split(":")[0][3:] #strip [b]
+            prod = prod.split(":")[0][3:-1] #strip [b] + extra space
         else:
             prod = prod[3:-4] #strip [b] en [/b]
         
@@ -1155,7 +1169,7 @@ class Client_storage():
             return
         
         if self.bestelling['BST'][type][prod]:
-            self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
+            self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, "{} :{:>2}".format(prod, self.bestelling['BST'][type][prod])]
             self._prod_typelist_aantal[type][self._prod_typelist[type].index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
         else:
             #aantal is nul dan laten we ':' weg
