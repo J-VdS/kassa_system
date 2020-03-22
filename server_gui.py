@@ -1420,7 +1420,11 @@ class BestelBar(GridLayout):
                             },
                     "hash": datetime.datetime.now().strftime("%M%S"),#random value
             }
-            gui.blistscherm.add(database.addOrder(db_io, msg, ip_poort="KASSA:EDIT", status="EDIT"))
+            ret = database.addOrder(db_io, msg, ip_poort="KASSA:EDIT", status="EDIT")
+            if ret == -1:
+                print("Bewerk addOrder error")
+            else:
+                gui.blistscherm.add(ret)
             
             
             gui.DATA.set_bestelling(database.getBestelling(db_io, gui.DATA.get_info()["ID"]))      
@@ -2250,13 +2254,13 @@ class BListBar(GridLayout):
         
         maxlen = global_vars.product_name_max
         
-        self.update_list = [" {:*^{}} ".format("", maxlen)]
+        self.popup_list = [" {:*^{}} ".format("", maxlen)]
         
         for t in bst['BST']:
-            self.update_list.append("[b][color=#20ab40]{:^{}}[/color][/b]".format(t, maxlen+5))
+            self.popup_list.append("[b][color=#20ab40]{:^{}}[/color][/b]".format(t, maxlen+5))
             type_dict = bst['BST'][t]
             for prod in type_dict:
-                self.update_list.append("{:<{}}: {}".format(prod, maxlen, type_dict[prod]))
+                self.popup_list.append("{:<{}}: {}".format(prod, maxlen, type_dict[prod]))
         
         self.aantal_prod = LijstLabel()
         main_grid.add_widget(self.aantal_prod)
@@ -2277,8 +2281,8 @@ class BListBar(GridLayout):
         
         
     def refill(self, *_):
-        if len(self.update_list):
-            self.aantal_prod.update_bestelling(self.update_list.pop(0))
+        if len(self.popup_list):
+            self.aantal_prod.update_bestelling(self.popup_list.pop(0))
             Clock.schedule_once(self.refill,0.01)
             
     
