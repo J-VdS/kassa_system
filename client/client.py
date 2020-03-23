@@ -174,10 +174,11 @@ class LoginScreen(GridLayout):
         #if there is a backup
         if os.path.isfile(BACKUP):
             #set message that there is a backup!
-            m_app.info_pagina.change_info("[color=#ffff00]Er is een BACKUP[/color]\nEr ging iets mis tijdens je laatste bestelling of je verliet/sloot de applicatie. Er werd een backup gemaakt. Deze kan je gebruiken zolang je geen [color=#00abab]nieuwe[/color] bestelling start!")
-            m_app.screen_manager.current = "info"
+            m_app.knopinfo_pagina.change_info("[color=#ffff00]Er is een BACKUP[/color]\nEr ging iets mis tijdens je laatste bestelling of je verliet/sloot de applicatie. Er werd een backup gemaakt. Deze kan je gebruiken zolang je geen [color=#00abab]nieuwe[/color] bestelling start!")
+            m_app.knopinfo_pagina.change_next("klantinfo")
+            m_app.screen_manager.current = "knopinfo"
             #and change to klaninfo after x seconds
-            Clock.schedule_once(self.goKlantInfo, 5)
+            #Clock.schedule_once(self.goKlantInfo, 5)
         else: 
             m_app.screen_manager.current = "klantinfo"
         
@@ -203,8 +204,51 @@ class InfoScreen(GridLayout):
     def change_info(self, info):
         self.label.text = info
     
+    
     def _update_text_width(self, *_):
         self.label.text_size = (self.label.width * .9, None)
+        
+        
+class InfoButtonScreen(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.cols = 1
+        self.rows = 2
+        
+        self.label = Label(halign="center", valign="middle", font_size=FS-1, markup=True)
+        
+        self.label.bind(width=self._update_text_width)
+        
+        self.add_widget(self.label)
+        
+        
+        self.next_screen = None
+        knopgrid = GridLayout(cols=1, rows=1, size_hint_y=.15, padding=[50,5,50,5])
+        knop = Button(text="ok", font_size=FS-2)
+        knop.bind(on_press=self._ok_klik)
+        knopgrid.add_widget(knop)
+        
+        self.add_widget(knopgrid)
+        
+        
+    def change_info(self, info):
+        self.label.text = info
+
+
+    def change_next(self, screen):
+        self.next_screen = screen
+        
+    
+    def _update_text_width(self, *_):
+        self.label.text_size = (self.label.width * .9, None)
+        
+    
+    def _ok_klik(self, _):
+        if self.next_screen is None:
+            show_error("InfoButtonScreen: no next screen set...")
+            return
+        m_app.screen_manager.current = self.next_screen
         
         
 class KlantInfoScreen(GridLayout):
@@ -215,7 +259,7 @@ class KlantInfoScreen(GridLayout):
         
         top_info = GridLayout(cols=2, rows=1, size_hint_y=0.15)
         top_info.add_widget(Label(text="Info over de klant:", font_size=FS-2))
-        knop = Button(text="BACK UP", size_hint_x=0.5, background_color=(0,0.2,1,1), background_normal='', font_size=FS-2)
+        knop = Button(text="BACKUP", size_hint_x=0.5, background_color=(0,0.2,1,1), background_normal='', font_size=FS-2)
         knop.bind(on_press=self.check_backup)
         top_info.add_widget(knop)
         
@@ -589,7 +633,11 @@ class ProductScreen(GridLayout):
         self.mode = 1
         self.mode_type = -1 #{-1: alles, 0: is eerste type in DATA.get_types()}
         
-        topgrid = GridLayout(size_hint_y=0.1, cols=2, rows=1)
+        topgrid = GridLayout(size_hint_y=0.1, cols=3, rows=1)
+        #parser
+        self.pars_button = Button(text="PARS", size_hint_x=0.25, font_size=FS-2)
+        self.pars_button.bind(on_press=self.go_parser)
+        topgrid.add_widget(self.pars_button)
         #paginaNr:
         self.paginaNr_label = Label(
                 text=f"Pagina {self.paginaNr+1}",
@@ -657,6 +705,10 @@ class ProductScreen(GridLayout):
         self.add_widget(knop)
             
         self.vul_in()          
+        
+    
+    def go_parser(self, _):
+        m_app.screen_manager.current = "parser"
         
         
     def zie_huidig(self, _):
@@ -880,8 +932,72 @@ class BestellingErrorScreen(GridLayout):
         DATA.change_creds(naam, ID, tafel, verkoper)
         
         m_app.bestelling_pagina.send_bestelling(None)
-    
         
+        
+class ParserScreen(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        self.rows = 4
+        
+        #navbar
+        navbar = GridLayout(rows=1, cols=3, size_hint_y=0.15)
+        knop = Button(text="terug", font_size=FS-2, 
+                      background_color=(0,.3,1,1),
+                      background_normal='')
+        knop.bind(on_press=self._back)
+        navbar.add_widget(knop)
+        navbar.add_widget(Label(text="parser", font_size=FS-2))
+        page_label = Label(text="?/?", font_size=FS-6, size_hint_x=0.5)
+        navbar.add_widget(page_label)
+        
+        self.add_widget(navbar)
+        
+        #scrolllabel
+        self.add_widget(LijstLabel())
+        
+        #input grid
+        self.mode = 0 # +:0 en -:1
+        self.mode_text = ["[b]+[/b]", "[b]-[/b]"]
+        
+        input_grid = GridLayout(cols=2, rows=1, size_hint_y=0.15, padding=[2,5,2,5])
+        self.input_label = Label(text="INPUT: {:<20}".format(""), font_size=FS-2, halign="left")
+        input_grid.add_widget(self.input_label)
+        self.input_grid_knop = Button(text="[b]+[/b]", font_size=FS, markup=True,
+                      background_normal='', 
+                      background_color=(0,.55,.12,1),
+                      size_hint_x=0.25)
+        #input_grid_knop.bind(on_press=)
+        input_grid.add_widget(self.input_grid_knop)
+        self.add_widget(input_grid)
+        
+        #buttons
+        buttonbar = GridLayout(rows=2, cols=3, size_hint_y=0.3, spacing=3, padding=2)
+        for i in range(2):
+            buttonbar.add_widget(Button(text=str(i), font_size=FS))
+        self.del_knop = Button(text="DEL", font_size=FS-2, size_hint_x=0.5)
+        self.del_knop.bind(on_press=self.change_mode)
+        buttonbar.add_widget(self.del_knop)
+        
+        for i in range(2,4):
+            buttonbar.add_widget(Button(text=str(i), font_size=FS))
+        knop = Button(text="...", font_size=FS-2, size_hint_x=0.5)
+        buttonbar.add_widget(knop)
+        self.add_widget(buttonbar)
+        
+        
+    def _back(self, *_):
+        m_app.screen_manager.current="bestelling"
+
+    
+    def change_mode(self, _):
+        self.mode = (self.mode+1)%2
+        self.input_grid_knop.text = self.mode_text[self.mode]
+        self.input_grid_knop.background_color = (0.6,0.16,0.1,1) if self.mode else (0,.55,.12,1)
+        self.del_knop.background_color = (1,0,0,1) if self.mode else (1,1,1,1)
+
+        
+
 class KassaClientApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -901,6 +1017,12 @@ class KassaClientApp(App):
         scherm = Screen(name='info')
         scherm.add_widget(self.info_pagina)
         self.screen_manager.add_widget(scherm)
+        
+        self.knopinfo_pagina = InfoButtonScreen()
+        scherm = Screen(name="knopinfo")
+        scherm.add_widget(self.knopinfo_pagina)
+        self.screen_manager.add_widget(scherm)
+        
         return self.screen_manager
 
     
@@ -931,6 +1053,12 @@ class KassaClientApp(App):
         self.screen_manager.add_widget(scherm)
         
         self.prod_page = True
+        
+        #TODO: move
+        self.pars_pagina = ParserScreen()
+        scherm = Screen(name="parser")
+        scherm.add_widget(self.pars_pagina)
+        self.screen_manager.add_widget(scherm)
     
     
     def make_bestelling_closed(self):
@@ -1099,6 +1227,7 @@ class Client_storage():
         
     #getters
     def get_bestelling(self):
+        print("BST:", self.bestelling['BST'])
         keys = list(self.bestelling['BST'].keys()) #iter problem
         for _type in keys:
             if len(self.bestelling['BST'][_type]) == 0:
@@ -1220,9 +1349,13 @@ class Client_storage():
                "V:{}".format(self.bestelling['info']['verkoper']),
                "*"*32]
             
-        for type in self.bestelling['BST'].values():
-            for key in type:
-                msg.append("{:<28} {}".format(key, type[key]))
+        for _type in self.bestelling['BST']:
+            _type_dict = self.bestelling['BST'][_type]
+            if len(_type_dict) == 0:
+                continue
+            msg.append("[b][color=#20ab40]{:^31}[/color][/b]".format(_type.upper()))
+            for key in _type_dict:
+                msg.append("{:<28} {:>2}".format(key, _type_dict[key]))
         return msg
             
         
