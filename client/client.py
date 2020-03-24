@@ -194,7 +194,7 @@ class InfoScreen(GridLayout):
         self.cols = 1
         self.rows = 1
         
-        self.label = Label(halign="center", valign="middle", font_size=FS, markup=True)
+        self.label = Label(halign="center", valign="middle", font_size=FS-1, markup=True)
         
         self.label.bind(width=self._update_text_width)
         
@@ -209,19 +209,11 @@ class InfoScreen(GridLayout):
         self.label.text_size = (self.label.width * .9, None)
         
         
-class InfoButtonScreen(GridLayout):
+class InfoButtonScreen(InfoScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
-        self.cols = 1
-        self.rows = 2
-        
-        self.label = Label(halign="center", valign="middle", font_size=FS-1, markup=True)
-        
-        self.label.bind(width=self._update_text_width)
-        
-        self.add_widget(self.label)
-        
+
+        self.rows = 2        
         
         self.next_screen = None
         knopgrid = GridLayout(cols=1, rows=1, size_hint_y=.15, padding=[50,5,50,5])
@@ -230,20 +222,12 @@ class InfoButtonScreen(GridLayout):
         knopgrid.add_widget(knop)
         
         self.add_widget(knopgrid)
-        
-        
-    def change_info(self, info):
-        self.label.text = info
 
 
     def change_next(self, screen):
         self.next_screen = screen
         
-    
-    def _update_text_width(self, *_):
-        self.label.text_size = (self.label.width * .9, None)
         
-    
     def _ok_klik(self, _):
         if self.next_screen is None:
             show_error("InfoButtonScreen: no next screen set...")
