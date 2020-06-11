@@ -1094,7 +1094,7 @@ class KassaClientApp(App):
 #datastructuur voor alle info
 class Client_storage():
     def __init__(self):
-        self._prod = {}
+        self._prod = {}                 #{type1:[prod1, prod2,...], type2:[]}
         self._prod_list = []
         self._prod_list_aantal = []
         self.verkoper = ""
@@ -1341,8 +1341,19 @@ class Client_storage():
             for key in _type_dict:
                 msg.append("{:<28} {:>2}".format(key, _type_dict[key]))
         return msg
-            
+    
+
+class ParserStorage(object):
+    def __init__(self):
+        self._prod = {}
+        self._prod_bool = {}
+        self._prod_list = []
         
+    
+    
+    def set_prod(self, prod):
+        self._prod = prod
+            
         
 #scrolllabel
 class LijstLabel(ScrollView):
@@ -1411,7 +1422,6 @@ def show_error(message):
         Clock.schedule_once(sys.exit, 5)
     else:
         Clock.schedule_once(m_app.goHome, 5)
-        #m_app.
     socket_client.disconnect()
 
 
