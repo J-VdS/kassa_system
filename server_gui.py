@@ -2,6 +2,7 @@ import threading
 import os
 import pickle
 import datetime
+import sys
 from functools import partial #instead of lamda functions
 from collections import deque
 
@@ -106,7 +107,7 @@ class ProductScherm(GridLayout):
         
         
 class ConnectScherm(GridLayout):
-    def __init__(self, **kwargs):
+    def __init__(self, start, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
         
@@ -115,7 +116,7 @@ class ConnectScherm(GridLayout):
         self.add_widget(self.navbar)
         
         #hoofdscherm
-        self.connectbar = ConnectBar(size_hint_y=0.5)
+        self.connectbar = ConnectBar(start, size_hint_y=0.5)
         self.add_widget(self.connectbar)
         
         self.printer_bar = PrinterBar()
@@ -791,7 +792,7 @@ class ProductBar(BoxLayout):
 
 
 class ConnectBar(GridLayout):
-    def __init__(self, **kwargs):
+    def __init__(self, start, **kwargs):
         super().__init__(**kwargs)
         self.cols = 2
 
@@ -801,7 +802,7 @@ class ConnectBar(GridLayout):
                 size_hint_y=None,
                 height=50,
                 font_size=22))
-        self.server_status = Switch(active=False, size_hint_y=None, height=50)
+        self.server_status = Switch(active=start, size_hint_y=None, height=50)
         self.server_status.bind(active=self.switch_server)
         self.add_widget(self.server_status)
         
@@ -838,6 +839,10 @@ class ConnectBar(GridLayout):
         #server_info
         self.auto_off = False
         
+        #start server from cmd
+        if start:
+            self.switch_server(None, True)
+        
         
     def switch_server(self, instance, value):
         if value:
@@ -862,7 +867,12 @@ class ConnectBar(GridLayout):
         
     def switch_server_off(self):
         self.auto_off = True
-        self.server_status.active = False    
+        self.server_status.active = False
+        
+    
+    def switch_server_cmd(self):
+        #self.switch_server(None, True)
+        self.server_status.active = True
     
     
     def switch_aanvaard(self, instance, value):
@@ -2663,6 +2673,11 @@ class ProductLijstLabel(ScrollView):
     
 #gui
 class ServerGui(App):
+    def __init__(self, start, **kwargs):
+        super().__init__(**kwargs)
+        self._start = start
+    
+    
     def build(self):
         self.screen_manager = ScreenManager(transition=NoTransition()) #FadeTransition())
         
@@ -2674,11 +2689,6 @@ class ServerGui(App):
         self.productscherm = ProductScherm()
         scherm = Screen(name="PRODUCTEN")
         scherm.add_widget(self.productscherm)
-        self.screen_manager.add_widget(scherm)
-        
-        self.connectscherm = ConnectScherm()
-        scherm = Screen(name="CONNECTIES")
-        scherm.add_widget(self.connectscherm)
         self.screen_manager.add_widget(scherm)
 
         self.test = OptieScherm()
@@ -2701,6 +2711,11 @@ class ServerGui(App):
         scherm.add_widget(self.blistscherm)
         self.screen_manager.add_widget(scherm)
         
+        self.connectscherm = ConnectScherm(self._start)
+        scherm = Screen(name="CONNECTIES")
+        scherm.add_widget(self.connectscherm)
+        self.screen_manager.add_widget(scherm)
+        
         return self.screen_manager
     
     
@@ -2720,9 +2735,17 @@ class ServerGui(App):
         except Exception as e:
             print("[ERROR_EXIT]", e)
     
+    
+    def start_server(self):
+        self.start_server = True
 
 
 if __name__ == "__main__": 
+    #startserver from commandline
+    _start_server = (sys.argv[-1] == "openserver")
+        
+        
+        
     #maak de tabellen
     db_io = database.OpenIO(global_vars.db)
     database.InitTabels(db_io)
@@ -2730,5 +2753,10 @@ if __name__ == "__main__":
     #fullscreen
     #Window.fullscreen = "auto"
     Window.maximize()
-    gui = ServerGui()
+    gui = ServerGui(_start_server)
+    
+
+    
+    #last step
     gui.run()
+    
