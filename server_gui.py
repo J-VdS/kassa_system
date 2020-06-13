@@ -1273,10 +1273,12 @@ class BestelBar(GridLayout):
         knop.bind(on_press=self.delete_order)
         self.actie_grid.add_widget(knop)
         
-        for _ in range(global_vars.product_rows-4):
-            knop = Button(text=" ")
-            knop.bind(on_press=self.actie)
-            self.actie_grid.add_widget(knop)
+        knop = Button(text="PARSER", font_size=20, size_hint_y=0.5)
+        #knop.bind(on_press=)
+        self.actie_grid.add_widget(knop)
+        
+        self.actie_grid.add_widget(Button(size_hint_y=0.5))
+
         
         knop = Button(text="VERWIJDER", size_hint_y=0.5, font_size=22, background_color=(0,1,0.9,1))
         knop.bind(on_press=self.actie)

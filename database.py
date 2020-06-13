@@ -108,7 +108,7 @@ def getAllProductClient(db_io):
 
 def getAllProductKassa(db_io):
     conn, c = db_io
-    c.execute("SELECT type, naam, prijs FROM producten WHERE active = 1 OR active = 2 ORDER BY naam COLLATE NOCASE ASC")
+    c.execute("SELECT type, naam, prijs FROM producten WHERE (active = 1 OR active = 2) AND parse = 0 ORDER BY naam COLLATE NOCASE ASC")
     data = c.fetchall()
     return data #lijst bestaande uit tuples
 
