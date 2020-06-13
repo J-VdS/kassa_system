@@ -330,7 +330,6 @@ class KlantInfoScreen(GridLayout):
         instance.text_size = (instance.width * .9, None)
     
     
-    #TODO
     def check_backup(self, _):
         if not(os.path.isfile(BACKUP)):
             self.info_popup("Er is geen backup gevonden.\nJe bestelling is verzonden en aangekomen.")
@@ -374,6 +373,7 @@ class KlantInfoScreen(GridLayout):
         #herlaad het bestellingscherm
         m_app.prod_pagina.klik(Label(text=""), True)
         m_app.prod_pagina.reset()
+        m_app.pars_pagina.klik(Label(text=""), True)
         m_app.screen_manager.current = "bestelling"
         
 
@@ -995,14 +995,16 @@ class ParserScreen(GridLayout):
         buttonbar.add_widget(knop)
         self.add_widget(buttonbar)
         
-        
         self.vul_in()
         
         
     def _back(self, *_):
         m_app.screen_manager.current="product"
+        #update the main bestelling
+        m_app.prod_pagina.klik(Label(text=""), True)
+        m_app.prod_pagina.reset()
+        
 
-    
     def change_mode(self, _):
         self.mode = (self.mode+1)%2
         self.input_grid_knop.text = self.mode_text[self.mode]
@@ -1017,25 +1019,11 @@ class ParserScreen(GridLayout):
         
     
     def klik(self, instance, load_backup=False):
-        parser = DATA.get_parser()
-        cu = parser.get_current()
-        ret = parser.add_order(self.mode)
-        if load_backup:
-            pass
-#            m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
-#            self.update_list = DATA.bestelling_list()
-#            Clock.schedule_once(self.refill, 0.5)
-#            #message = "{:<28}1".format(instance.text.strip())                
-#            self.vul_in()
-        elif parser.current_empty():
-            #TODO foutmelding popup
-            pass
-        elif ret == -1:
+        def infopopup(text):
             popup = Popup(title="Info")
             layout = GridLayout(cols=1)
             
-            
-            info_label = Label(text="[color=#ffff00]Negatief aantal is niet toegelaten![/color]\nJe hebt 0 stuks van {} product!\nVerander de mode.".format(cu),
+            info_label = Label(text=text,
                                height=Window.size[1]*.8,
                                size_hint_y=None,
                                font_size=30,
@@ -1050,11 +1038,28 @@ class ParserScreen(GridLayout):
             
             popup.add_widget(layout)                        
             popup.open()
+            
+        parser = DATA.get_parser()
+        
+        if load_backup:
+            Clock.schedule_once(self.update_current, 0.0001)
+            return
+        
+        elif parser.current_empty():
+            infopopup("[color=#ffff00]Minstens 1 basis product is verplicht![/color]")
+            return
+        
+        cu = parser.get_current()
+        ret = parser.add_order(self.mode)
+        
+        
+        #TODO: rewrite enkel de lijst met producten gaan genereren als je naar bestellingscherm gaat
+        if ret == -1:
+            infopopup("[color=#ffff00]Negatief aantal is niet toegelaten![/color]\nJe hebt 0 stuks van {} product!\nVerander de mode.".format(cu))
         else:
             self.order_lijst.verklein_bestelling() #volledig weg
             self.update_list = parser.bestelling_list()
-            Clock.schedule_once(self.refill, 0.5)           
-            self.vul_in()        
+            Clock.schedule_once(self.refill, 0.0001)           
         
         parser.current_delete()
         Clock.schedule_once(self.update_current, 0.0001)
@@ -1075,7 +1080,7 @@ class ParserScreen(GridLayout):
     def extra_popup(self, instance):
         #open een popup en laat ze de mogelijkheden kiezen
         #optieknopjes?
-        self.xpopup = Popup(title="extra's", width=Window.size[0]*0.4, size_hint_x=None)
+        self.xpopup = Popup(title="extra's", width=Window.size[0]*0.4, height=Window.size[1]*0.6, size_hint_x=None)
         layout = GridLayout(cols=1)
         
         select_layout = GridLayout(cols=2)
@@ -1133,6 +1138,7 @@ class ParserScreen(GridLayout):
             except:
                 knop.text = ""
                 knop.background_color = (0.5, 0.5, 0.5,1)
+    
     
     def _update_text_width(self, instance, _):
         instance.text_size = (instance.width * .9, None)
@@ -1355,7 +1361,8 @@ class Client_storage():
                 "types": self.types,            #eig niet nodig
                 "bestelling": self.bestelling,
                 "status":(self.verzonden, self.bevestigd),
-                "hash": self.H
+                "hash": self.H,
+                "parser": self.parserDATA.dump()
                 }
     
     
@@ -1371,6 +1378,8 @@ class Client_storage():
         self.bestelling = data["bestelling"]
         self.status = data["status"]
         self.H = data["hash"]
+        
+        self.parserDATA.load_order(data.get("parser", []))
     
         
     #getters
@@ -1462,6 +1471,7 @@ class Client_storage():
     def has_opm(self):
         return bool(self.get_opm().strip())
     
+    
     #bestelling
     def bestelling_add_prod(self, prod, type, aantal):
         '''
@@ -1508,8 +1518,13 @@ class Client_storage():
             msg.append("[b][color=#20ab40]{:^31}[/color][/b]".format(_type.upper()))
             for key in _type_dict:
                 msg.append("{:<28} {:>2}".format(key, _type_dict[key]))
+        
+        if not(self.parserDATA.is_empty()):
+            msg.append("[b][color=#00abab]{:^31}[/color][/b]".format("PARSER"))
+            msg += self.parserDATA.bestelling_list()
         return msg
-    
+
+
 #TODO: parserData
 class ParserStorage(object):
     def __init__(self):
@@ -1529,7 +1544,6 @@ class ParserStorage(object):
         
         self.current = ["",""] #lijst van 2, [basis, extra]
         
-
 
     def get_basis(self):
         return self._basis
@@ -1600,8 +1614,18 @@ class ParserStorage(object):
         for k in self.order:
             msg.append("{:<28} {:>2}".format(k, self.order[k]))
         return msg
-        
     
+    
+    def is_empty(self):
+        return len(self.order) == 0
+    
+    
+    def dump(self):
+        return self.order
+        
+        
+    def load_order(self, order):
+        self.order = order
     '''
     def order2dict(self):
         ret = {}
@@ -1681,7 +1705,7 @@ def show_error(message):
 
 
 if __name__ == "__main__":
-    #DEBUG loggin
+    #DEBUG logging
     if not(DEBUG):
         sys.stderr = open('output.txt', 'w')
         sys.stdout = sys.stderr
