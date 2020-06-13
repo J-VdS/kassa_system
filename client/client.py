@@ -1495,7 +1495,7 @@ class Client_storage():
         
         if self.bestelling['BST'][type][prod]:
             self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, "{} :{:>2}".format(prod, self.bestelling['BST'][type][prod])]
-            self._prod_typelist_aantal[type][self._prod_typelist[type].index([type, prod])] = [type, "{}: {}".format(prod, self.bestelling['BST'][type][prod])]
+            self._prod_typelist_aantal[type][self._prod_typelist[type].index([type, prod])] = [type, "{} :{:>2}".format(prod, self.bestelling['BST'][type][prod])]
         else:
             #aantal is nul dan laten we ':' weg
             self._prod_list_aantal[self._prod_list.index([type, prod])] = [type, prod]
