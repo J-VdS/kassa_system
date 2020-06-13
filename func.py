@@ -6,8 +6,8 @@ def is_number(s):
     except ValueError:
         return False
 
-def to_dict(type, naam, prijs, zicht):
-    return {'naam':naam, 'type':type, 'prijs':prijs, 'zichtbaar':zicht}
+def to_dict(type, naam, prijs, zicht, parse):
+    return {'naam':naam, 'type':type, 'prijs':prijs, 'zichtbaar':zicht, 'parser':parse}
 
 
 def sort_by_type(data):

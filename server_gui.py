@@ -440,7 +440,7 @@ class ProductBar(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'horizontal'
-        self.spacing = 5
+        self.spacing = 10
         self.padding = [10, 10] #padding horiz, padding width
         
         self.add_widget(self._add_product_blok())
@@ -505,14 +505,28 @@ class ProductBar(BoxLayout):
                 size_hint_y=None,
                 height=30)
         info_grid.add_widget(self.add_zichtbaar)
-        
         grid.add_widget(info_grid)
+        
+        parse_grid = GridLayout(cols=4, rows=1, size_hint_y=0.22)
+        parse_grid.add_widget(Label(text="parser", font_size=17, halign="right"))
+        self.add_parse = CheckBox(active=False, size_hint_x=0.2)
+        parse_grid.add_widget(self.add_parse)
+        parse_grid.add_widget(Label(size_hint_x=0.3))
+        self.add_parse_setting = Spinner(
+                text="basis",
+                values=("basis", "extra"),
+                font_size=15,
+                size_hint_y=2)
+        parse_grid.add_widget(self.add_parse_setting)
+        grid.add_widget(parse_grid)
+        
+        
         knop = Button(text="toevoegen", font_size=20, size_hint_y=None, height=35)
         knop.bind(on_press=self._add_product)
         grid.add_widget(knop)
         
         #leeg label
-        grid.add_widget(Label(size_hint_y=0.25))
+        grid.add_widget(Label(size_hint_y=0.1))
         
         return grid
     
@@ -571,12 +585,25 @@ class ProductBar(BoxLayout):
         
         grid.add_widget(info_grid)
         
+        parse_grid = GridLayout(cols=4, rows=1, size_hint_y=0.22)
+        parse_grid.add_widget(Label(text="parser", font_size=17, halign="right"))
+        self.bewerk_parse = CheckBox(active=False, size_hint_x=0.2)
+        parse_grid.add_widget(self.bewerk_parse)
+        parse_grid.add_widget(Label(size_hint_x=0.3))
+        self.bewerk_parse_setting = Spinner(
+                text="basis",
+                values=("basis", "extra"),
+                font_size=15,
+                size_hint_y=2)
+        parse_grid.add_widget(self.bewerk_parse_setting)
+        grid.add_widget(parse_grid)
+        
         knop = Button(text="aanpassen", font_size=20, size_hint_y=None, height=35)
         knop.bind(on_press=self._bewerk_product)
         grid.add_widget(knop)
         
         #leeg label
-        grid.add_widget(Label(size_hint_y=0.25))
+        grid.add_widget(Label(size_hint_y=0.1))
         return grid    
         
     
@@ -664,7 +691,9 @@ class ProductBar(BoxLayout):
         anaam = self.add_naam.text.strip().lower()
         atype = self.add_type.text
         aprijs = self.add_prijs.text.strip()
-        azicht = self.add_zichtbaar.text       
+        azicht = self.add_zichtbaar.text
+        aparse = int(self.add_parse.active)
+        aparse_setting = (self.add_parse_setting.text == "basis")*(aparse) + (1-aparse)
         
         if (anaam == "")+(atype == "-")+(aprijs == ""):
             self.makePopup("Vul alle velden in !")
@@ -678,14 +707,15 @@ class ProductBar(BoxLayout):
                 db_io = database.OpenIO(global_vars.db)
                 azicht = global_vars.zichtbaar_int.index(azicht)
                 db_prijs = int(float(aprijs)*100)
-                ret = database.AddProduct(db_io, atype, anaam, db_prijs, azicht)
+                ret = database.AddProduct(db_io, atype, anaam, db_prijs, azicht, aparse, aparse_setting)
                 
                 if  ret == 0:
                     #popup succes
                     self.makePopup("Product met naam: %s en prijs: €%.2f toegevoegd." %(anaam, db_prijs/100),
                                    "Succes!")
                     #print ook bij op het scherm
-                    self.lijst_bar.add_queue(func.to_dict(atype, anaam, db_prijs, azicht))
+                    self.lijst_bar.add_queue(func.to_dict(atype, anaam, db_prijs, azicht, self.add_parse_setting.text if aparse else ""))
+                    
                 elif ret == -1:
                     self.makePopup("Er bestaat reeds een product met dezelfde naam!",
                                    "Naam Error")
@@ -696,12 +726,16 @@ class ProductBar(BoxLayout):
                 #popup error
                 print(e)
             finally:
+                database.CloseIO(db_io)
                 #reset de velden
                 self.add_naam.text = ""
                 self.add_type.text = "-"
                 self.add_prijs.text = ""
                 self.add_zichtbaar.text = "Ja"
-                database.CloseIO(db_io)
+                self.add_parse.active = False
+                self.add_parse_setting.text = "basis"
+                
+                
                 
     
     def _bewerk_product(self, _):
@@ -709,6 +743,9 @@ class ProductBar(BoxLayout):
         btype = self.bewerk_type.text
         bprijs = self.bewerk_prijs.text.strip()
         bzicht = self.bewerk_zichtbaar.text
+        bparse = int(self.bewerk_parse.active)
+        bparse_setting = (self.bewerk_parse_setting.text == "basis")*(bparse) + (1-bparse)
+        
         if (bnaam == "")+(btype == "-")+(bprijs == ""):
             self.makePopup("Vul alle velden in !")
         elif not func.is_number(bprijs):
@@ -719,7 +756,8 @@ class ProductBar(BoxLayout):
             #TODO: remove
             db_io = database.OpenIO(global_vars.db)
             bzicht = global_vars.zichtbaar_int.index(bzicht)
-            ret =  database.editProduct(db_io, bnaam, btype, int(float(bprijs)*100), bzicht)
+            ret =  database.editProduct(db_io, bnaam, btype, int(float(bprijs)*100), bzicht, bparse, bparse_setting)
+            print(bparse_setting)
             if ret == 0:
                 self.makePopup("Product met naam %s bewerkt." %(bnaam,),
                                    "Succes!")
@@ -728,6 +766,8 @@ class ProductBar(BoxLayout):
                 self.bewerk_prijs.text = ""
                 self.bewerk_type.text = "-"
                 self.bewerk_zichtbaar.text = "Ja"
+                self.bewerk_parse.active = False
+                self.bewerk_parse_setting.text = "basis"
             else:
                 self.makePopup("Er bestaat geen product met deze naam!",
                                "Naam Error")
@@ -2560,7 +2600,7 @@ class ProductLijstLabel(ScrollView):
         # by creating a layout and placing two widgets inside it
         # Layout is going to have one collumn and and size_hint_y set to None,
         # so height wo't default to any size (we are going to set it on our own)
-        self.layout = GridLayout(size_hint_y=None, cols=4)
+        self.layout = GridLayout(size_hint_y=None, cols=5)
         self.add_widget(self.layout)
 
         # Now we need two wodgets - Label for chat history and 'artificial' widget below
@@ -2570,10 +2610,11 @@ class ProductLijstLabel(ScrollView):
         self.naam = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
         self.type = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
         self.prijs = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
-        self.zichtbaar = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1)) #test
+        self.zichtbaar = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
+        self.parse = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
 
         # We add them to our layout
-        self.list = [self.naam, self.type, self.prijs, self.zichtbaar]
+        self.list = [self.naam, self.type, self.prijs, self.zichtbaar, self.parse]
 
         for el in self.list:
             self.layout.add_widget(el)
@@ -2601,6 +2642,11 @@ class ProductLijstLabel(ScrollView):
             self.zichtbaar.text += '\n' + "[b][u]ZICHTBAAR:[/b][/u]"
         else:
             self.zichtbaar.text += '\n' + global_vars.zichtbaar_int[product.get('zichtbaar',2)]
+        
+        if product.get('parser', '***') == "[b][u]PARSER[/b][/u]":
+            self.parse.text += '\n' + "[b][u]PARSER[/b][/u]"
+        else:
+            self.parse.text += '\n' + product.get('parser', '***')
     
 
         # Set layout height to whatever height of self.naam text is + 15 pixels
@@ -2659,7 +2705,8 @@ class ProductLijstLabel(ScrollView):
         self.dq.append(func.to_dict("[b][u]TYPE:[/b][/u]",
                                     "[b][u]NAAM:[/b][/u]",
                                     "[b][u]PRIJS:[/b][/u]",
-                                    "[b][u]ZICHTBAAR:[/b][/u]"))
+                                    "[b][u]ZICHTBAAR:[/b][/u]",
+                                    "[b][u]PARSER[/b][/u]"))
         db_io = database.OpenIO(global_vars.db)
         for i in database.getAllProduct(db_io):
             self.add_queue(func.to_dict(*i))

@@ -42,7 +42,7 @@ def InitTabels(db_io):
             prijs INTEGER,
             active INTEGER,
             parse INTEGER,
-            p_hoofd INTEGER)""")
+            p_basis INTEGER)""")
     c.execute("""CREATE TABLE IF NOT EXISTS totalen(
             id INTEGER PRIMARY KEY,
             bestelling BLOB,
@@ -63,7 +63,7 @@ def InitTabels(db_io):
     conn.commit()
    
     
-def AddProduct(db_io, type, naam, prijs, active):
+def AddProduct(db_io, type, naam, prijs, active, parse, basis):
     '''
         
         voegt een product toe aan de producten tabel
@@ -79,7 +79,7 @@ def AddProduct(db_io, type, naam, prijs, active):
             #REEDS AANWEZIG
             return -1
         else:
-            c.execute("INSERT INTO producten (naam, type, prijs, active) VALUES(?,?,?,?)",(naam, type, prijs, active))
+            c.execute("INSERT INTO producten (naam, type, prijs, active, parse, p_basis) VALUES(?,?,?,?,?,?)",(naam, type, prijs, active, parse, basis))
             conn.commit()
             return 0
     except Exception as e:
@@ -89,9 +89,14 @@ def AddProduct(db_io, type, naam, prijs, active):
 
 def getAllProduct(db_io):
     conn, c = db_io
-    c.execute("SELECT type, naam, prijs, active FROM producten ORDER BY naam COLLATE NOCASE ASC")
-    data = c.fetchall()
-    return data
+    c.execute("SELECT type, naam, prijs, active, parse, p_basis FROM producten ORDER BY naam COLLATE NOCASE ASC")
+    ret = []
+    for t,n,p,a, parse, p_basis in list(c.fetchall()):
+        if parse:
+            ret.append((t,n,p,a,"basis" if p_basis else "extra"))
+        else:
+            ret.append((t,n,p,a,""))
+    return ret
 
 
 def getAllProductClient(db_io):
@@ -115,13 +120,13 @@ def getTypes(db_io):
     return data
 
 
-def editProduct(db_io, naam, type, prijs, active):
+def editProduct(db_io, naam, type, prijs, active, parse, basis):
     conn, c = db_io
     c.execute("SELECT * FROM producten WHERE naam = ?", (naam,))
     if not c.fetchone():
         return -1 #product niet in db
     else:
-        c.execute("UPDATE producten SET type = ?, prijs = ?, active = ? WHERE naam = ?", (type, prijs, active, naam))
+        c.execute("UPDATE producten SET type = ?, prijs = ?, active = ?, parse = ?, p_basis = ? WHERE naam = ?", (type, prijs, active, parse, basis, naam))
         conn.commit()
         return 0
     
@@ -322,14 +327,17 @@ def exportCSV(db_io):#, filename="test.csv"):
         os.mkdir("./exports")
     PATH = "exports/"+datetime.datetime.now().strftime("%d%m%y@%H-%M-%S_")
     
-    c.execute("SELECT type, naam, prijs, active FROM producten ORDER BY naam COLLATE NOCASE ASC")
+    c.execute("SELECT type, naam, prijs, active, parse, p_basis FROM producten ORDER BY naam COLLATE NOCASE ASC")
     
     producten = []
     dict_prod = {}
     bedragen = {}
     
-    for T, N, P, A in list(c.fetchall()):
-        producten.append([T, N, str(P/100), str(A)])
+    for T, N, P, A, parse, basis in list(c.fetchall()):
+        if parse:
+            producten.append([T, N, str(P/100), str(A), "basis" if basis else "extra"])
+        else:
+            producten.append([T, N, str(P/100), str(A), "nee"])
         dict_prod[N] = 0
 
     with open(PATH+"productdump.csv", "w", newline='') as f:
@@ -381,16 +389,19 @@ def exportXLSX(db_io):
     ws = wb.active
     ws.title = "producten_db"
     
-    c.execute("SELECT type, naam, prijs, active FROM producten ORDER BY naam COLLATE NOCASE ASC")
+    c.execute("SELECT type, naam, prijs, active, parse, p_basis FROM producten ORDER BY naam COLLATE NOCASE ASC")
     
     dict_prod = {}
     bedragen = {}
     
-    ws.append(("type", "naam", "prijs", "zichtbaar"))
-    for T, N, P, A in list(c.fetchall()):
+    ws.append(("type", "naam", "prijs", "zichtbaar", "parser"))
+    for T, N, P, A, parse, basis in list(c.fetchall()):
         dict_prod[N] = 0
-        ws.append((T, N, P/100, A))
-    
+        if parse:
+            ws.append((T, N, P/100, A, "basis" if basis else "extra"))
+        else:
+            ws.append((T, N, P/100, A, "nee"))
+            
     #bestellingen
     ws2 = wb.create_sheet(title="bestellingen")
     
