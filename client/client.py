@@ -720,7 +720,7 @@ class ProductScreen(GridLayout):
             Clock.schedule_once(self.refill, 0.5)
             #message = "{:<28}1".format(instance.text.strip())                
             self.vul_in()
-        #TODO: remove or change
+
         elif load_backup:
             m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
             self.update_list = DATA.bestelling_list()
@@ -917,18 +917,22 @@ class BestellingErrorScreen(GridLayout):
         
         m_app.bestelling_pagina.send_bestelling(None)
         
-        
+
+#TODO: parserscreen
 class ParserScreen(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.cols = 1
         self.rows = 4
         
+        self.update_list = []
+        
         #navbar
-        navbar = GridLayout(rows=1, cols=3, size_hint_y=0.15)
-        knop = Button(text="terug", font_size=FS-2, 
+        navbar = GridLayout(rows=1, cols=3, size_hint_y=0.15,padding=5)
+        knop = Button(text="ga terug", font_size=FS-2, 
                       background_color=(0,.3,1,1),
-                      background_normal='')
+                      background_normal='',
+                      size_hint_x=0.5)
         knop.bind(on_press=self._back)
         navbar.add_widget(knop)
         navbar.add_widget(Label(text="parser", font_size=FS-2))
@@ -938,49 +942,201 @@ class ParserScreen(GridLayout):
         self.add_widget(navbar)
         
         #scrolllabel
-        self.add_widget(LijstLabel())
+        self.order_lijst = LijstLabel()
+        self.add_widget(self.order_lijst)
         
         #input grid
         self.mode = 0 # +:0 en -:1
         self.mode_text = ["[b]+[/b]", "[b]-[/b]"]
         
-        input_grid = GridLayout(cols=2, rows=1, size_hint_y=0.15, padding=[2,5,2,5])
-        self.input_label = Label(text="INPUT: {:<20}".format(""), font_size=FS-2, halign="left")
+        input_grid = GridLayout(cols=4, rows=1, size_hint_y=0.15, padding=[2,5,2,5], spacing=[3,0])
+        knop = Button(
+                text="EX", font_size=FS, 
+                halign="left",
+                size_hint_x=0.20,
+                background_normal='',
+                background_color=(0.8,0.8,0,1))
+        knop.bind(on_press=self.extra_popup)
+        input_grid.add_widget(knop)
+        
+        self.input_label = Label(text="", font_size=FS-2)
         input_grid.add_widget(self.input_label)
-        self.input_grid_knop = Button(text="[b]+[/b]", font_size=FS, markup=True,
-                      background_normal='', 
-                      background_color=(0,.55,.12,1),
-                      size_hint_x=0.25)
-        #input_grid_knop.bind(on_press=)
+        
+        knop = Button(text="<<", font_size=FS, size_hint_x=0.20)
+        knop.bind(on_press=self.delete)
+        input_grid.add_widget(knop)
+        
+        self.input_grid_knop = Button(
+                text="[b]+[/b]", font_size=FS, markup=True,
+                background_normal='', 
+                background_color=(0,.55,.12,1),
+                size_hint_x=0.20)
+        self.input_grid_knop.bind(on_press=self.klik)
         input_grid.add_widget(self.input_grid_knop)
         self.add_widget(input_grid)
         
         #buttons
+        self.basis_knoppen = []
         buttonbar = GridLayout(rows=2, cols=3, size_hint_y=0.3, spacing=3, padding=2)
         for i in range(2):
-            buttonbar.add_widget(Button(text=str(i), font_size=FS))
-        self.del_knop = Button(text="DEL", font_size=FS-2, size_hint_x=0.5)
-        self.del_knop.bind(on_press=self.change_mode)
-        buttonbar.add_widget(self.del_knop)
+            self.basis_knoppen.append(Button(text="", font_size=FS, markup=True))
+            self.basis_knoppen[-1].bind(on_press=self.basis_click)
+            buttonbar.add_widget(self.basis_knoppen[-1])
+        self.mode_knop = Button(text="MODE", font_size=FS-2, size_hint_x=0.5)
+        self.mode_knop.bind(on_press=self.change_mode)
+        buttonbar.add_widget(self.mode_knop)
         
-        for i in range(2,4):
-            buttonbar.add_widget(Button(text=str(i), font_size=FS))
+        for i in range(2):
+            self.basis_knoppen.append(Button(text="", font_size=FS, markup=True))
+            self.basis_knoppen[-1].bind(on_press=self.basis_click)
+            buttonbar.add_widget(self.basis_knoppen[-1])
+        #gaat naar volgend pagina indien die er is
         knop = Button(text="...", font_size=FS-2, size_hint_x=0.5)
         buttonbar.add_widget(knop)
         self.add_widget(buttonbar)
         
         
+        self.vul_in()
+        
+        
     def _back(self, *_):
-        m_app.screen_manager.current="bestelling"
+        m_app.screen_manager.current="product"
 
     
     def change_mode(self, _):
         self.mode = (self.mode+1)%2
         self.input_grid_knop.text = self.mode_text[self.mode]
         self.input_grid_knop.background_color = (0.6,0.16,0.1,1) if self.mode else (0,.55,.12,1)
-        self.del_knop.background_color = (1,0,0,1) if self.mode else (1,1,1,1)
+        self.mode_knop.background_color = (1,0,0,1) if self.mode else (1,1,1,1)
 
+    
+    def basis_click(self, instance):
+        if instance.text != "":
+            DATA.get_parser().current_basis_add(instance.text[3:-4])
+            Clock.schedule_once(self.update_current, 0.0001)
         
+    
+    def klik(self, instance, load_backup=False):
+        parser = DATA.get_parser()
+        cu = parser.get_current()
+        ret = parser.add_order(self.mode)
+        if load_backup:
+            pass
+#            m_app.bestelling_pagina.bestelling.verklein_bestelling() #volledig weg
+#            self.update_list = DATA.bestelling_list()
+#            Clock.schedule_once(self.refill, 0.5)
+#            #message = "{:<28}1".format(instance.text.strip())                
+#            self.vul_in()
+        elif parser.current_empty():
+            #TODO foutmelding popup
+            pass
+        elif ret == -1:
+            popup = Popup(title="Info")
+            layout = GridLayout(cols=1)
+            
+            
+            info_label = Label(text="[color=#ffff00]Negatief aantal is niet toegelaten![/color]\nJe hebt 0 stuks van {} product!\nVerander de mode.".format(cu),
+                               height=Window.size[1]*.8,
+                               size_hint_y=None,
+                               font_size=30,
+                               halign="center",
+                               markup=True)
+            info_label.bind(width=self._update_text_width)
+            layout.add_widget(info_label)
+            
+            knop = Button(text="sluit",width=Window.size[0]*.75)
+            knop.bind(on_press=popup.dismiss)
+            layout.add_widget(knop)
+            
+            popup.add_widget(layout)                        
+            popup.open()
+        else:
+            self.order_lijst.verklein_bestelling() #volledig weg
+            self.update_list = parser.bestelling_list()
+            Clock.schedule_once(self.refill, 0.5)           
+            self.vul_in()        
+        
+        parser.current_delete()
+        Clock.schedule_once(self.update_current, 0.0001)
+
+
+    def refill(self, *_):
+        if len(self.update_list):
+            self.order_lijst.update_bestelling(self.update_list.pop(0))
+            Clock.schedule_once(self.refill,0.01)
+        
+    
+    def delete(self, _):
+        #TODO: info popup
+        DATA.get_parser().current_delete()
+        Clock.schedule_once(self.update_current, 0.0001)
+        
+
+    def extra_popup(self, instance):
+        #open een popup en laat ze de mogelijkheden kiezen
+        #optieknopjes?
+        self.xpopup = Popup(title="extra's", width=Window.size[0]*0.4, size_hint_x=None)
+        layout = GridLayout(cols=1)
+        
+        select_layout = GridLayout(cols=2)
+        
+        self._extra_checkboxes = []
+        
+        for t in DATA.get_parser().get_extra():
+            select_layout.add_widget(Label(text=t, font_size=30))
+            self._extra_checkboxes.append(CheckBox(size_hint_x=0.4))
+            select_layout.add_widget(self._extra_checkboxes[-1])
+        
+        layout.add_widget(select_layout)
+        
+        knop = Button(text="select",width=Window.size[0]*.75, font_size=30, size_hint_y=0.25)
+        knop.bind(on_press=self.extra_selected)
+        layout.add_widget(knop)
+        
+        self.xpopup.add_widget(layout)                        
+        self.xpopup.open()
+    
+    
+    def extra_selected(self, _):
+        PARSER = DATA.get_parser()
+        gekozen = []
+        extras = PARSER.get_extra()
+        for index, ex in enumerate(self._extra_checkboxes):
+            if ex.active:
+                gekozen.append(extras[index])
+        PARSER.current_extra(gekozen)
+        
+        Clock.schedule_once(self.update_current, 0.0001)
+        
+        self.xpopup.dismiss()
+        del self._extra_checkboxes
+        
+        
+    def update_current(self,*_):
+        self.input_label.text = DATA.get_parser().get_current()
+        
+    
+    def vul_in(self):
+        parser = DATA.get_parser()
+        data = parser.get_basis()
+        
+#        if len(data) < self.paginaNr*len(self.basis_knoppen):
+#            end = len(data)
+#        else:
+#            end = len(self.basis_knoppen)*(self.paginaNr+1)
+#        data = data[COLS*ROWS*self.paginaNr:end]
+        
+        for i, knop in enumerate(self.basis_knoppen):
+            try:
+                knop.text = "[b]{}[/b]".format(data[i])
+                knop.background_color = (1,1,1,1)
+            except:
+                knop.text = ""
+                knop.background_color = (0.5, 0.5, 0.5,1)
+    
+    def _update_text_width(self, instance, _):
+        instance.text_size = (instance.width * .9, None)
+    
 
 class KassaClientApp(App):
     def __init__(self, **kwargs):
@@ -1038,7 +1194,6 @@ class KassaClientApp(App):
         
         self.prod_page = True
         
-        #TODO: move
         self.pars_pagina = ParserScreen()
         scherm = Screen(name="parser")
         scherm.add_widget(self.pars_pagina)
@@ -1112,9 +1267,13 @@ class Client_storage():
         self.bevestigd = False
         self.started = False
         
+        #parserData
+        self.parserDATA = ParserStorage()
     
     #setters
     def set_prod(self, prod):
+        #prod = {type: [product1, product2], type2: [product1, product2],
+        #       _parser = {basis:[], extra:[]}}
         #reset data
         self._prod = prod
         self._prod_list_aantal = []
@@ -1123,15 +1282,20 @@ class Client_storage():
         self._prod_typelist_aantal = {}
         self.types = []
 
-        for type in self._prod:
-            self.types.append(type)
-            self._prod_typelist[type] = []
-            self._prod_typelist_aantal[type] = []
-            for prod in self._prod[type]:
-                self._prod_typelist[type].append([type, prod])
-                self._prod_typelist_aantal[type].append([type, prod])
-                self._prod_list.append([type, prod])
-                self._prod_list_aantal.append([type, prod])
+        for _type in self._prod:
+            if isinstance(self._prod[_type], dict):
+                #TODO: uncomment
+                #self.parserDATA.set_prod(self._prod[_type])
+                pass
+            else:
+                self.types.append(_type)
+                self._prod_typelist[_type] = []
+                self._prod_typelist_aantal[_type] = []
+                for prod in self._prod[_type]:
+                    self._prod_typelist[_type].append([_type, prod])
+                    self._prod_typelist_aantal[_type].append([_type, prod])
+                    self._prod_list.append([_type, prod])
+                    self._prod_list_aantal.append([_type, prod])
         
     
     def set_verkoper(self, verkoper):
@@ -1256,11 +1420,7 @@ class Client_storage():
     
     
     def get_opm(self):
-        return self.bestelling["opm"]
-    
-    
-    def check_prod(self, prod):
-        return prod == self._prod
+        return self.bestelling["opm"]    
  
     
     def get_num_pages(self, type_index=-1):
@@ -1279,7 +1439,15 @@ class Client_storage():
         return self.H
     
     
+    def get_parser(self):
+        return self.parserDATA
+    
+    
     #boolstatements
+    def check_prod(self, prod):
+        return prod == self._prod
+    
+    
     def is_started(self):
         return self.started
     
@@ -1342,18 +1510,105 @@ class Client_storage():
                 msg.append("{:<28} {:>2}".format(key, _type_dict[key]))
         return msg
     
-
+#TODO: parserData
 class ParserStorage(object):
     def __init__(self):
-        self._prod = {}
-        self._prod_bool = {}
-        self._prod_list = []
+        """
+        bevat een lijst met:
+            basisproducten (W/Z)
+            extra's (br/gr)
+        houdt alles bij in een lijst
+        gebruikt str methode om het te printen ?
+        """
+        self._prod = {} #{}
+        self._basis = ["W", "Z"] #[]
+        self._extra = ["gr", "br"] #[]
+        #self._prod_bool = {}
+        #self._prod_list = []
+        self.order = {}  #{"WW gr":1, ...}
         
+        self.current = ["",""] #lijst van 2, [basis, extra]
+        
+
+
+    def get_basis(self):
+        return self._basis
     
+    
+    def get_extra(self):
+        return self._extra
+
     
     def set_prod(self, prod):
         self._prod = prod
-            
+        if ("basis" in prod)*("extra" in prod):
+            self._basis = prod["basis"]
+            self._extra = prod["extra"]
+        else:
+            print("invalid parser data!")
+        
+        
+    def current_basis_add(self, a):
+        self.current[0] = "".join(sorted(self.current[0] + a))
+
+    
+    def current_basis(self, basis):
+        self.current[0] = basis
+    
+    
+    def current_extra(self, extra):
+        new = ""
+        for i in extra:
+            new+= i + " "    
+        self.current[1] = new.strip()
+        
+    
+    def current_delete(self):
+        self.current = ["",""]
+        
+    
+    def current_empty(self):
+        return len(self.current[0].strip()) == 0
+        
+    
+    def get_current(self):
+        return "{} {}".format(*self.current)
+
+    
+    def add_order(self, mode):
+        cu = self.get_current().strip()
+        if mode == 0: #+
+            self.order[cu] = self.order.get(cu, 0) + 1
+            return 0
+        elif cu not in self.order:
+            return -1
+        elif self.order[cu] == 1:
+            del self.order[cu]
+            return 1
+        else:
+            self.order[cu] -= 1
+            return 1
+    
+    
+    def get_num_pages(self, num):
+        geh, rest = divmod(len(self._basis), num)
+        return geh if (rest==0) else (geh + 1)
+    
+    
+    def bestelling_list(self):
+        msg = []
+        for k in self.order:
+            msg.append("{:<28} {:>2}".format(k, self.order[k]))
+        return msg
+        
+    
+    '''
+    def order2dict(self):
+        ret = {}
+        for item in self.order:
+            ret[item] = ret.get(item, 0) + 1
+        return ret
+    '''    
         
 #scrolllabel
 class LijstLabel(ScrollView):

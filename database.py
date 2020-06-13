@@ -35,9 +35,28 @@ def InitTabels(db_io):
     conn, c = db_io
     #tables_check aanwezig
     #producten tabel
-    c.execute("CREATE TABLE IF NOT EXISTS producten(id INTEGER PRIMARY KEY, type TEXT, naam TEXT, prijs INTEGER, active INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS totalen(id INTEGER PRIMARY KEY, bestelling BLOB, open INTEGER, prijs INTEGER, naam TEXT, betaalwijze TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS orders(klantid INTEGER, bestelling BLOB, tijd TEXT, unixtijd INTEGER, hash TEXT, types TEXT)")
+    c.execute("""CREATE TABLE IF NOT EXISTS producten(
+            id INTEGER PRIMARY KEY,
+            type TEXT,
+            naam TEXT,
+            prijs INTEGER,
+            active INTEGER,
+            parse INTEGER,
+            p_hoofd INTEGER)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS totalen(
+            id INTEGER PRIMARY KEY,
+            bestelling BLOB,
+            open INTEGER,
+            prijs INTEGER,
+            naam TEXT,
+            betaalwijze TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS orders(
+            klantid INTEGER,
+            bestelling BLOB, 
+            tijd TEXT, 
+            unixtijd INTEGER,
+            hash TEXT, 
+            types TEXT)""")
 
     #print("--- db loaded ---")
 
