@@ -296,6 +296,7 @@ class KlantInfoScreen(GridLayout):
         m_app.bestelling_pagina.bestelling.verklein_bestelling()
         #reset de knoppen met producten + labels
         m_app.prod_pagina.reset()
+        m_app.pars_pagina.reset()
         
         
         #restore de velden
@@ -441,7 +442,7 @@ class HuidigeBestellingScreen(GridLayout):
             popup.open()
             return
 
-        if not(DATA.get_status()[0]):
+        if not(DATA.get_status()[0]): #(verzonden, bevestigd)
             H = "{}{}".format(DATA.get_info()['id'], randint(0,99))
             DATA.set_hash(H)
             m_app.info_pagina.change_info("Bestelling onderweg...")
@@ -701,7 +702,12 @@ class ProductScreen(GridLayout):
     
     def reset(self):
         self.paginaNr = 0
-        self.mode = 1 #{-1:-, 1:+}
+        self.mode = 1#{-1:-, 1:+}
+        #visueel
+        self.mode = 1
+        self.plus_knop.background_color = (0.8,0.8,0,1)
+        self.min_knop.background_color = (0.5, 0.5, 0.5,1)
+        
         self.mode_type = -1 #all types
         self.paginaNr_label.text = "Pagina {}".format(self.paginaNr+1)
 
@@ -918,7 +924,6 @@ class BestellingErrorScreen(GridLayout):
         m_app.bestelling_pagina.send_bestelling(None)
         
 
-#TODO: parserscreen
 class ParserScreen(GridLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1014,7 +1019,7 @@ class ParserScreen(GridLayout):
     
     def basis_click(self, instance):
         if instance.text != "":
-            DATA.get_parser().current_basis_add(instance.text[3:-4])
+            DATA.get_parser().current_basis_add(instance.id, instance.text[3:-4])
             Clock.schedule_once(self.update_current, 0.0001)
         
     
@@ -1087,9 +1092,9 @@ class ParserScreen(GridLayout):
         
         self._extra_checkboxes = []
         
-        for t in DATA.get_parser().get_extra():
-            select_layout.add_widget(Label(text=t, font_size=30))
-            self._extra_checkboxes.append(CheckBox(size_hint_x=0.4))
+        for t,n in DATA.get_parser().get_extra():
+            select_layout.add_widget(Label(text=n, font_size=30))
+            self._extra_checkboxes.append(CheckBox(size_hint_x=0.4, id=t))
             select_layout.add_widget(self._extra_checkboxes[-1])
         
         layout.add_widget(select_layout)
@@ -1133,12 +1138,19 @@ class ParserScreen(GridLayout):
         
         for i, knop in enumerate(self.basis_knoppen):
             try:
-                knop.text = "[b]{}[/b]".format(data[i])
+                knop.text = "[b]{}[/b]".format(data[i][1])
+                knop.id = data[i][0]
                 knop.background_color = (1,1,1,1)
             except:
                 knop.text = ""
                 knop.background_color = (0.5, 0.5, 0.5,1)
     
+    
+    def reset(self):
+        self.order_lijst.verklein_bestelling()
+        #ga naar de plus mode!
+        if self.mode:
+            self.change_mode(None)
     
     def _update_text_width(self, instance, _):
         instance.text_size = (instance.width * .9, None)
@@ -1279,7 +1291,7 @@ class Client_storage():
     #setters
     def set_prod(self, prod):
         #prod = {type: [product1, product2], type2: [product1, product2],
-        #       _parser = {basis:[], extra:[]}}
+        #       '_parser' = {basis:[(type, prod)], extra:[(type, prod)]}}
         #reset data
         self._prod = prod
         self._prod_list_aantal = []
@@ -1289,10 +1301,8 @@ class Client_storage():
         self.types = []
 
         for _type in self._prod:
-            if isinstance(self._prod[_type], dict):
-                #TODO: uncomment
-                #self.parserDATA.set_prod(self._prod[_type])
-                pass
+            if isinstance(self._prod[_type], dict) and _type == "_parser":
+                self.parserDATA.set_prod(self._prod[_type])
             else:
                 self.types.append(_type)
                 self._prod_typelist[_type] = []
@@ -1321,6 +1331,8 @@ class Client_storage():
         for key in self._prod_typelist:
             self._prod_typelist_aantal[key] = self._prod_typelist[key][:]
         #self._prod_typelist_aantal = copy.deepcopy(self._prod_typelist)
+        
+        self.parserDATA.reset()
         
         #status
         self.verzonden = False
@@ -1389,6 +1401,9 @@ class Client_storage():
         for _type in keys:
             if len(self.bestelling['BST'][_type]) == 0:
                 del self.bestelling['BST'][_type]
+                
+        if self.parserDATA.is_empty() == False:
+            self.bestelling['BST']["parser"] = self.parserDATA.get_order()
         return self.bestelling
     
     
@@ -1465,6 +1480,9 @@ class Client_storage():
         for _type in self.bestelling['BST']:
             if len(self.bestelling['BST'][_type]):
                 return False
+        #check if parser isn't empty
+        if not(self.parserDATA.is_empty()):
+            return False
         return True
 
 
@@ -1535,14 +1553,15 @@ class ParserStorage(object):
         houdt alles bij in een lijst
         gebruikt str methode om het te printen ?
         """
-        self._prod = {} #{}
-        self._basis = ["W", "Z"] #[]
-        self._extra = ["gr", "br"] #[]
+        self._prod = {}
+        self._basis = [] #[(type, naam), (type, naam)]
+        self._extra = [] #[(type, naam), (type, naam)]
         #self._prod_bool = {}
         #self._prod_list = []
         self.order = {}  #{"WW gr":1, ...}
         
         self.current = ["",""] #lijst van 2, [basis, extra]
+        self.current_type = []
         
 
     def get_basis(self):
@@ -1556,14 +1575,16 @@ class ParserStorage(object):
     def set_prod(self, prod):
         self._prod = prod
         if ("basis" in prod)*("extra" in prod):
-            self._basis = prod["basis"]
+            self._basis = prod["basis"] 
             self._extra = prod["extra"]
         else:
             print("invalid parser data!")
         
         
-    def current_basis_add(self, a):
-        self.current[0] = "".join(sorted(self.current[0] + a))
+    def current_basis_add(self, t, n):
+        self.current[0] = "".join(sorted(self.current[0] + n))
+        if not(t in self.current_type):
+            self.current_type.append(t)
 
     
     def current_basis(self, basis):
@@ -1572,13 +1593,16 @@ class ParserStorage(object):
     
     def current_extra(self, extra):
         new = ""
-        for i in extra:
-            new+= i + " "    
+        for t, n in extra:
+            if not(n in self.current_type):
+                self.current_type.append(t)
+            new+= n + " "
         self.current[1] = new.strip()
         
     
     def current_delete(self):
         self.current = ["",""]
+        self.current_type.clear()
         
     
     def current_empty(self):
@@ -1602,6 +1626,11 @@ class ParserStorage(object):
         else:
             self.order[cu] -= 1
             return 1
+        
+    
+    def get_order(self):
+        #TODO: include types indien nodig!
+        return self.order
     
     
     def get_num_pages(self, num):
@@ -1626,6 +1655,14 @@ class ParserStorage(object):
         
     def load_order(self, order):
         self.order = order
+        
+    
+    def reset(self):
+        self.order.clear()
+        self.current_type.clear()
+        self.current = ["",""]
+        
+        
     '''
     def order2dict(self):
         ret = {}

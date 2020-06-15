@@ -380,12 +380,23 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         notified_socket.send(get_products(db_io))
                         print(f"[SERVER][GET]{user} vroeg alle producten op")
                     elif message['req'] == "BST":
+                        """
+                        vb msg
+                        {'req': 'BST', 
+                        'bestelling': {'info': {'naam': '454654', 'id': 453456, 'tafel': 4, 'verkoper': 'Jos'},
+                        'opm': '', 
+                        'BST': {'dessert': {'chocolademousse': 5},
+                                'drank': {'cola zero': 3, 'cola': 1, 'bruisend water': 1, 'appelsap': 3, 'affligem bleek': 2}, 
+                                'gerecht': {'spaghetti normaal': 2, 'spaghetti groenten klein': 2, 'kaaskroketten (3 st)': 1}}}, 
+                        'hash': '45345654'}
+                        
+                        """
                         #verwerk bestelling
                         #{bestelling:{BST:{type:{}}}
                         best = {}
                         for d in message['bestelling']['BST'].values():
                             best.update(d)
-                        
+                        print(best)
                         #stuur bevestiging goed aangekomen
                         notified_socket.send(makeMsg({"status":"ontvangen"}))
                         
@@ -418,8 +429,9 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         
                         
                         #voeg toe aan order tabel
+                        print(message)
                         ret = database.addOrder(db_io, message, status="INDB")
-                        print(ret)
+                        
                         if ret == -1:
                             print("DATABASE ERROR: addOrder")
                             #TODO: print error

@@ -1159,13 +1159,15 @@ class PrinterBar(GridLayout):
             self.checkboxes[cb] = type[0]
             layout.add_widget(cb)
             layout.add_widget(Label(text=type[0], font_size=18))
-        #rekening
-        cb = CheckBox(size_hint_x=None, width=60)
-        self.checkboxes[cb] = "rekening"
-        layout.add_widget(cb)
-        layout.add_widget(Label(text="rekening", font_size=18))
-        
-        
+            
+        # parser en rekening
+        for naam in ["parser", "rekening"]:
+            cb = CheckBox(size_hint_x=None, width=60)
+            self.checkboxes[cb] = naam
+            layout.add_widget(cb)
+            layout.add_widget(Label(text=naam, font_size=18))
+
+
         layout.add_widget(Label(size_hint_x=None, width=60))
         knop = Button(text="sluit", size_hint_y=None, height=40)
         knop.bind(on_press=popup.dismiss)
@@ -2613,7 +2615,7 @@ class ProductLijstLabel(ScrollView):
         self.type = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
         self.prijs = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
         self.zichtbaar = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
-        self.parse = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1))
+        self.parse = Label(size_hint_y=None, markup=True, halign="center", font_size=18, color=(0,0,0,1), size_hint_x=0.5)
 
         # We add them to our layout
         self.list = [self.naam, self.type, self.prijs, self.zichtbaar, self.parse]

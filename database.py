@@ -101,7 +101,7 @@ def getAllProduct(db_io):
 
 def getAllProductClient(db_io):
     conn, c = db_io
-    c.execute("SELECT type, naam FROM producten WHERE active = ?", ('1'),)
+    c.execute("SELECT type, naam, parse, p_basis FROM producten WHERE active = ?", ('1'),)
     data = c.fetchall()
     return data
 
@@ -170,6 +170,7 @@ def addBestelling(db_io, info, bestelling):
     if not data:
         #maak een nieuw ID aan
         bst = pickle.dumps(bestelling)
+        print("addbestelling:",bst)
         c.execute("INSERT INTO totalen (id, naam, bestelling, open) VALUES (?,?,?,?)", (info["id"], str(info["naam"]), bst, 1))
         conn.commit()
         return 1

@@ -12,9 +12,19 @@ def to_dict(type, naam, prijs, zicht, parse):
 
 def sort_by_type(data):
     #recht van db (type, naam)
-    d = {}
-    for type, naam in data:
-        if not(type in d):
+    d = {"_parser":{}}
+    for type, naam, parse, basis in data:
+        if parse and basis:
+            if not("basis" in d["_parser"]):
+                d["_parser"]["basis"] = [(type, naam)]
+            else:
+                d["_parser"]["basis"].append((type, naam))
+        elif parse:
+            if not("extra" in d["_parser"]):
+                d["_parser"]["extra"] = [(type, naam)]
+            else:
+                d["_parser"]["extra"].append((type, naam))
+        elif not(type in d):
             d[type] = [naam]
         else:
             d[type].append(naam)
