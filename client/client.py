@@ -1047,7 +1047,8 @@ class ParserScreen(GridLayout):
         parser = DATA.get_parser()
         
         if load_backup:
-            Clock.schedule_once(self.update_current, 0.0001)
+            self.update_list = parser.bestelling_list()
+            Clock.schedule_once(self.refill, 0.0001)
             return
         
         elif parser.current_empty():
@@ -1060,7 +1061,7 @@ class ParserScreen(GridLayout):
         
         #TODO: rewrite enkel de lijst met producten gaan genereren als je naar bestellingscherm gaat
         if ret == -1:
-            infopopup("[color=#ffff00]Negatief aantal is niet toegelaten![/color]\nJe hebt 0 stuks van {} product!\nVerander de mode.".format(cu))
+            infopopup("[color=#ffff00]Negatief aantal is niet toegelaten![/color]\nJe hebt 0 stuks van '{}' product!\nVerander de mode.".format(cu))
         else:
             self.order_lijst.verklein_bestelling() #volledig weg
             self.update_list = parser.bestelling_list()
