@@ -46,6 +46,7 @@ def InitTabels(db_io):
     c.execute("""CREATE TABLE IF NOT EXISTS totalen(
             id INTEGER PRIMARY KEY,
             bestelling BLOB,
+            best_parse BLOB,
             open INTEGER,
             prijs INTEGER,
             naam TEXT,
@@ -111,6 +112,13 @@ def getAllProductKassa(db_io):
     c.execute("SELECT type, naam, prijs FROM producten WHERE (active = 1 OR active = 2) AND parse = 0 ORDER BY naam COLLATE NOCASE ASC")
     data = c.fetchall()
     return data #lijst bestaande uit tuples
+
+
+def getAllProductParse(db_io):
+    conn, c = db_io
+    c.execute("SELECT type, naam, prijs, p_basis FROM producten WHERE (active = 1 OR active = 2) AND parse = 1 ORDER BY naam COLLATE NOCASE ASC")
+    data = c.fetchall()
+    return data
 
 
 def getTypes(db_io):
@@ -327,19 +335,19 @@ def exportCSV(db_io):#, filename="test.csv"):
     if not(os.path.isdir("./exports")):
         os.mkdir("./exports")
     PATH = "exports/"+datetime.datetime.now().strftime("%d%m%y@%H-%M-%S_")
-    
-    c.execute("SELECT type, naam, prijs, active, parse, p_basis FROM producten ORDER BY naam COLLATE NOCASE ASC")
-    
+
     producten = []
     dict_prod = {}
     bedragen = {}
+    
+    c.execute("SELECT type, naam, prijs, active, parse, p_basis FROM producten ORDER BY naam COLLATE NOCASE ASC")
     
     for T, N, P, A, parse, basis in list(c.fetchall()):
         if parse:
             producten.append([T, N, str(P/100), str(A), "basis" if basis else "extra"])
         else:
             producten.append([T, N, str(P/100), str(A), "nee"])
-        dict_prod[N] = 0
+        dict_prod[N] = 0 #incl W, Z, groenten, brood
 
     with open(PATH+"productdump.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
@@ -350,14 +358,16 @@ def exportCSV(db_io):#, filename="test.csv"):
     del producten
     
     #bestellingen
-    c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling FROM totalen ORDER BY id ASC")
+    c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling, best_parse FROM totalen ORDER BY id ASC")
     data = c.fetchall()
     
     with open(PATH+"bestellingen.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow(["ID", "naam", "open", "prijs", "betaalwijze",  "#", *dict_prod.keys()])
-        for ID, N, O, P, B, best in data:
-            best = update_dict(dict_prod.copy(), pickle.loads(best))
+        for ID, N, O, P, B, best, parse in data:
+            #TODO: fix parse zodanig dat WW gr, ZZ gr, ... mooi in kolommen staat!
+            best = update_dict(update_dict(dict_prod.copy(), pickle.loads(best)))
+            #probleem met het parse gedoe!
             #https://stackoverflow.com/questions/35694303/convert-array-of-int-to-array-of-chars-python
             if P:
                 writer.writerow([ID, N, str(O), str(P/100), B, "#", *list(map(str, best.values()))])

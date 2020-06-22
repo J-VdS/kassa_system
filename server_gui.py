@@ -146,9 +146,6 @@ class BestelScherm(GridLayout):
         self.bestelbar = BestelBar()
         self.add_widget(self.bestelbar)
         
-        #lijstlabel links, midden al de knoppen met de producten en rechts speciale actie knoppen
-        #interface voor aantal te wijzigen of te verwijderen
-        
         
 class StatsScherm(GridLayout):
     def __init__(self, **kwargs):
@@ -330,12 +327,13 @@ class HoofdBar(GridLayout):
             gui.DATA.set_bestelling(bestelling)
             gui.DATA.set_info({"ID":int(instance.text)})
             gui.rekeningscherm.bestelbar.set_ID(instance.text)
-            gui.DATA.set_prod(database.getAllProductKassa(self.db_io))
+            if gui.DATA.is_set() == False:
+                gui.DATA.set_prod(database.getAllProductKassa(self.db_io))
+                gui.DATA.set_prod_parse(database.getAllProductParse(self.db_io))
             
             gui.rekeningscherm.bestelbar.reset()
             gui.screen_manager.current = "BESTEL"
             print("Switch rekening:", instance.text)
-        
         
         
     def switch_pagina(self, instance):
@@ -716,6 +714,8 @@ class ProductBar(BoxLayout):
                     #print ook bij op het scherm
                     self.lijst_bar.add_queue(func.to_dict(atype, anaam, db_prijs, azicht, self.add_parse_setting.text if aparse else ""))
                     
+                    #edit kassa data!
+                    gui.DATA.prod_reset()
                 elif ret == -1:
                     self.makePopup("Er bestaat reeds een product met dezelfde naam!",
                                    "Naam Error")
@@ -734,8 +734,6 @@ class ProductBar(BoxLayout):
                 self.add_zichtbaar.text = "Ja"
                 self.add_parse.active = False
                 self.add_parse_setting.text = "basis"
-                
-                
                 
     
     def _bewerk_product(self, _):
@@ -761,7 +759,10 @@ class ProductBar(BoxLayout):
             if ret == 0:
                 self.makePopup("Product met naam %s bewerkt." %(bnaam,),
                                    "Succes!")
+                
                 self.lijst_bar.reload_from_db()
+                #edit kassa data!
+                gui.DATA.prod_reset()
                 self.bewerk_naam.text = ""
                 self.bewerk_prijs.text = ""
                 self.bewerk_type.text = "-"
@@ -786,13 +787,15 @@ class ProductBar(BoxLayout):
                 self.makePopup("Product met naam %s succesvol verwijdert." %(vnaam,),
                                "Succes!")
                 self.lijst_bar.reload_from_db()
+                #edit kassa data!
+                gui.DATA.prod_reset()
             else:
                 self.makePopup("Er bestaat geen product met deze naam!",
                                "Naam Error")
             self.verwijder_naam.text = ""
             database.CloseIO(db_io)
-    
-    
+
+
     def _zichtbaar_product(self, _):
         znaam = self.zichtbaar_naam.text.strip().lower()
         zzicht = self.zichtbaar_zichtbaar.text
@@ -807,6 +810,8 @@ class ProductBar(BoxLayout):
                 self.makePopup("Product met naam %s succesvol aangepast." %(znaam,),
                                "Succes!")
                 self.lijst_bar.reload_from_db()
+                #edit kassa data!
+                gui.DATA.prod_reset()
             else:
                 self.makePopup("Er bestaat geen product met deze naam!",
                                "Naam Error")

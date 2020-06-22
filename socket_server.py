@@ -383,20 +383,20 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         """
                         vb msg
                         {'req': 'BST', 
-                        'bestelling': {'info': {'naam': '454654', 'id': 453456, 'tafel': 4, 'verkoper': 'Jos'},
+                        'bestelling': {'info': {'naam': '5', 'id': 5, 'tafel': 5, 'verkoper': 'Jos'}, 
                         'opm': '', 
-                        'BST': {'dessert': {'chocolademousse': 5},
-                                'drank': {'cola zero': 3, 'cola': 1, 'bruisend water': 1, 'appelsap': 3, 'affligem bleek': 2}, 
-                                'gerecht': {'spaghetti normaal': 2, 'spaghetti groenten klein': 2, 'kaaskroketten (3 st)': 1}}}, 
-                        'hash': '45345654'}
-                        
+                        'BST': {'drank': {'cola': 3}, 
+                                'dessert': {'chocolademousse': 1}, 
+                                'pensen': {'extra groenten': 2}, 
+                                'gerecht': {'spaghetti normaal': 2, 'spaghetti groenten klein': 1}, 
+                                'parser': {'w brood': 1}}}, 'hash': '556'}
                         """
                         #verwerk bestelling
                         #{bestelling:{BST:{type:{}}}
                         best = {}
                         for d in message['bestelling']['BST'].values():
                             best.update(d)
-                        print(best)
+
                         #stuur bevestiging goed aangekomen
                         notified_socket.send(makeMsg({"status":"ontvangen"}))
                         
@@ -429,7 +429,6 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         
                         
                         #voeg toe aan order tabel
-                        print(message)
                         ret = database.addOrder(db_io, message, status="INDB")
                         
                         if ret == -1:

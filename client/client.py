@@ -36,8 +36,9 @@ BACKUP = "datadump.json"
 
 
 #debug
-from kivy.logger import LoggerHistory
 DEBUG = False
+if not(DEBUG):
+    from kivy.logger import LoggerHistory
 #ToDo: aanpasbaar door de gebruiker
 COLS = 2
 ROWS = 4
@@ -1111,7 +1112,7 @@ class ParserScreen(GridLayout):
     def extra_selected(self, _):
         PARSER = DATA.get_parser()
         gekozen = []
-        extras = PARSER.get_extra()
+        extras = PARSER.get_extra_short()
         for index, ex in enumerate(self._extra_checkboxes):
             if ex.active:
                 gekozen.append(extras[index])
@@ -1557,8 +1558,6 @@ class ParserStorage(object):
         self._prod = {}
         self._basis = [] #[(type, naam), (type, naam)]
         self._extra = [] #[(type, naam), (type, naam)]
-        #self._prod_bool = {}
-        #self._prod_list = []
         self.order = {}  #{"WW gr":1, ...}
         
         self.current = ["",""] #lijst van 2, [basis, extra]
@@ -1571,13 +1570,17 @@ class ParserStorage(object):
     
     def get_extra(self):
         return self._extra
+    
+    
+    def get_extra_short(self):
+        return [(i, j[:2]) for i,j in self._extra]
 
     
     def set_prod(self, prod):
         self._prod = prod
-        if ("basis" in prod)*("extra" in prod):
+        if ("basis" in prod):
             self._basis = prod["basis"] 
-            self._extra = prod["extra"]
+            self._extra = prod.get("extra", []) #mogelijk zijn er geen extras!
         else:
             print("invalid parser data!")
         
@@ -1644,7 +1647,7 @@ class ParserStorage(object):
         for k in self.order:
             msg.append("{:<28} {:>2}".format(k, self.order[k]))
         return msg
-    
+       
     
     def is_empty(self):
         return len(self.order) == 0

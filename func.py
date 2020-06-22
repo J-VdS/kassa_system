@@ -51,6 +51,11 @@ class Client_storage():
         self.edit_order = {} # +-= self.edit maar incl types
         self.info = {}#ID, prijs, 
         
+        self.parserDATA = ParserStorage()
+        self.parserPrijs = ParserPrijs()
+        
+        self.product_set = False
+        
 
     #setters
     def set_prod(self, prod):
@@ -60,6 +65,35 @@ class Client_storage():
         for type, naam, prijs in prod:
             self._prod[naam] = (type, naam, prijs)
         self._prod_list = prod
+        
+        self.product_set = True
+        
+    
+    def set_prod_parse(self, prod):
+        '''
+            prod<lijst> = [(type, naam, prijs, p_basis)]
+        '''
+        for _type, naam, prijs, p_basis in prod:
+            if p_basis:
+                self.parserDATA.add_basis(_type, naam)
+                self.parserPrijs.add_extra(naam, prijs)
+            else:
+                self.parserDATA.add_extra(_type, naam)
+                self.parserPrijs.add_basis(naam, prijs)
+        
+        self.product_set = True
+        
+    
+    def is_set(self):
+        return self.product_set
+    
+    
+    def prod_reset(self):
+        self.product_set = False
+        self._prod.clear()
+        self._prod_list.clear()
+        self.parserDATA.clear()
+        self.parserPrijs.clear()
         
     
     def set_prod_list(self, prod):
@@ -189,3 +223,203 @@ class Client_storage():
             totaal += prod_prijs * self.bestelling[product]
         return totaal
 
+
+#analoog als bij client maar kleine aanpassingen
+class ParserStorage(object):
+    def __init__(self):
+        """
+        bevat een lijst met:
+            basisproducten (W/Z)
+            extra's (br/gr)
+        houdt alles bij in een lijst
+        gebruikt str methode om het te printen ?
+        """
+        self._basis = [] #[(type, naam), (type, naam)]
+        self._extra = [] #[(type, naam), (type, naam)]
+        #self._extra_short = []
+        self.order = {}  #{"WW gr":1, ...}
+        
+        self.current = ["",""] #lijst van 2, [basis, extra]
+        self.current_type = []
+        
+
+    def get_basis(self):
+        return self._basis
+    
+    
+    def get_extra(self):
+        return self._extra
+    
+    
+    def get_extra_short(self):
+        return [(i, j[:2]) for i,j in self._extra]
+
+    
+    def add_basis(self, _type, naam):
+        self._basis.append((_type, naam))
+    
+    
+    def add_extra(self, _type, naam):
+        self._extra.append((_type, naam))
+        
+        
+    def current_basis_add(self, t, n):
+        self.current[0] = "".join(sorted(self.current[0] + n))
+        if not(t in self.current_type):
+            self.current_type.append(t)
+
+    
+    def current_basis(self, basis):
+        self.current[0] = basis
+    
+    
+    def current_extra(self, extra):
+        new = ""
+        for t, n in extra:
+            if not(n in self.current_type):
+                self.current_type.append(t)
+            new+= n + " "
+        self.current[1] = new.strip()
+        
+    
+    def current_delete(self):
+        self.current = ["",""]
+        self.current_type.clear()
+        
+    
+    def current_empty(self):
+        return len(self.current[0].strip()) == 0
+        
+    
+    def get_current(self):
+        return "{} {}".format(*self.current)
+
+    
+    def add_order(self, mode):
+        cu = self.get_current().strip()
+        if mode == 0: #+
+            self.order[cu] = self.order.get(cu, 0) + 1
+            return 0
+        elif cu not in self.order:
+            return -1
+        elif self.order[cu] == 1:
+            del self.order[cu]
+            return 1
+        else:
+            self.order[cu] -= 1
+            return 1
+        
+    
+    def get_order(self):
+        #TODO: include types indien nodig!
+        return self.order
+    
+    
+    def get_num_pages(self, num):
+        geh, rest = divmod(len(self._basis), num)
+        return geh if (rest==0) else (geh + 1)
+    
+    
+    def bestelling_list(self):
+        msg = []
+        for k in self.order:
+            msg.append("{:<28} {:>2}".format(k, self.order[k]))
+        return msg
+       
+    
+    def is_empty(self):
+        return len(self.order) == 0
+    
+    
+    def dump(self):
+        return self.order
+        
+        
+    def load_order(self, order):
+        self.order = order
+        
+    
+    def reset(self):
+        self.order.clear()
+        self.current_type.clear()
+        self.current = ["",""]
+        
+    
+    def clear(self):
+        self._basis.clear()
+        self._extra.clear()
+
+
+class ParserPrijs(object):
+    _err = "ERROR"
+    def __init__(self):
+        self._prod = []
+
+        self.prijs_basis = {}
+        self.prijs_extra = {}
+        self.prijs_extra_short = {}
+          
+        self.prijs = {}
+        
+    
+    def add_basis(self, _naam, _prijs):
+        self.prijs_basis[_naam] = _prijs
+    
+    
+    def add_extra(self, _naam, _prijs):
+        self.prijs_extra[_naam] = _prijs
+        self.prijs_extra_short[_naam[:2]] = _prijs
+        
+        
+    def get_prijs(self, product):
+        if product in self.prijs:
+            return self.prijs[product]
+        plijst = product.strip().split(' ')
+        if len(plijst) == 1:
+            prijs = self._prijs_basis(plijst)
+        else:
+            prijs = self._prijs_basis(plijst[0])
+            if prijs == self._err:
+                return self._err
+            else:
+                prijs += self._prijs_extra(*plijst[1:])
+        
+        self.prijs[product] = prijs
+        return prijs
+        
+    
+    def _prijs_basis(self, basis):
+        """
+            basis<str>
+        """
+        prijs = 0
+        for i in basis:
+            if i in self.prijs_basis:
+                prijs += self.prijs_basis[i]
+            else:
+                return self._err
+        return prijs
+    
+    
+    def _prijs_extra(self, *args):
+        prijs = 0
+        for i in args:
+            if i in self.prijs_extra:
+                prijs += self.prijs_extra[i]
+            elif i in self.prijs_extra_short:
+                prijs += self.prijs_extra_short[i]
+            else:
+                return "ERROR"
+    
+    
+    def clear(self):
+        #opgeroepen indien er een nieuw product/edit is
+        self.prijs.clear()
+    
+    
+    
+    
+    
+    
+
+    
