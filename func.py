@@ -119,11 +119,11 @@ class Client_storage():
     def get_rekening(self):
         ret = {}
         for key in self.bestelling:
-            print(key)
             if key in self._prod:
                 ret[key] = self.bestelling[key]
             else:
                 ret[self.parserDATA.long(key)] = self.bestelling[key]
+        return ret
     
     
     def get_prod(self):
@@ -156,6 +156,8 @@ class Client_storage():
     
     def get_info_ticket(self):
         p_art = {prod: self._prod[prod][2]/100 for prod in self._prod} #{prod: prijs} #mss de /100 weglaten
+        long_parse_dict = self.parserPrijs.get_prijs_long()
+        p_art.update({prod: long_parse_dict[prod]/100 for prod in long_parse_dict})
         return (self.info, p_art)
     
     
@@ -373,7 +375,7 @@ class ParserStorage(object):
         if len(prodnaam) == 1:
             return prod
         else:
-            naam = prodnaam[0]
+            naam = prodnaam[0] + ' '
             for p in prodnaam[1:]:
                 naam += self._extra_shortLong.get(p, p) + " "
             return naam.strip()
@@ -387,8 +389,11 @@ class ParserPrijs(object):
         self.prijs_basis = {}
         self.prijs_extra = {}
         self.prijs_extra_short = {}
+        
+        self._extra_shortLong = {}
           
         self.prijs = {}
+        self.prijs_long = {}
         
     
     def add_basis(self, _naam, _prijs):
@@ -398,6 +403,8 @@ class ParserPrijs(object):
     def add_extra(self, _naam, _prijs):
         self.prijs_extra[_naam] = _prijs
         self.prijs_extra_short[_naam[:2]] = _prijs
+        #voor rekening
+        self._extra_shortLong[_naam[:2]] = _naam
         
         
     def get_prijs(self, product):
@@ -406,6 +413,7 @@ class ParserPrijs(object):
         plijst = product.strip().split(' ')
         if len(plijst) == 1:
             prijs = self._prijs_basis(plijst[0])
+            self.prijs_long[product] = prijs
         else:
             prijs = self._prijs_basis(plijst[0])
             if prijs == self._err:
@@ -415,10 +423,15 @@ class ParserPrijs(object):
                 if exprijs == self._err:
                     return self._err
                 prijs += exprijs
+                self.prijs_long[self.longExtra(product)] = prijs
                 
                 
         self.prijs[product] = prijs
         return prijs
+
+    
+    def get_prijs_long(self):
+        return self.prijs_long
         
     
     def _prijs_basis(self, basis):
@@ -445,6 +458,15 @@ class ParserPrijs(object):
             else:
                 return "ERROR"
         return prijs
+    
+    
+    def longExtra(self, prod):
+        #gebaseerd op functie uit parserStorage
+        prodnaam = prod.strip().split(' ')
+        naam = prodnaam[0] + ' '
+        for p in prodnaam[1:]:
+            naam += self._extra_shortLong.get(p, p) + " "
+        return naam.strip() #compare with [:-1]
     
     
     def clear(self):

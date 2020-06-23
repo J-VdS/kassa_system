@@ -9,9 +9,9 @@ import socket #communicatie met de kassa
 import queue  #bestellingen
 import pickle #decode data
 import select #socket verkeer
-#from escpos import *
-from threading import Thread, Condition
 
+from threading import Thread, Condition
+from copy import deepcopy
 #error handling
 import sys 
 
@@ -265,7 +265,7 @@ def start_printloop(conditie):
                 if isinstance(printer, fakePrinter):
                     print_status.put(("alg", "FAKE", -2))
             #stuur naar de printer
-            ret = printer_verwerk(printer, print_queue.get())
+            ret = printer_verwerk(printer, deepcopy(print_queue.get()))
             if not(ret):
                 break
             time.sleep(TBT)
@@ -293,7 +293,7 @@ def printer_verwerk(printer_obj, obj):
     try:
         #print en verwerk
         #het kan dat er een error optreedt als er geen papier meer is, maar dit moet ik eerst is testen
-        print(obj)        
+        print(obj)   
         print_type = obj.get("ticket_type", None)
         
         if print_type is None:
@@ -381,6 +381,7 @@ def send_pinfo(obj):
 
 #https://github.com/python-escpos/python-escpos/tree/v2.2.0
 def print_kasticket(printer_obj, obj):
+    print(obj)
     try:
         printer_obj.set(align="center", text_type="b", width=4, height=4)
         printer_obj.text("MUSATE\n")
