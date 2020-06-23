@@ -327,7 +327,7 @@ class HoofdBar(GridLayout):
             gui.DATA.set_bestelling(bestelling)
             gui.DATA.set_info({"ID":int(instance.text)})
             gui.rekeningscherm.bestelbar.set_ID(instance.text)
-            if gui.DATA.is_set() == False:
+            if gui.DATA.is_prod_set() == False:
                 gui.DATA.set_prod(database.getAllProductKassa(self.db_io))
                 gui.DATA.set_prod_parse(database.getAllProductParse(self.db_io))
             
@@ -1594,7 +1594,7 @@ class BestelBar(GridLayout):
         ex_info, p_art = gui.DATA.get_info_ticket()
         ex_info["tijd"] = datetime.datetime.now().strftime("%d/%m/%y - %H:%M:%S")
         threading.Thread(target=socket_server.print_kasticket,
-                         args=(gui.DATA.get_bestelling(),
+                         args=(gui.DATA.get_rekening(),
                                ex_info,
                                p_art,
                                gui.DATA.bereken_prijs()),
