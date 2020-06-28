@@ -194,6 +194,19 @@ class BListScherm(GridLayout):
     def add(self, info, statcolor=None):
         self.blist.update_list(info, statcolor)
         
+
+class ParserScherm(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        self.rows = 2
+        
+        self.navbar = NavigatieBar2()
+        self.add_widget(self.navbar)
+        
+        self.parserBar = ParserBar()
+        self.add_widget(self.parserBar)
+        
         
 #bars
 class NavigatieBar(BoxLayout):
@@ -259,7 +272,42 @@ class NavigatieBar(BoxLayout):
             gui.screen_manager.current = instance.text
         else:
             gui.screen_manager.current = "HOME"
+
+
+class NavigatieBar2(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'horizontal'
+        self.spacing = 5
+        self.size_hint_y = None
+        self.height = 75
+        self.padding = [10, 10] #padding horiz, padding width
         
+        knop = Button(
+                text="Ga terug",
+                font_size=20,
+                background_color=(0,.3,1,1),
+                background_normal = ''
+                )
+        knop.bind(on_press=self.switch)
+        self.add_widget(knop)
+        
+        for text in ["PRODUCTEN", "CONNECTIES", "STATISTIEKEN", "BESTELLINGEN"]:
+            knop = Button(
+                    text = text,
+                    font_size=20)
+        
+            knop.bind(on_press=self.switch)
+            self.add_widget(knop)
+
+        
+    def switch(self, instance):
+        if instance.text == "Ga terug":
+            #ga terug naar product scherm
+            gui.screen_manager.current = "BESTEL"
+        elif gui.screen_manager.has_screen(instance.text):
+            gui.screen_manager.current = instance.text
+    
         
 class HoofdBar(GridLayout):
     def __init__(self, **kwargs):
@@ -1281,7 +1329,7 @@ class BestelBar(GridLayout):
         self.actie_grid.add_widget(knop)
         
         knop = Button(text="PARSER", font_size=20, size_hint_y=0.5)
-        #knop.bind(on_press=)
+        knop.bind(on_press=self.parser_popup)
         self.actie_grid.add_widget(knop)
         
         self.actie_grid.add_widget(Button(size_hint_y=0.5))
@@ -1718,6 +1766,11 @@ class BestelBar(GridLayout):
         
         popup.add_widget(layout)                        
         popup.open()
+        
+    
+    def parser_popup(self,_):
+        #gebaseerd op client parserscreen
+        gui.screen_manager.current = "PARSER"
         
         
 class StatistiekBar(GridLayout):
@@ -2486,6 +2539,166 @@ class BListBar(GridLayout):
             self.log_info.text = "{} verwijdert.".format(fp)
             
 
+class ParserBar(GridLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 3
+        self.spacing = [10,5]
+        self.padding = 5
+       
+        
+        self.ID_info = Button(
+                text="Klantinfo:",
+                size_hint_x = 0.4, 
+                size_hint_y = None,
+                font_size = 21,
+                height = 50)
+        self.ID_info.bind(on_press=self.show_info)
+        self.add_widget(self.ID_info)
+        
+        
+        self.add_widget(Label(
+                text="PARSER MODE",
+                size_hint_y = None,
+                font_size=22,
+                height = 50))
+        
+        
+        self.add_widget(Label(
+                text="MODES",
+                size_hint_x=0.2,
+                size_hint_y = None,
+                font_size=20,
+                height = 50))
+        
+        linksgrid = GridLayout(cols=1, rows=2, padding=5)
+        self.parseList = LijstLabel()
+        linksgrid.add_widget(self.parseList)
+        #linksgrid.add_widget(Label(text="", font_size=20, size_hint_y=0.05))
+        self.add_widget(linksgrid)
+        
+        middelgrid = GridLayout(cols=1, rows=2)
+        middeltop = GridLayout(cols=2, rows=1, size_hint_y=0.2, spacing=10, padding=[10,5,0,5])
+        
+        self.parserLabel = Label(text="", font_size=22)
+        middeltop.add_widget(self.parserLabel)
+        knop = Button(
+                text="<<", font_size=20, size_hint_x=0.2,
+                background_color=(0.6,0.16,0.1,1), 
+                background_normal='')
+        #knop.bind(on_press=)
+        middeltop.add_widget(knop)
+        
+        middelgrid.add_widget(middeltop)
+        
+        middelknop = GridLayout(cols=2, spacing=5, padding=[0, 10, 0, 0])
+        self.prodButtons = []
+        for i in range(2*6-1):
+            self.prodButtons.append(Button(font_size=18, text=""))
+            self.prodButtons[-1].bind(on_press=self.klik)
+            middelknop.add_widget(self.prodButtons[-1])
+        
+        knop = Button(font_size=18, text="...")
+        #knop.bind(on_press=)
+        
+        
+        middelgrid.add_widget(middelknop)
+        self.add_widget(middelgrid)
+        
+        rechtsgrid = GridLayout(cols=1, spacing=10, padding=5)
+        #modes (+, -, DEL)
+        modegrid = GridLayout(cols=2, rows=2, size_hint_y=0.5, padding=[10,0,10,10], spacing=10)
+        self.mode_knoppen = []
+        
+        for naam in ["[b]+[/b]", "[b]-[/b]", "", ""]:
+            self.mode_knoppen.append(Button(text=naam, font_size=40, markup=True))
+            self.mode_knoppen[-1].bind(on_press=self.change_mode)
+            modegrid.add_widget(self.mode_knoppen[-1])
+        
+        rechtsgrid.add_widget(modegrid)
+        
+        #vorige ingaves
+        voriggrid = GridLayout(cols=1, padding=10, spacing=5)
+        
+        with voriggrid.canvas.before:
+            #rgba
+            Color(0.4, 0.4, 0.4, 1)  # green; colors range from 0-1 instead of 0-255
+            self._rect = Rectangle(size=voriggrid.size, pos=voriggrid.pos)
+
+        voriggrid.bind(size=self._update_rect, pos=self._update_rect)
+        
+        voriggrid.add_widget(Label(
+                text="[b]Vorige ingaves[/b]",
+                font_size = 22,
+                markup=True,
+                color=(0.1,0.1,0.6,1)))
+        
+        self.buttons_vorig = []
+        self.vorig_ingaves = []
+        
+        for ID in range(6):
+            self.vorig_ingaves.append(None)
+            self.buttons_vorig.append(Button(
+                    text="", 
+                    font_size=18, 
+                    id=str(ID), 
+                    background_color=(0.7, 0.7, 0.7, 1)))
+            self.buttons_vorig[-1].bind(on_press=self.vorig_select)
+            voriggrid.add_widget(self.buttons_vorig[-1])
+        
+        rechtsgrid.add_widget(voriggrid)
+        self.add_widget(rechtsgrid)
+            
+        
+    def show_info(self, *_):
+        popup = Popup(title="Klantinfo", size=(400,400), size_hint=(None, None))
+        layout = GridLayout(cols=1)
+        
+        ID = gui.DATA.get_info()["ID"]
+        db_io = database.OpenIO(global_vars.db)
+        naam, betaald = database.getInfoByID(db_io, ID)
+        _tijd, _hash, _tafel = database.getOrderLastInfo(db_io, ID)
+        database.CloseIO(db_io)
+        
+        layout.add_widget(Label(text="ID:  {}".format(ID), font_size=20))
+        layout.add_widget(Label(text="Naam:  {}".format(naam), font_size=20))
+        layout.add_widget(Label(text="Tafel: {}".format(_tafel), font_size=20))
+        layout.add_widget(Label(text="Betaald: {}".format("Nee" if (betaald) else "JA"), font_size=20))
+        layout.add_widget(Label(text="tijd: {}".format(_tijd), font_size=20))
+        layout.add_widget(Label(text="hash: {}".format(_hash), font_size=20))
+
+        
+        layout.add_widget(Label(size_hint_y=2))
+                
+        knop = Button(text="sluit", size_hint_y=None, height=40)
+        knop.bind(on_press=popup.dismiss)
+        layout.add_widget(knop)
+        
+        popup.add_widget(layout)                        
+        popup.open()
+        
+        
+    def vul_in(self):
+        parser = gui.DATA.get_parser()
+    
+        
+    def klik(self, instance):
+        pass
+    
+        
+    def change_mode(self, instance):
+        pass
+    
+    
+    def vorig_select(self, instance):
+        pass
+        
+        
+    def _update_rect(self, instance, _):
+        self._rect.pos = instance.pos
+        self._rect.size = instance.size
+
+
 #scrolllabel -> gekopieerd van client.py
 class LijstLabel(ScrollView):
     def __init__(self, **kwargs):
@@ -2732,8 +2945,8 @@ class ServerGui(App):
     def __init__(self, start, **kwargs):
         super().__init__(**kwargs)
         self._start = start
-    
-    
+
+
     def build(self):
         self.screen_manager = ScreenManager(transition=NoTransition()) #FadeTransition())
         
@@ -2772,6 +2985,11 @@ class ServerGui(App):
         scherm.add_widget(self.connectscherm)
         self.screen_manager.add_widget(scherm)
         
+        self.parserscherm = ParserScherm()
+        scherm = Screen(name="PARSER")
+        scherm.add_widget(self.parserscherm)
+        self.screen_manager.add_widget(scherm)
+        
         return self.screen_manager
     
     
@@ -2801,7 +3019,6 @@ if __name__ == "__main__":
     _start_server = (sys.argv[-1] == "openserver")
         
         
-        
     #maak de tabellen
     db_io = database.OpenIO(global_vars.db)
     database.InitTabels(db_io)
@@ -2812,7 +3029,6 @@ if __name__ == "__main__":
     gui = ServerGui(_start_server)
     
 
-    
     #last step
     gui.run()
     

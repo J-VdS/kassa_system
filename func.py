@@ -161,6 +161,10 @@ class Client_storage():
         return (self.info, p_art)
     
     
+    def get_parser(self):
+        return self.parserDATA
+    
+    
     #bestelling
     def edit_reset(self):
         self.edit = {}
