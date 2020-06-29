@@ -207,6 +207,10 @@ class ParserScherm(GridLayout):
         self.parserBar = ParserBar()
         self.add_widget(self.parserBar)
         
+    
+    def reset(self):
+        self.parserBar.reset()
+        
         
 #bars
 class NavigatieBar(BoxLayout):
@@ -372,12 +376,12 @@ class HoofdBar(GridLayout):
                 return
             
             #TODO vermijd de update elke keer
-            gui.DATA.set_bestelling(bestelling)
-            gui.DATA.set_info({"ID":int(instance.text)})
-            gui.rekeningscherm.bestelbar.set_ID(instance.text)
             if gui.DATA.is_prod_set() == False:
                 gui.DATA.set_prod(database.getAllProductKassa(self.db_io))
                 gui.DATA.set_prod_parse(database.getAllProductParse(self.db_io))
+            gui.DATA.set_bestelling(bestelling)
+            gui.DATA.set_info({"ID":int(instance.text)})
+            gui.rekeningscherm.bestelbar.set_ID(instance.text)
             
             gui.rekeningscherm.bestelbar.reset()
             gui.screen_manager.current = "BESTEL"
@@ -1303,8 +1307,7 @@ class BestelBar(GridLayout):
             self.edit_knoppen[-1].bind(on_press=self.edit)
             knopLayout.add_widget(self.edit_knoppen[-1])
         
-        
-        
+
         leftLayout.add_widget(knopLayout)
         self.add_widget(leftLayout)
         
@@ -1329,7 +1332,7 @@ class BestelBar(GridLayout):
         self.actie_grid.add_widget(knop)
         
         knop = Button(text="PARSER", font_size=20, size_hint_y=0.5)
-        knop.bind(on_press=self.parser_popup)
+        knop.bind(on_press=self.go_parser)
         self.actie_grid.add_widget(knop)
         
         self.actie_grid.add_widget(Button(size_hint_y=0.5))
@@ -1768,8 +1771,10 @@ class BestelBar(GridLayout):
         popup.open()
         
     
-    def parser_popup(self,_):
+    def go_parser(self,_):
         #gebaseerd op client parserscreen
+        #vul knoppen in
+        gui.parserscherm.reset()
         gui.screen_manager.current = "PARSER"
         
         
@@ -2060,7 +2065,7 @@ class StatistiekBar(GridLayout):
                 self.mid_status.text = file.split("\\")[-1]
                 self.mid_scroll.verklein_bestelling()
                 self.update_list_mid = func.print_dict(ret_d)
-                Clock.schedule_once(self.refill_mid, 0.5)
+                Clock.schedule_once(self.refill_mid, 0.2)
             elif ret == -1:
                 self.mid_status.text = "[color=#ff0000]Ongeldig bestand![/color]"
             else:
@@ -2072,7 +2077,7 @@ class StatistiekBar(GridLayout):
                 self.mid_status.text = file.split("\\")[-1]
                 self.mid_scroll.verklein_bestelling()
                 self.update_list_mid = func.print_dict(ret_d)
-                Clock.schedule_once(self.refill_mid, 0.5)
+                Clock.schedule_once(self.refill_mid, 0.2)
             elif ret == -1:
                 self.mid_status.text = "[color=#ff0000]Ongeldig bestand![/color]"
             else:
@@ -2586,7 +2591,7 @@ class ParserBar(GridLayout):
                 text="<<", font_size=20, size_hint_x=0.2,
                 background_color=(0.6,0.16,0.1,1), 
                 background_normal='')
-        #knop.bind(on_press=)
+        knop.bind(on_press=self.delete)
         middeltop.add_widget(knop)
         
         middelgrid.add_widget(middeltop)
@@ -2594,12 +2599,13 @@ class ParserBar(GridLayout):
         middelknop = GridLayout(cols=2, spacing=5, padding=[0, 10, 0, 0])
         self.prodButtons = []
         for i in range(2*6-1):
-            self.prodButtons.append(Button(font_size=18, text=""))
+            self.prodButtons.append(Button(font_size=20, text="", markup=True))
             self.prodButtons[-1].bind(on_press=self.klik)
             middelknop.add_widget(self.prodButtons[-1])
         
-        knop = Button(font_size=18, text="...")
+        knop = Button(font_size=30, text="[b]...[/b]", markup=True)
         #knop.bind(on_press=)
+        middelknop.add_widget(knop)
         
         
         middelgrid.add_widget(middelknop)
@@ -2610,9 +2616,9 @@ class ParserBar(GridLayout):
         modegrid = GridLayout(cols=2, rows=2, size_hint_y=0.5, padding=[10,0,10,10], spacing=10)
         self.mode_knoppen = []
         
-        for naam in ["[b]+[/b]", "[b]-[/b]", "", ""]:
-            self.mode_knoppen.append(Button(text=naam, font_size=40, markup=True))
-            self.mode_knoppen[-1].bind(on_press=self.change_mode)
+        for naam in ["[b]+[/b]", "[b]-[/b]", "", "[b]opslaan[/b]"]:
+            self.mode_knoppen.append(Button(text=naam, font_size=40, markup=True, id="basis"))
+            self.mode_knoppen[-1].bind(on_press=self.edit)
             modegrid.add_widget(self.mode_knoppen[-1])
         
         rechtsgrid.add_widget(modegrid)
@@ -2648,8 +2654,21 @@ class ParserBar(GridLayout):
         
         rechtsgrid.add_widget(voriggrid)
         self.add_widget(rechtsgrid)
-            
         
+        self.update_list = []
+        
+    
+    def reset(self):
+        #genereer het lijst lijstlabel
+        self.parseList.verklein_bestelling() #volledig weg
+        #laadt de bestelgeschiedenis in 
+        self.update_list = gui.DATA.get_parser().bestelling_list()
+        Clock.schedule_once(self.refill, 0.2)
+        
+        #genereer de vulin knoppen 
+        self.vul_in()
+
+
     def show_info(self, *_):
         popup = Popup(title="Klantinfo", size=(400,400), size_hint=(None, None))
         layout = GridLayout(cols=1)
@@ -2680,14 +2699,49 @@ class ParserBar(GridLayout):
         
     def vul_in(self):
         parser = gui.DATA.get_parser()
-    
+        values = [(t,n,1) for t,n in parser.get_basis()] + [(t,n,0) for t,n in parser.get_extra()]
+        values.sort(key=lambda a: a[1])
+        
+        #11 knopjes
+        #TODO meer dan 11 opties!
+        for i, button in enumerate(self.prodButtons):
+            if i >= len(values):
+                button.background_color = (1,1,1,1)
+                button.text = ""
+            elif values[i][2]:
+                button.background_color = (0.46, 0.92, 0.2, 1)
+                button.text = "[b]{}[/b]".format(values[i][1])
+                button.id = "basis"
+            else:
+                button.background_color = (0.85, 0.2, 0.92, 1)
+                button.text = "[b]{}[/b]".format(values[i][1])
+                button.id = "extra"
+               
+                
+    def delete(self, _):
+        #TODO: info popup
+        gui.DATA.get_parser().current_delete()
+        Clock.schedule_once(self.update_current, 0.0001)
+        
         
     def klik(self, instance):
-        pass
-    
+        if instance.text == "":
+            return
+        elif instance.id == "basis":
+            gui.DATA.get_parser().current_basis_add(None, instance.text[3:-4])
+            Clock.schedule_once(self.update_current, 0.0001)
+        else: #extra
+            gui.DATA.get_parser().current_extra_add(None, (instance.text[3:-4])[:2])
+            Clock.schedule_once(self.update_current, 0.0001)
         
-    def change_mode(self, instance):
-        pass
+    
+    def edit(self, instance):
+        if instance.text == "[b]+[/b]":
+            pass
+        elif instance.text == "[b]-[/b]":
+            pass
+        elif instance.text == "[b]opslaan[/b]":
+            pass
     
     
     def vorig_select(self, instance):
@@ -2697,6 +2751,16 @@ class ParserBar(GridLayout):
     def _update_rect(self, instance, _):
         self._rect.pos = instance.pos
         self._rect.size = instance.size
+        
+
+    def refill(self, _):
+        if len(self.update_list):
+            self.parseList.update_bestelling(self.update_list.pop(0))
+            Clock.schedule_once(self.refill,0.001)
+
+
+    def update_current(self, _):
+        self.parserLabel.text = gui.DATA.get_parser().get_current()
 
 
 #scrolllabel -> gekopieerd van client.py

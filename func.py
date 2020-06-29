@@ -105,6 +105,8 @@ class Client_storage():
     def set_bestelling(self, bestelling):
         #print("[BST] nieuwe bestelling:",bestelling)
         self.bestelling = bestelling
+        #set order // selecteer enkel parse producten
+        self.parserDATA.set_order({naam:bestelling[naam] for naam in bestelling if (naam not in self._prod)})
         
     
     def set_info(self, info):
@@ -260,10 +262,15 @@ class ParserStorage(object):
         self._extra_shortLong = {}
         #self._extra_short = []
         self.order = {}  #{"WW gr":1, ...}
+        self.edit = {}
         
         self.current = ["",""] #lijst van 2, [basis, extra]
         self.current_type = []
         
+    
+    def set_order(self, order):
+        self.order = order
+
 
     def get_basis(self):
         return self._basis
@@ -291,7 +298,22 @@ class ParserStorage(object):
         if not(t in self.current_type):
             self.current_type.append(t)
 
-    
+
+    def current_extra_add(self, t, n):
+        ext = self.current[1].strip().split(' ')
+        if n in ext:
+            return
+        ext.append(n)
+        
+        new_ext = ""
+        for i in ext:
+            new_ext += i + ' '
+        self.current[1] = new_ext.strip()
+        
+        if not(n in self.current_type):
+            self.current_type.append(t)
+        
+
     def current_basis(self, basis):
         self.current[0] = basis
     
@@ -344,7 +366,7 @@ class ParserStorage(object):
     
     
     def bestelling_list(self):
-        msg = []
+        msg = ["{:^28}{:>2}".format("Product", "#"), "-"*32]
         for k in self.order:
             msg.append("{:<28} {:>2}".format(k, self.order[k]))
         return msg
