@@ -213,7 +213,12 @@ class Client_storage():
         
     def bestelling_del_prod(self, prod):
         if prod in self.bestelling:
+            prod_type = self._prod[prod][0]
+            if not(prod_type in self.edit_order):
+                self.edit_order[prod_type] = {}
+                
             self.edit[prod] = - self.bestelling[prod]
+            self.edit_order[prod_type][prod] = self.edit[prod]
             return 0
         else:
             return -1
