@@ -3,6 +3,8 @@ import os
 import pickle
 import datetime
 import sys
+import traceback
+
 from functools import partial #instead of lamda functions
 from collections import deque
 
@@ -2167,6 +2169,10 @@ class StatistiekBar(GridLayout):
             database.exportCSV(db_io)
         except Exception as e:
             print("[CSV]Error: ", e)
+            trace_back = sys.exc_info()[2]
+            line = trace_back.tb_lineno
+            print("line {}: {}".format(str(line), str(e)))
+            traceback.print_exc()
         finally:
             database.CloseIO(db_io)
             
@@ -2177,6 +2183,10 @@ class StatistiekBar(GridLayout):
             database.exportXLSX(db_io)
         except Exception as e:
             print("[XLSX]Error: ", e)
+            trace_back = sys.exc_info()[2]
+            line = trace_back.tb_lineno
+            print("line {}: {}".format(str(line), str(e)))
+            traceback.print_exc()
         finally:
             database.CloseIO(db_io)
             

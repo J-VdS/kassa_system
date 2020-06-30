@@ -315,7 +315,7 @@ class ParserStorage(object):
         ext.append(n)
         
         new_ext = ""
-        for i in ext:
+        for i in sorted(ext):
             new_ext += i + ' '
         self.current[1] = new_ext.strip()
         

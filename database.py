@@ -14,8 +14,28 @@ import openpyxl
 def update_dict(oud, nieuw):
     for key in nieuw:
         oud[key] = oud.get(key, 0) + nieuw[key]
+            
     return oud
 
+
+def update_dict_parse(basis, bestelling, long):
+    """
+        basis = {cola: 0, cola zero: 0, ..., w:0, z:0, groenten:0, brood:0}
+        bestelling = {cola:3, cola zero: 2, ..., w:1, wz:5, wz gr: 1, zz br gr: 8}
+        long = {br: brood, gr: groenten}
+    """
+    for obj in bestelling:
+        if obj in basis:
+            basis[obj] += bestelling[obj]
+        else:
+            #waarschijnlijk parser product
+            obj_split = obj.strip().split(' ')
+            for i in obj_split[0]:
+                basis[i] += bestelling[obj]
+            if len(obj) > 1:
+                for i in obj_split[1:]:
+                    basis[long[i]] += bestelling[obj]
+    return basis
 
 def CloseIO(db_io):
     ''' Deze functie wordt opgeroepen als het scherm gesloten wordt en/of een error optreedt'''
@@ -120,6 +140,13 @@ def getAllProductParse(db_io):
     data = c.fetchall()
     return data
 
+
+def getAllProductParseLong(db_io):
+    conn, c = db_io
+    c.execute("SELECT naam, p_basis FROM producten WHERE parse = 1 ORDER BY naam")
+    data = c.fetchall()
+    return {n[:2]:n for (n, b) in data if (b == 0)}
+            
 
 def getTypes(db_io):
     conn, c = db_io
@@ -339,6 +366,7 @@ def exportCSV(db_io):#, filename="test.csv"):
     producten = []
     dict_prod = {}
     bedragen = {}
+    long = getAllProductParseLong(db_io)
     
     c.execute("SELECT type, naam, prijs, active, parse, p_basis FROM producten ORDER BY naam COLLATE NOCASE ASC")
     
@@ -352,21 +380,21 @@ def exportCSV(db_io):#, filename="test.csv"):
     with open(PATH+"productdump.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
         #TODO replace . met ,
-        writer.writerow(["type", "naam", "prijs", "zichtbaar"])
+        writer.writerow(["type", "naam", "prijs", "zichtbaar", "parser"])
         for rij in producten:
             writer.writerow(rij)
     del producten
     
     #bestellingen
-    c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling, best_parse FROM totalen ORDER BY id ASC")
+    c.execute("SELECT ID, naam, open, prijs, betaalwijze, bestelling FROM totalen ORDER BY id ASC")
     data = c.fetchall()
     
     with open(PATH+"bestellingen.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow(["ID", "naam", "open", "prijs", "betaalwijze",  "#", *dict_prod.keys()])
-        for ID, N, O, P, B, best, parse in data:
+        for ID, N, O, P, B, best in data:
             #TODO: fix parse zodanig dat WW gr, ZZ gr, ... mooi in kolommen staat!
-            best = update_dict(update_dict(dict_prod.copy(), pickle.loads(best)))
+            best = update_dict_parse(dict_prod, pickle.loads(best), long)
             #probleem met het parse gedoe!
             #https://stackoverflow.com/questions/35694303/convert-array-of-int-to-array-of-chars-python
             if P:
@@ -374,6 +402,7 @@ def exportCSV(db_io):#, filename="test.csv"):
                 bedragen[B] = bedragen.get(B, 0) + P
             else:
                 writer.writerow([ID, N, str(O), str(P), B, "#", *list(map(str, best.values()))])
+
     #ontvangen bedragen
     with open(PATH+"bedragen.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
@@ -382,7 +411,7 @@ def exportCSV(db_io):#, filename="test.csv"):
             writer.writerow([key, str(bedragen[key]/100).replace('.',',')])
             
     #resume
-    data = update_dict(dict_prod, getTotaalProd(db_io)) #alle gesloten 
+    data = update_dict_parse(dict_prod, getTotaalProd(db_io), long) #alle gesloten 
     
     with open(PATH+"bestelde_aantallen.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
@@ -401,18 +430,20 @@ def exportXLSX(db_io):
     ws.title = "producten_db"
     
     c.execute("SELECT type, naam, prijs, active, parse, p_basis FROM producten ORDER BY naam COLLATE NOCASE ASC")
+    data = c.fetchall()
     
     dict_prod = {}
     bedragen = {}
+    long = getAllProductParseLong(db_io)
     
     ws.append(("type", "naam", "prijs", "zichtbaar", "parser"))
-    for T, N, P, A, parse, basis in list(c.fetchall()):
+    for T, N, P, A, parse, basis in data:
         dict_prod[N] = 0
         if parse:
             ws.append((T, N, P/100, A, "basis" if basis else "extra"))
         else:
             ws.append((T, N, P/100, A, "nee"))
-            
+  
     #bestellingen
     ws2 = wb.create_sheet(title="bestellingen")
     
@@ -421,7 +452,7 @@ def exportXLSX(db_io):
     
     ws2.append(("ID", "naam", "open", "prijs", "betaalwijze",  " ", *dict_prod.keys()))
     for ID, N, O, P, B, best in data:
-        best = update_dict(dict_prod.copy(), pickle.loads(best))
+        best = update_dict_parse(dict_prod.copy(), pickle.loads(best), long)
         if P:
             ws2.append((ID, N, O, P/100, B, " ", *best.values()))
             bedragen[B] = bedragen.get(B, 0) + P
@@ -438,7 +469,7 @@ def exportXLSX(db_io):
     #resume
     ws4 = wb.create_sheet(title="verkochte aantallen")
     
-    data = update_dict(dict_prod, getTotaalProd(db_io)) #alle gesloten 
+    data = update_dict_parse(dict_prod, getTotaalProd(db_io), long) #alle gesloten 
     
     ws4.append(("product", "aantal"))
     for key in data:
@@ -475,4 +506,3 @@ def importXLSX(file, ret_d):
         return 0
     except:
         return -1
-    
