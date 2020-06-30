@@ -27,6 +27,11 @@ knop_afrekenen = "U ben nog aan het bewerken! Druk op herladen om je wijzigingen
 product_min = "Een negatief aantal van een product is niet toegelaten!"
 product_del = "Dit product staat niet op de rekening!\n Er is niets verandert."
 
+parser_min = "Een negatief aantal van een product is niet toegelaten!"
+parser_del = "Dit product staat niet op de rekening!\n Er is niets verandert."
+parser_opslaan = "De bestelling wordt aangepast.\nDit kan niet ongedaan worden gemaakt."
+parser_leeg = "Selecteer minstens 1 basis product!"
+
 selectie_beide = "[color=#ff0000]'Alle ID's' en een waarde in Start ID en/of Eind ID is niet toegelaten![/color]"
 selectie_nummer = "[color=#ff0000]Start ID en Eind ID moeten 2 positieve getallen zijn![/color]"
 selectie_niets = "[color=#ff0000]Vul een start ID en/of Eind ID in. Je kan ook gewoon 'Alle ID's' aanvinken.[/color]"

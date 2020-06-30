@@ -52,7 +52,7 @@ class Client_storage():
         self.edit_order = {} # +-= self.edit maar incl types
         self.info = {}#ID, prijs, 
         
-        self.parserDATA = ParserStorage()
+        self.parserDATA = ParserStorage(self)
         self.parserPrijs = ParserPrijs()
         
         self.product_set = False
@@ -111,7 +111,7 @@ class Client_storage():
     
     def set_info(self, info):
         self.info = info
-        self.edit_reset()
+        
         
     #getters
     def get_bestelling(self):
@@ -171,6 +171,8 @@ class Client_storage():
     def edit_reset(self):
         self.edit = {}
         self.edit_order = {}
+        
+        self.parserDATA.edit_reset()
     
     
     def bestelling_add_prod(self, prod, aantal, opm=None):
@@ -249,7 +251,7 @@ class Client_storage():
 
 #analoog als bij client maar kleine aanpassingen
 class ParserStorage(object):
-    def __init__(self):
+    def __init__(self, DATA):
         """
         bevat een lijst met:
             basisproducten (W/Z)
@@ -257,6 +259,8 @@ class ParserStorage(object):
         houdt alles bij in een lijst
         gebruikt str methode om het te printen ?
         """
+        self.parent = DATA
+        
         self._basis = [] #[(type, naam), (type, naam)]
         self._extra = [] #[(type, naam), (type, naam)]
         self._extra_shortLong = {}
@@ -336,23 +340,41 @@ class ParserStorage(object):
         return len(self.current[0].strip()) == 0
         
     
+    def set_current(self, new):
+        self.current = new
+    
+    
     def get_current(self):
         return "{} {}".format(*self.current)
-
+    
+    
+    def get_current_raw(self):
+        return self.current
+    
     
     def add_order(self, mode):
+        '''
+            {1:+, -1:-, 0:del}
+        '''
         cu = self.get_current().strip()
-        if mode == 0: #+
-            self.order[cu] = self.order.get(cu, 0) + 1
+        if mode == 1:
+            self.edit[cu] = self.edit.get(cu,0) + 1
             return 0
-        elif cu not in self.order:
-            return -1
-        elif self.order[cu] == 1:
-            del self.order[cu]
-            return 1
-        else:
-            self.order[cu] -= 1
-            return 1
+        elif mode == 0:
+            if cu in self.order:
+                self.edit[cu] = -self.order[cu]
+                return 0
+            elif cu in self.edit:
+                del self.edit[cu]
+                return 0
+            else:
+                return -1
+        elif mode == -1:
+            if self.edit.get(cu, 0) -1 + self.order.get(cu, 0) >= 0:
+                self.edit[cu] = self.edit.get(cu, 0) - 1
+                return 0
+            else:
+                return -1
 
     
     def get_order(self):
@@ -369,6 +391,8 @@ class ParserStorage(object):
         msg = ["{:^28}{:>2}".format("Product", "#"), "-"*32]
         for k in self.order:
             msg.append("{:<28} {:>2}".format(k, self.order[k]))
+        for key in self.edit:
+            msg.append("[color=#ff0000]{:<28} {:>2}[/color]".format(key, self.edit[key]))
         return msg
        
     
@@ -378,6 +402,17 @@ class ParserStorage(object):
     
     def dump(self):
         return self.order
+    
+    
+    def save_edit(self):
+        for i in self.edit:
+            self.order[i] = self.order.get(i, 0) + self.edit[i]
+            self.parent.bestelling[i] = self.order.get(i, 0) + self.edit[i]
+               
+        self.parent.edit = self.edit.copy()
+        #TODO echte types
+        self.parent.edit_order = {"parser":self.parent.edit} 
+        self.edit.clear()
         
         
     def load_order(self, order):
@@ -388,6 +423,12 @@ class ParserStorage(object):
         self.order.clear()
         self.current_type.clear()
         self.current = ["",""]
+        
+    
+    def edit_reset(self):
+        self.edit.clear()
+        self.current_type.clear()
+        self.current = ["", ""]
         
     
     def clear(self):
