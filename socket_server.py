@@ -165,7 +165,7 @@ def printer_bestelling(bestelling, h, order_list):
 def printer_bestelling_resend(bestelling, h, order_list, ip, poort, _type):
     producten = bestelling['BST']
     info = bestelling['info']
-    opm = bestelling['opm'].strip()
+    opm = bestelling.get('opm', '').strip()
     types_short = "{:<2}".format(str(_type)[:2])
     tijd = datetime.datetime.now().strftime("%H:%M:%S")
     msg = makeMsg({'info':info, 'opm':opm, 'BST':producten.get(_type, {}), 'hash':h, 'time':tijd, 'ticket_type':'b', 'ptypes': types_short, 'resend':True})
@@ -364,6 +364,8 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                     user = connecties[notified_socket]
                     
                     # If False, client disconnected, cleanup
+                    
+                    print("input",message)
                     if not(message):
                         print(f"Connectie met {user} gesloten!")
                         #gebruik conn.close() om de connectie te sluiten!
@@ -380,6 +382,7 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         notified_socket.send(get_products(db_io))
                         print(f"[SERVER][GET]{user} vroeg alle producten op")
                     elif message['req'] == "BST":
+                        print("BST")
                         """
                         vb msg
                         {'req': 'BST', 

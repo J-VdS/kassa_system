@@ -2334,6 +2334,10 @@ class BListBar(GridLayout):
         else:
             info.insert(-1, "[color={}]".format(statcolor))
             lijn = "{:^12}\t\t{:^6}\t\t{:^8}\t\t{:^24}\t\t{:^14}\t\t{}{:^10}[/color]".format(*info)
+        Clock.schedule_once(lambda dt: self.blist.update_bestelling(lijn), 0.01)
+    
+    
+    def _update_list_lijn(self, lijn):
         self.blist.update_bestelling(lijn)
         
     
@@ -2439,7 +2443,6 @@ class BListBar(GridLayout):
         self.resend_bst = info
         bst = info[0]
         types = tuple(bst['BST'].keys())
-        print(bst)
         
         self.resend_popup = Popup(title="Resend:", size_hint=(0.5, 0.7))
         
@@ -2782,7 +2785,6 @@ class ParserBar(GridLayout):
         
     
     def vorig_update(self, _):
-        print(self.vorig_ingaves)
         for i, j in enumerate(self.vorig_ingaves):
             if j is None:
                 break
