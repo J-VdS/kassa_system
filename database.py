@@ -11,6 +11,8 @@ import openpyxl
 #import time
 #import func
 
+STAT_PROD_ERROR = "ERR/???"
+
 def update_dict(oud, nieuw):
     for key in nieuw:
         oud[key] = oud.get(key, 0) + nieuw[key]
@@ -18,24 +20,37 @@ def update_dict(oud, nieuw):
     return oud
 
 
-def update_dict_parse(basis, bestelling, long):
+def update_dict_parse(basis, bestelling, long, err=STAT_PROD_ERROR):
     """
         basis = {cola: 0, cola zero: 0, ..., w:0, z:0, groenten:0, brood:0}
         bestelling = {cola:3, cola zero: 2, ..., w:1, wz:5, wz gr: 1, zz br gr: 8}
         long = {br: brood, gr: groenten}
     """
     for obj in bestelling:
+        basis_good = basis.copy()
         if obj in basis:
             basis[obj] += bestelling[obj]
         else:
             #waarschijnlijk parser product
             obj_split = obj.strip().split(' ')
             for i in obj_split[0]:
+                if not(i in basis):
+                    #undo changes en stop loop
+                    basis = basis_good
+                    basis[err] += bestelling[obj]
+                    break
                 basis[i] += bestelling[obj]
-            if len(obj) > 1:
+            #als basis_good =  basis dan is er een fout gebeurd want enkel groenten kan niet
+            if len(obj) > 1 and basis_good != basis: 
                 for i in obj_split[1:]:
+                    if not(i in long):
+                        basis = basis_good
+                        basis[err] += bestelling[obj]
+                        break
                     basis[long[i]] += bestelling[obj]
+                
     return basis
+
 
 def CloseIO(db_io):
     ''' Deze functie wordt opgeroepen als het scherm gesloten wordt en/of een error optreedt'''
@@ -376,6 +391,8 @@ def exportCSV(db_io):#, filename="test.csv"):
         else:
             producten.append([T, N, str(P/100), str(A), "nee"])
         dict_prod[N] = 0 #incl W, Z, groenten, brood
+        
+    dict_prod[STAT_PROD_ERROR] = 0
 
     with open(PATH+"productdump.csv", "w", newline='') as f:
         writer = csv.writer(f, delimiter=',')
@@ -444,6 +461,7 @@ def exportXLSX(db_io):
         else:
             ws.append((T, N, P/100, A, "nee"))
   
+    dict_prod[STAT_PROD_ERROR] = 0
     #bestellingen
     ws2 = wb.create_sheet(title="bestellingen")
     

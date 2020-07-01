@@ -3,7 +3,6 @@ import os
 import pickle
 import datetime
 import sys
-import traceback
 
 from functools import partial #instead of lamda functions
 from collections import deque
@@ -1513,8 +1512,6 @@ class BestelBar(GridLayout):
         elif knop == "OPSLAAN":
             #zet een variabele dat toelaat om te bewerken weer op False en pas de bestelling in de db aan
             #TODO geef popup en laat de persoon akkoord gaan!
-            print("opslaan")
-            print("DATA", gui.DATA.get_edit())
             if trigger:
                 self.makePopup(global_vars.bewerk_opslaan)
             #pas db aan
@@ -2172,7 +2169,6 @@ class StatistiekBar(GridLayout):
             trace_back = sys.exc_info()[2]
             line = trace_back.tb_lineno
             print("line {}: {}".format(str(line), str(e)))
-            traceback.print_exc()
         finally:
             database.CloseIO(db_io)
             
@@ -2186,7 +2182,6 @@ class StatistiekBar(GridLayout):
             trace_back = sys.exc_info()[2]
             line = trace_back.tb_lineno
             print("line {}: {}".format(str(line), str(e)))
-            traceback.print_exc()
         finally:
             database.CloseIO(db_io)
             
