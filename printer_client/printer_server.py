@@ -50,12 +50,16 @@ if ALLLOGGING:
 #https://github.com/python-escpos/python-escpos/issues/230
 #breedte is 32 wss
 
-#epson printer
 
+#lsusb -vvv
+'''
+#epson printer
 ID_VENDOR = 0x04b8 #hex 0xabcd
 ID_PRODUCT = 0x0202 #hex 0xabcd
 OUT_END = 0x01  #hex
 IN_END = 0x82 #hex
+'''
+
 '''
 #hoin printer
 ID_VENDOR = 0x0456  #hex 0xabcd
@@ -63,6 +67,15 @@ ID_PRODUCT = 0x0808 #hex 0xabcd
 OUT_END = 0x03 #hex
 IN_END = 0x81 #hex
 '''
+
+'''
+#blue cover printer
+ID_VENDOR = 0x0456  
+ID_PRODUCT = 0x0808 
+OUT_END = 0x03 
+IN_END = 0x81
+'''
+
 #printer_obj = None
 print_queue = queue.Queue()  # bevat alle bestellingen die moeten worden afgedrukt
 print_status = queue.Queue() # bevat alle statusberichten over de bestellingen (succes/gefaald/bezig)
@@ -180,7 +193,9 @@ def start_listening():
                         #print(f"Connectie met {user} gesloten!")
                         #gebruik conn.close() om de connectie te sluiten!
                         # Remove from list for socket.socket()
-                        sockets_list.remove(notified_socket)
+                        if notified_socket in sockets_list:
+                            sockets_list.remove(notified_socket)
+                            
                         
                         if notified_socket in addr_info_sock:
                             index = addr_info_ip.index(notified_socket)
@@ -207,11 +222,13 @@ def start_listening():
             # It's not really necessary to have this, but will handle some socket exceptions just in case
             for notified_socket in exception_sockets:
                 # Remove from list for socket.socket()
-                sockets_list.remove(notified_socket)
+                if notified_socket in sockets_list:
+                    sockets_list.remove(notified_socket)
     
     
     except Exception as e:
         print("Error ", e)
+        #TODO: add proper stop!
         STOP_LOOP = True
     finally:
         for sock in sockets_list:
