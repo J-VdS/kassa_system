@@ -28,6 +28,8 @@ POORT = 1741
 HEADERLENGTH = 10
 NAAM = "printer" #TODO extra veld moet doorgestuurd worden en na de eerste verbinding wordt de naam vastgelegd
 TBT = 5 #tijd tussen 2 tickets (in seconden)
+EMPTY = 1 #5
+
 #debug
 DYNCON = True #dynamische seriële connectie
 LOGGING = True
@@ -256,6 +258,7 @@ def close_printer(printer):
 def start_printloop(conditie):
     global STOP_LOOP
     global print_queue
+    global print_status
     
     print("start loop")
     
@@ -295,6 +298,8 @@ def start_printloop(conditie):
          
         
 def printer_verwerk(printer_obj, obj):
+    global print_status
+    
     if "STOP" in obj:
         return False
     '''	    
@@ -323,11 +328,11 @@ def printer_verwerk(printer_obj, obj):
             print("BESTELLING: ", obj['BST'])
             
             if (obj.get('resend', False)):
-                printer_obj.text("+"*10+'\n')
                 printer_obj.set(align="center", text_type="b", width=4, height=4)
-                printer_obj.text("RESEND\n")
-                printer_obj.set(align="left", text_type="normal", width=1, height=1)
                 printer_obj.text("+"*10+'\n')
+                printer_obj.text("RESEND\n")
+                printer_obj.text("+"*10+'\n')
+                printer_obj.set(align="left", text_type="normal", width=1, height=1)
                 
             printer_obj.text("TIJD: {}\n".format(obj.get('time', '')))
             printer_obj.text("ID:{:<13}TAFEL:{}\nV:{:<14}HASH:{}\nN:{}\n".format(obj['info']['id'], obj['info']['tafel'], obj['info']['verkoper'], obj['hash'], obj['info']['naam']))
@@ -338,6 +343,7 @@ def printer_verwerk(printer_obj, obj):
                 print("OPM:", obj['opm'])
                 printer_obj.text("-"*32+'\n'+obj["opm"]+'\n')
             printer_obj.text("*"*32)
+            printer_obj.text(EMPTY * '\n')
             printer_obj.cut() #noodzakelijk anders wordt er niets geprint
             
             print_status.put((obj['info']['id'], obj['hash'], obj.get('ptypes', 'no ptypes'), 0))
@@ -376,6 +382,8 @@ def printer_verwerk(printer_obj, obj):
 
 
 def send_pinfo(obj):
+    global print_status
+    
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     msg = {'req':"PINFO", "stats":[]}
     temp = []
