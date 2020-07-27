@@ -62,13 +62,13 @@ OUT_END = 0x01  #hex
 IN_END = 0x82 #hex
 '''
 
-'''
+
 #hoin printer
 ID_VENDOR = 0x0456  #hex 0xabcd
 ID_PRODUCT = 0x0808 #hex 0xabcd
 OUT_END = 0x03 #hex
 IN_END = 0x81 #hex
-'''
+
 
 '''
 #blue cover printer

@@ -29,6 +29,7 @@ import socket_client
 
 kivy.require("1.10.1") #vw voor de versie
 
+MUSATE = True
 DATA = None #Client_storage()
 COLOURS = {"drank":(0.8,0.2,0,1),
            "gerecht":(0,0.2,1,1),} #type:color_tuple 
@@ -621,7 +622,7 @@ class ProductScreen(GridLayout):
         
         topgrid = GridLayout(size_hint_y=0.1, cols=3, rows=1)
         #parser
-        self.pars_button = Button(text="PARS", size_hint_x=0.25, font_size=FS-2)
+        self.pars_button = Button(text="PENS" if MUSATE else "PARSE", size_hint_x=0.25, font_size=FS-2)
         self.pars_button.bind(on_press=self.go_parser)
         topgrid.add_widget(self.pars_button)
         #paginaNr:
