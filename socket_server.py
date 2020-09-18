@@ -359,15 +359,12 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                 else:                    
                     # Receive message
                     message = handles_message(notified_socket)
-                    
                     # Get user by notified socket, so we will know who sent the message
                     user = connecties[notified_socket]
                     
                     # If False, client disconnected, cleanup
-                    
-                    print("input",message)
                     if not(message):
-                        print(f"Connectie met {user} gesloten!")
+                        print(f"\nConnectie met {user} gesloten!")
                         #gebruik conn.close() om de connectie te sluiten!
                         # Remove from list for socket.socket()
                         sockets_list.remove(notified_socket)
@@ -463,17 +460,21 @@ def start_listening(db, crash_func, update_func, order_list=None, get_items=None
                         print("Pinged by {}".format(user))
                     elif message['req'] == "PINFO":
                         print("[SERVER] printer geeft printinfo")
-                        notified_socket.send(makeMsg({"status":-1}))
+                        notified_socket.send(makeMsg({"status":0}))
+                        _ip = notified_socket.getpeername()[0]
+                        #ontvangen
                         for i in message["stats"]:
-                            if len(i) != 4:
+                            if len(i) == 3:
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], "", _ip, "", i[1]], "#44d4c0")
+                            elif len(i) != 4:
                                 continue
                             #"TIJD", "ID", "HASH", "IP:POORT", "TYPES", "STATUS"
                             elif i[-1] == -1:
-                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], i[1], "", i[2], "PERR"], "ff0000")
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], i[1], _ip, i[2], "PERR"], "#ff0000")
                             elif i[-1] == -2:
-                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], "", "", i[2], i[1]], "ff9900")
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], "", _ip, i[2], i[1]], "#ff9900")
                             elif BEST_OK:
-                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], i[1], "", i[2], "PRTD"], "#00ed30")
+                                order_list([datetime.datetime.now().strftime("%H:%M:%S"), i[0], i[1], _ip, i[2], "PRTD"], "#00ed30")
                         
             # It's not really necessary to have this, but will handle some socket exceptions just in case
             for notified_socket in exception_sockets:

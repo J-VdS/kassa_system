@@ -32,8 +32,8 @@ EMPTY = 1 #5
 
 #debug
 DYNCON = True #dynamische seriële connectie
-LOGGING = True
-ALLLOGGING = True
+LOGGING = False
+ALLLOGGING = False
 if LOGGING:
     import os, traceback
     if not(os.path.isdir("logs")):
@@ -382,11 +382,13 @@ def printer_verwerk(printer_obj, obj):
 
 
 def send_pinfo(obj):
+    print("CHECK", obj)
     global print_status
     
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     msg = {'req':"PINFO", "stats":[]}
     temp = []
+    
     for _ in range(print_status.qsize()):
         temp.append(print_status.get())
         msg["stats"].append(temp[-1])
@@ -394,6 +396,8 @@ def send_pinfo(obj):
         s.connect((obj["addr"][0], obj["poort"]))
         s.send(makeMsg({'naam':NAAM}))
         s.send(makeMsg(msg))
+        data = handles_message(s)
+        print("PINFO", data)
     except Exception as e:
         trace_back = sys.exc_info()[2]
         line = trace_back.tb_lineno
